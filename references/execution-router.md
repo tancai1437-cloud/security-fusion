@@ -2,6 +2,8 @@
 
 此层将专项问题变成实际工具调用。选择范围已经在 execution-routes.json 中明确：8个MCP项目和必要的宿主文件能力。按此表优先匹配，不要求用户逐个挑选项目。
 
+先按 [环境初始化](environment-bootstrap.md) 把当前宿主已有能力接入索引，按需补缺并验收。无 --environment 的 catalog 只返回上游候选；带旧 --inventory 的结果仍仅为已观察 schema。执行默认使用 --environment / --agent / --instance 返回的 ready 绑定；连接配置存在、进程存活和 tools/list 都不足以将能力标为 ready。调用失败立即 invalidate，再按失败证据修复或验证替代路径。
+
 **默认选择。**
 
 | 工作 | 首选 | 替代或补充 |

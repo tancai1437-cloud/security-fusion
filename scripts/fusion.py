@@ -24,6 +24,9 @@ def parser():
     for name in ("mission", "skill", "capability"):
         selectors.add_argument("--" + name)
     listing.add_argument("--inventory")
+    listing.add_argument("--environment", help="Private verified environment index")
+    listing.add_argument("--agent", choices=["dsh", "opencode", "pi"])
+    listing.add_argument("--instance", help="Current host instance; prevents reusing another host's readiness")
     listing.add_argument("--max-chars", type=int, default=6000)
     add_commands(commands)
     for name in ("init", "plan", "begin", "record", "review", "reconcile", "note", "resume", "query", "report", "run"):
@@ -163,8 +166,15 @@ def main(argv=None):
     try:
         if args.command == "catalog":
             require(not args.inventory or args.capability, "--inventory requires --capability")
-            result = bounded(catalog(args.mission, args.skill, args.capability,
-                                     read_json(args.inventory) if args.inventory else None), args.max_chars)
+            if args.environment:
+                from fusion_environment import Environment
+                require(args.capability and args.agent and args.instance and not args.inventory,
+                        "--environment requires capability, agent and instance; cannot combine --inventory")
+                result = bounded(Environment(args.environment, args.agent).lookup(args.capability, args.instance), args.max_chars)
+            else:
+                require(not args.agent and not args.instance, "Agent/instance require --environment")
+                result = bounded(catalog(args.mission, args.skill, args.capability,
+                                         read_json(args.inventory) if args.inventory else None), args.max_chars)
         elif args.command == "init":
             case = Case.create(args.case, read_json(args.input))
             result = {"status": "created", "case_id": case.meta("case_id")}

@@ -1,0 +1,39 @@
+{
+  "generated_at": "2026-09-18T21:59:25.287346+00:00",
+  "status": "PASS",
+  "local_os": "Windows",
+  "python": "3.11.9",
+  "all_runtime_tests": 74,
+  "bootstrap_tests": 25,
+  "failures": 0,
+  "errors": 0,
+  "coverage": [
+    "bounded discovery without installing or executing found software",
+    "reuse and missing-provider planning",
+    "current-agent namespace isolation",
+    "DSH/OpenCode/Pi configuration generation",
+    "secret references without secret values",
+    "configuration backup and preservation of user changes",
+    "actual-result envelope and semantic-review receipts",
+    "per-capability indexing and catalog integration",
+    "instance/configuration/TTL/evidence invalidation",
+    "cooperative writer lock"
+  ],
+  "test_scope": "offline synthetic tool receipts and temporary files only",
+  "live_mcp_integration": "NOT_RUN",
+  "kali_agent_integration": "NOT_RUN",
+  "target_machine_provisioning": "NOT_RUN; performed by the target Agent at first Skill use",
+  "structural_gate": {
+    "status": "PASS",
+    "baseline_commit": "1ff57a8",
+    "baseline_quality": 6688,
+    "observed_quality": 6604,
+    "cycles": 0,
+    "god_files": 0,
+    "note": "Sentrux gate passed; composite quality decreased, no configured regression threshold failed"
+  },
+  "architectural_rules": {
+    "status": "NOT_CONFIGURED",
+    "reason": "No .sentrux/rules.toml"
+  }
+}

@@ -5,10 +5,11 @@
   "specialists": 13,
   "mcp_providers": 8,
   "execution_capabilities": 18,
+  "environment_recipes": 9,
   "upstream_projects": 15,
   "upstream_files": 33,
   "example_workitems": 7,
-  "local_links_checked": 76,
+  "local_links_checked": 81,
   "live_mcp_integration": "NOT_RUN",
   "model_routing_effectiveness": "NOT_MEASURED"
 }

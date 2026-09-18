@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "policy": "agent_driven_reconcile_current_host_only",
+  "providers": [
+    {
+      "id": "hexstrike",
+      "executables": [
+        "python3",
+        "python",
+        "nmap",
+        "subfinder",
+        "katana",
+        "nuclei"
+      ],
+      "markers": [
+        "hexstrike_mcp.py",
+        "hexstrike_server.py"
+      ],
+      "guide": "https://github.com/0x4m4/hexstrike-ai#installation",
+      "setup": [
+        "查找已有仓库、独立 Python 环境与正在运行的后台；复用已验证实例。",
+        "缺失时从官方仓库固定提交安装到私有 providers 目录，创建 venv 并安装 requirements；按当前能力补底层命令。",
+        "按上游代码核对监听地址和启动方式，再启动后台；hexstrike_mcp.py --server 指向真实后台。后台 HTTP API 不是 MCP URL。"
+      ],
+      "smoke": "通过当前 Agent 调用实际暴露的健康/工具状态接口，核对所需命令；不调用 autonomous agent 总控。",
+      "dependencies": {
+        "subfinder_scan": [
+          "subfinder"
+        ],
+        "nmap_scan": [
+          "nmap"
+        ],
+        "katana_crawl": [
+          "katana"
+        ],
+        "nuclei_scan": [
+          "nuclei"
+        ],
+        "prowler_scan": [
+          "prowler"
+        ],
+        "checkov_iac_scan": [
+          "checkov"
+        ],
+        "trivy_scan": [
+          "trivy"
+        ],
+        "kube_bench_cis": [
+          "kube-bench"
+        ],
+        "enum4linux_scan": [
+          "enum4linux"
+        ],
+        "netexec_scan": [
+          "netexec"
+        ]
+      }
+    },
+    {
+      "id": "burp",
+      "executables": [
+        "burpsuite",
+        "java"
+      ],
+      "markers": [
+        "burp-mcp-all.jar",
+        "mcp-proxy-all.jar"
+      ],
+      "guide": "https://github.com/PortSwigger/mcp-server#installation",
+      "setup": [
+        "复用当前 Burp 与项目；缺扩展时安装官方 MCP 扩展并启用服务。",
+        "DSH 客户端使用官方 stdio proxy 连接 Burp 的 SSE 服务；不能将 SSE 端点冒充 streamable-http。",
+        "代理命令、JAR 路径和 Java 版本从实际安装获取；保留现有代理、证书和项目配置。"
+      ],
+      "smoke": "在指定测试项目中读取少量代理历史或版本信息；空历史是有效连接结果，配置变更需按任务另行处理。",
+      "dependencies": {}
+    },
+    {
+      "id": "js-reverse",
+      "executables": [
+        "js-reverse-mcp",
+        "node",
+        "npx",
+        "google-chrome",
+        "chromium",
+        "chromium-browser"
+      ],
+      "markers": [
+        "js-reverse-mcp/build/src/index.js"
+      ],
+      "guide": "https://github.com/zhizhuodemao/js-reverse-mcp#快速开始npx",
+      "setup": [
+        "已有 js-reverse-mcp 或本地构建优先复用。缺失时在私有目录安装固定版本 js-reverse-mcp，记录 npm 版本和实际启动文件。",
+        "核对浏览器二进制、图形环境或现有 CDP 端点；绑定独立分析 profile 和允许落盘目录。",
+        "按目标环境生成 stdio 启动配置；仅缺少运行条件的部分阻塞。"
+      ],
+      "smoke": "通过当前 Agent 实际列出页面；有浏览器操作需求时在本地测试页观察页面、脚本和网络记录。",
+      "dependencies": {}
+    },
+    {
+      "id": "jshook",
+      "executables": [
+        "node",
+        "pnpm"
+      ],
+      "markers": [
+        "jshookmcp/package.json"
+      ],
+      "guide": "https://github.com/vmoranv/jshookmcp",
+      "setup": [
+        "JS Reverse 足够时不重复安装本补充路径。",
+        "需要补充能力时复用已有 jshookmcp，或按当前上游文档固定提交安装、构建并确认真实入口。",
+        "保留按需发现方式；不预载所有工具域。"
+      ],
+      "smoke": "实际 search_tools 后 describe_tool，确认所需能力 schema；若需执行能力，还要调用对应只读工具。",
+      "dependencies": {}
+    },
+    {
+      "id": "jadx",
+      "executables": [
+        "jadx",
+        "jadx-gui",
+        "java",
+        "uv",
+        "python3"
+      ],
+      "markers": [
+        "jadx_mcp_server.py"
+      ],
+      "guide": "https://github.com/zinja-coder/jadx-mcp-server",
+      "setup": [
+        "先复用 JADX，再按上游兼容表补 MCP server 和 GUI 插件；不要只安装 Python 桥接就报告成功。",
+        "固定版本或提交，使用独立 Python 环境，按实际参数连接正在运行的 JADX。",
+        "用本地测试 APK 或已获准样本验证项目绑定。"
+      ],
+      "smoke": "读取实际已加载样本的 Manifest 或类列表，记录样本标识；没有加载样本时报告 context_required。",
+      "dependencies": {}
+    },
+    {
+      "id": "apktool",
+      "executables": [
+        "apktool",
+        "java",
+        "uv",
+        "python3"
+      ],
+      "markers": [
+        "apktool_mcp_server.py"
+      ],
+      "guide": "https://github.com/zinja-coder/apktool-mcp-server",
+      "setup": [
+        "复用 Apktool/Java；缺失时按上游文档补工具和 Python MCP server。",
+        "核对实际启动参数与输出路径，注册 stdio 连接。",
+        "用小型本地测试 APK 验证解包/读取链路；不要把修改重打包作为初始化动作。"
+      ],
+      "smoke": "核对版本，再读取本地测试工程 Manifest；测试产物放环境验收目录。",
+      "dependencies": {}
+    },
+    {
+      "id": "ida",
+      "executables": [
+        "ida",
+        "ida64",
+        "idalib-mcp",
+        "ida-pro-mcp"
+      ],
+      "markers": [
+        "ida_pro_mcp/server.py"
+      ],
+      "guide": "https://github.com/mrexodia/ida-pro-mcp#installation",
+      "setup": [
+        "已有可用 IDA/许可证时复用，再安装匹配版本 ida-pro-mcp。",
+        "根据 GUI 或 idalib 的实际部署方式使用上游生成的连接配置；确认数据库绑定。",
+        "缺许可证时保留阻塞原因，优先验证适用的 Ghidra 路径，不自动购买。"
+      ],
+      "smoke": "读取测试数据库信息或少量函数；无数据库时记录 context_required。",
+      "dependencies": {}
+    },
+    {
+      "id": "ghidra",
+      "executables": [
+        "ghidra",
+        "ghidraRun",
+        "java",
+        "uv",
+        "python3"
+      ],
+      "markers": [
+        "ghidraRun",
+        "bridge_mcp_ghidra.py"
+      ],
+      "guide": "https://github.com/bethington/ghidra-mcp",
+      "setup": [
+        "复用 Ghidra/Java，缺失时按当前上游兼容版本补齐软件、插件和 Python bridge。",
+        "使用上游实际入口和传输方式；确认插件启用与实例列表。",
+        "核对测试程序/项目，按需加载分析工具组。"
+      ],
+      "smoke": "实际列出实例并连接测试程序，再加载所需工具组读取函数信息。",
+      "dependencies": {}
+    },
+    {
+      "id": "host",
+      "executables": [
+        "python3",
+        "python",
+        "rg",
+        "git"
+      ],
+      "markers": [],
+      "guide": null,
+      "setup": [
+        "复用当前 Agent 文件、命令与检索能力；不安装文件系统 MCP 替代已有能力。",
+        "以环境验收目录内的临时文件测试创建、读取、检索和哈希；保留实际工具名与 schema。"
+      ],
+      "smoke": "使用临时文件完成实际文件读写与哈希校验。",
+      "dependencies": {}
+    }
+  ]
+}

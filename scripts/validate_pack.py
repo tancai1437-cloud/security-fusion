@@ -27,6 +27,12 @@ def main():
     execution = read_json("manifests/execution-routes.json")
     providers = unique_index(execution["providers"], "providers")
     routes = unique_index(execution["routes"], "routes")
+    setup = unique_index(read_json("manifests/environment-providers.json")["providers"], "environment providers")
+    require(set(setup) == set(providers), "Environment setup must cover every execution provider")
+    for provider in setup.values():
+        require(provider["setup"] and provider["smoke"], "Missing setup/verification instructions")
+        if provider["id"] != "host":
+            require(provider["guide"].startswith("https://github.com/"), "Missing upstream installation guide")
     missions = unique_index(read_json("manifests/missions.json")["missions"], "missions")
     used_routes = set()
     for source in source_index.values():
@@ -100,6 +106,7 @@ def main():
         "specialists": len(modules),
         "mcp_providers": len(providers) - 1,
         "execution_capabilities": len(routes),
+        "environment_recipes": len(setup),
         "upstream_projects": len({s["repo"] for s in source_index.values()}),
         "upstream_files": len(source_index),
         "example_workitems": len(work),
