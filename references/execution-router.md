@@ -34,6 +34,8 @@ MCP默认直接工具有实际接口才能调用；jshook等支持元工具时�
 
 本地工具使用 fusion.py run 完成查重、登记、运行和文件捕获。原生 MCP 使用 begin → 宿主调用 → record；仅 execute 才调用，reuse 复用，hold 不重发。isError/协议 error 不算完成；可复核结果进入 review，证据满足检查条件才 review --verdict done。实际命令、MCP结果文件与恢复协议见 [运行协议](runtime.md)。
 
+所有运行操作绑定案件和会话。新 MCP 调用先 context-set 登记实际观察，begin 携带 --context；共享 slot 互斥，检查 provider / target / identity 及观察时间。未决调用不能切换上下文；独立宿主实例优先。此程序不独立探测 MCP，真实查询由 Agent 完成，规则见 [隔离协议](scoped-memory.md)。
+
 优先分页/过滤/导出后读取必要片段；宿主已经注入上下文的大输出无法被本包事后减少。脚本不产生额外模型摘要调用，也不自动加载全量工具 schema。
 
 **失败与恢复。**

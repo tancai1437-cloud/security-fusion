@@ -103,7 +103,7 @@ def append_with_budget(packet, name, candidates, omitted, maximum):
             break
 
 
-def resume(case, identity=None, maximum=6000):
+def resume(case, identity=None, maximum=6000, binding=None, experiences=None):
     rows = [dict(r) for r in case.db.execute("SELECT * FROM checks ORDER BY rowid")]
     current = select_current(case, rows, identity)
     current_id = current["id"] if current else None
@@ -125,7 +125,16 @@ def resume(case, identity=None, maximum=6000):
         packet["current"] = dict(check_card(case, current, verify=True),
                                  spec=json.loads(current["spec"]), dependencies=json.loads(current["deps"]),
                                  evidence=case.artifacts(current["latest_attempt"]) if current["latest_attempt"] else [])
+    if binding:
+        packet["binding"] = binding
+    if experiences is not None:
+        packet["experience_hints"] = []
+        packet["experience_engine"] = experiences["engine"]
+        packet["experience_use"] = experiences["use"]
+        packet["omitted_experiences"] = experiences["omitted"] + len(experiences["items"])
     bounded(packet, maximum)
+    if experiences is not None:
+        append_with_budget(packet, "experience_hints", experiences["items"], "omitted_experiences", maximum)
     append_with_budget(packet, "recent_global_notes", optional_notes, "omitted_notes", maximum)
     append_with_budget(packet, "queue", queue, "omitted_queue", maximum)
     return bounded(packet, maximum)
@@ -206,7 +215,8 @@ def report(case):
     write_view(case, "evidence/records.json", encode(artifacts) + "\n")
     write_view(case, "resume.md",
                f"# Recovery pointer\n\nExport revision: {revision}\n\n"
-               "Run fusion.py resume --case <case-directory> to read the authoritative ledger.\n"
+               "Inspect fusion.py identify --case <case-directory> to recover the explicit binding.\n"
+               "Then run fusion.py resume --workspace <registry> --session <session-id> --case <case-directory>.\n"
                "Do not reload all history or assume this export is current.\n")
     return {"status": status, "completion_scope": "recorded_plan_only", "revision": revision,
             "counts": counts, "artifacts": ["report/ledger.md", "report/coverage.json", "resume.md"]}

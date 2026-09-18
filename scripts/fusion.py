@@ -12,6 +12,8 @@ import time
 
 from fusion_store import Case, FusionError, encode, read_json, require
 from fusion_views import bounded, catalog, query, report, resume, write_view
+from fusion_scope_cli import add_commands, binding_options, execute_bound, memory_query_options
+from fusion_workspace import Workspace
 
 
 def parser():
@@ -23,9 +25,12 @@ def parser():
         selectors.add_argument("--" + name)
     listing.add_argument("--inventory")
     listing.add_argument("--max-chars", type=int, default=6000)
+    add_commands(commands)
     for name in ("init", "plan", "begin", "record", "review", "reconcile", "note", "resume", "query", "report", "run"):
         command = commands.add_parser(name)
         command.add_argument("--case", required=True)
+        if name != "init":
+            binding_options(command)
         if name in {"init", "plan"}:
             command.add_argument("--input", required=True)
         if name in {"begin", "run"}:
@@ -34,6 +39,7 @@ def parser():
         if name == "begin":
             command.add_argument("--provider", required=True)
             command.add_argument("--tool", required=True)
+            command.add_argument("--context")
         if name in {"record", "review", "reconcile"}:
             command.add_argument("--attempt", required=True)
             command.add_argument("--summary", required=True)
@@ -56,6 +62,8 @@ def parser():
             command.add_argument("--check")
         if name in {"resume", "query"}:
             command.add_argument("--max-chars", type=int, default=6000)
+        if name == "resume":
+            memory_query_options(command, recovery=True)
         if name == "query":
             command.add_argument("--kind", choices=["checks", "notes", "events", "attempts"], required=True)
             command.add_argument("--offset", type=int, default=0)
@@ -140,7 +148,7 @@ def dispatch(args, case):
     if command in {"resume", "query"}:
         with case.transaction():
             if command == "resume":
-                return resume(case, args.check, args.max_chars)
+                return resume(case, args.check, args.max_chars, args.binding, args.experiences)
             return bounded(query(case, args.kind, args.offset, args.limit, args.check, args.target), args.max_chars)
     if command == "report":
         return report(case)
@@ -160,9 +168,29 @@ def main(argv=None):
         elif args.command == "init":
             case = Case.create(args.case, read_json(args.input))
             result = {"status": "created", "case_id": case.meta("case_id")}
+        elif args.command == "workspace-init":
+            workspace = Workspace.create(args.workspace)
+            try:
+                result = {"workspace_id": workspace.setting("workspace_id"), "search_engine": workspace.setting("search_engine")}
+            finally:
+                workspace.close()
         else:
             case = Case(args.case)
-            result = dispatch(args, case)
+            if args.command == "identify":
+                result = {"case_id": case.meta("case_id"), "config": case.meta("config")}
+                pinned = case.db.execute("SELECT value FROM meta WHERE key='workspace_binding'").fetchone()
+                if pinned:
+                    binding = json.loads(pinned[0])
+                    workspace = Workspace(binding["workspace_path"])
+                    try:
+                        workspace.registration(case)
+                        owner = workspace.db.execute("SELECT id FROM sessions WHERE case_id=? AND active=1",
+                                                     (case.meta("case_id"),)).fetchone()
+                        result["binding_hint"] = dict(binding, session=owner["id"] if owner else None)
+                    finally:
+                        workspace.close()
+            else:
+                result = execute_bound(args, case, dispatch)
         print(encode(result))
         return 0
     except (FusionError, OSError, sqlite3.Error, json.JSONDecodeError, KeyError, TypeError) as exc:

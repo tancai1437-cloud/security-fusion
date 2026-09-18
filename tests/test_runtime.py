@@ -12,6 +12,7 @@ SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 from fusion_store import Case, FusionError, encode
 from fusion_views import bounded, catalog, query, report, resume
+from fusion_workspace import Workspace
 
 CONFIG = {"mission_id": "pentest", "objective": "Offline runtime validation",
           "scope": "Temporary files only; no network", "constraints": ["No external targets"]}
@@ -32,11 +33,15 @@ class RuntimeTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix="fusion-test-")
         self.root = Path(self.temporary.name)
         self.case = Case.create(self.root / "case", CONFIG)
+        self.workspace = Workspace.create(self.root / "workspace")
+        self.workspace.bind(self.case, "test-session", "test-project", self.case.meta("case_id"),
+                            ["local-fixture", "other-fixture"])
         self.raw = self.root / "raw.txt"
         self.raw.write_text("observed fixture, no vulnerability claim", encoding="utf-8")
 
     def tearDown(self):
         self.case.close()
+        self.workspace.close()
         self.temporary.cleanup()
 
     def plan(self, *specs):
@@ -49,6 +54,7 @@ class RuntimeTests(unittest.TestCase):
         return call["attempt_id"]
 
     def cli(self, *argv, expected=0):
+        argv = (argv[0], "--workspace", self.workspace.root, "--session", "test-session", *argv[1:])
         result = subprocess.run([sys.executable, "-X", "utf8", str(SCRIPTS / "fusion.py"),
                                  *map(str, argv)], capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(result.returncode, expected, result.stderr + result.stdout)
