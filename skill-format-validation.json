@@ -1,0 +1,72 @@
+[
+  {
+    "Skill": "security-fusion",
+    "Pass": true,
+    "Output": "Skill is valid!"
+  },
+  {
+    "Skill": "fusion-recon",
+    "Pass": true,
+    "Output": "Skill is valid!"
+  },
+  {
+    "Skill": "fusion-web",
+    "Pass": true,
+    "Output": "Skill is valid!"
+  },
+  {
+    "Skill": "fusion-api",
+    "Pass": true,
+    "Output": "Skill is valid!"
+  },
+  {
+    "Skill": "fusion-business",
+    "Pass": true,
+    "Output": "Skill is valid!"
+  },
+  {
+    "Skill": "fusion-js",
+    "Pass": true,
+    "Output": "Skill is valid!"
+  },
+  {
+    "Skill": "fusion-code",
+    "Pass": true,
+    "Output": "Skill is valid!"
+  },
+  {
+    "Skill": "fusion-mobile",
+    "Pass": true,
+    "Output": "Skill is valid!"
+  },
+  {
+    "Skill": "fusion-binary",
+    "Pass": true,
+    "Output": "Skill is valid!"
+  },
+  {
+    "Skill": "fusion-cloud",
+    "Pass": true,
+    "Output": "Skill is valid!"
+  },
+  {
+    "Skill": "fusion-infra",
+    "Pass": true,
+    "Output": "Skill is valid!"
+  },
+  {
+    "Skill": "fusion-ai",
+    "Pass": true,
+    "Output": "Skill is valid!"
+  },
+  {
+    "Skill": "fusion-validate",
+    "Pass": true,
+    "Output": "Skill is valid!"
+  },
+  {
+    "Skill": "fusion-report",
+    "Pass": true,
+    "Output": "Skill is valid!"
+  }
+]

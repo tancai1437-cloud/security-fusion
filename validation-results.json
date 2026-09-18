@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "validation_kind": "offline_references_and_dependency_graph",
+  "missions": 6,
+  "specialists": 13,
+  "mcp_providers": 8,
+  "execution_capabilities": 18,
+  "upstream_projects": 15,
+  "upstream_files": 33,
+  "example_workitems": 7,
+  "local_links_checked": 61,
+  "live_mcp_integration": "NOT_RUN",
+  "model_routing_effectiveness": "NOT_MEASURED"
+}

@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "example_only": true,
+  "status": "planned_not_executed",
+  "scenario": "自有Web/API样例：有登录、订单流程和前端脚本，无APK、原生样本或云材料。此文件演示三层交接，不含真实测试结果。",
+  "mission_id": "pentest",
+  "scope_ref": "provided-test-scope",
+  "facts": [
+    "web",
+    "api",
+    "test-identities",
+    "business-flow",
+    "javascript"
+  ],
+  "workitems": [
+    {
+      "id": "W01",
+      "skill_id": "fusion-recon",
+      "depends_on": [],
+      "execution_routes": [
+        "browser.observe",
+        "http.history"
+      ],
+      "purpose": "建立入口、身份和响应基线",
+      "expected_artifacts": [
+        "assets.json",
+        "baselines.json"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "W02",
+      "skill_id": "fusion-web",
+      "depends_on": [
+        "W01"
+      ],
+      "execution_routes": [
+        "http.history",
+        "web.templates",
+        "http.request"
+      ],
+      "purpose": "按入口确定Web检查与候选",
+      "expected_artifacts": [
+        "web-checks.json"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "W03",
+      "skill_id": "fusion-api",
+      "depends_on": [
+        "W01"
+      ],
+      "execution_routes": [
+        "http.request",
+        "http.history"
+      ],
+      "purpose": "检查身份、对象与动作边界",
+      "expected_artifacts": [
+        "identity-matrix.json",
+        "api-checks.json"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "W04",
+      "skill_id": "fusion-business",
+      "depends_on": [
+        "W01"
+      ],
+      "execution_routes": [
+        "http.request",
+        "browser.observe"
+      ],
+      "purpose": "核对订单状态规则",
+      "expected_artifacts": [
+        "business-invariants.json",
+        "state-transition-checks.json"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "W05",
+      "skill_id": "fusion-js",
+      "depends_on": [
+        "W01"
+      ],
+      "when": "前端调用链影响当前检查或有明确脚本问题",
+      "execution_routes": [
+        "js.source",
+        "js.runtime"
+      ],
+      "purpose": "按需补充请求与前端调用依据",
+      "expected_artifacts": [
+        "runtime-observations.json"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "W06",
+      "skill_id": "fusion-validate",
+      "depends_on": [
+        "W02",
+        "W03",
+        "W04",
+        "W05"
+      ],
+      "allow_partial_dependencies": true,
+      "execution_routes": [
+        "http.history",
+        "http.request",
+        "code.inspect"
+      ],
+      "purpose": "验证已形成候选，未完成候选保留blocker",
+      "expected_artifacts": [
+        "findings.json",
+        "refutation-records.json"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "W07",
+      "skill_id": "fusion-report",
+      "depends_on": [
+        "W06"
+      ],
+      "allow_partial_dependencies": true,
+      "execution_routes": [
+        "report.compose",
+        "evidence.persist"
+      ],
+      "purpose": "基于真实证据交付完整或阶段报告",
+      "expected_artifacts": [
+        "report/summary.md",
+        "report/report.md",
+        "report/coverage.md",
+        "resume.md"
+      ],
+      "status": "pending"
+    }
+  ],
+  "not_applicable": [
+    {
+      "skill_id": "fusion-mobile",
+      "reason": "没有移动样本"
+    },
+    {
+      "skill_id": "fusion-binary",
+      "reason": "没有原生样本或JNI线索"
+    },
+    {
+      "skill_id": "fusion-cloud",
+      "reason": "范围未包含云环境材料"
+    },
+    {
+      "skill_id": "fusion-ai",
+      "reason": "目标未观察到AI功能"
+    }
+  ]
+}

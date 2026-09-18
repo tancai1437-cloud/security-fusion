@@ -1,0 +1,530 @@
+{
+  "schema_version": 1,
+  "status": "instruction_pack_draft_not_live_integration",
+  "selection_policy": "完成同一检查所需的输入/输出和上下文优先；同一上下文内保持连续。未知接口先发现，实际工具调用只由当前Agent通过宿主完成。",
+  "providers": [
+    {
+      "id": "hexstrike",
+      "repo": "0x4m4/hexstrike-ai",
+      "role": "通用安全工具执行器",
+      "source_ids": [
+        "S06"
+      ],
+      "choice": "首选其明确工具接口；只吸收执行能力，任务规划归本包"
+    },
+    {
+      "id": "burp",
+      "repo": "PortSwigger/mcp-server",
+      "role": "HTTP/WS 历史与请求验证",
+      "source_ids": [
+        "S05",
+        "S24"
+      ],
+      "choice": "使用官方 MCP；历史流量、请求发送与复核共用同一项目上下文"
+    },
+    {
+      "id": "js-reverse",
+      "repo": "zhizhuodemao/js-reverse-mcp",
+      "role": "浏览器、HTTP证据、前端脚本与调试",
+      "source_ids": [
+        "S13",
+        "S14",
+        "S25",
+        "S26"
+      ],
+      "choice": "前端首选；列表→详情→导出，按目标页保持上下文"
+    },
+    {
+      "id": "jshook",
+      "repo": "vmoranv/jshookmcp",
+      "role": "前端与动态分析补充",
+      "source_ids": [
+        "S15",
+        "S20",
+        "S33"
+      ],
+      "choice": "复杂能力按 search_tools→describe_tool→call_tool 发现；不预加载全部域"
+    },
+    {
+      "id": "jadx",
+      "repo": "zinja-coder/jadx-mcp-server",
+      "role": "Android Java/Kotlin代码与调用关系",
+      "source_ids": [
+        "S18"
+      ],
+      "choice": "Java/Kotlin路径首选；先识别移动框架"
+    },
+    {
+      "id": "apktool",
+      "repo": "zinja-coder/apktool-mcp-server",
+      "role": "APK资源、Manifest与smali",
+      "source_ids": [
+        "S19"
+      ],
+      "choice": "与JADX互补；默认检查和解包，修改/重打包按任务需要"
+    },
+    {
+      "id": "ida",
+      "repo": "mrexodia/ida-pro-mcp",
+      "role": "原生程序反编译与引用",
+      "source_ids": [
+        "S16",
+        "S31",
+        "S32"
+      ],
+      "choice": "已具备IDA环境时优先idalib-mcp，绑定具体数据库"
+    },
+    {
+      "id": "ghidra",
+      "repo": "bethington/ghidra-mcp",
+      "role": "原生程序分析与IDA替代",
+      "source_ids": [
+        "S17",
+        "S30"
+      ],
+      "choice": "开源默认路径或已有Ghidra工程；按工具组按需加载"
+    },
+    {
+      "id": "host",
+      "repo": null,
+      "role": "文件、检索、数据转换与报告",
+      "source_ids": [],
+      "choice": "复用Agent宿主已有文件/命令能力；不强制套MCP"
+    }
+  ],
+  "routes": [
+    {
+      "id": "asset.domains",
+      "required_input": [
+        "scope",
+        "domain"
+      ],
+      "expected_output": "带来源与范围标记的域名列表",
+      "choices": [
+        {
+          "provider": "hexstrike",
+          "tool_candidates": [
+            "subfinder_scan"
+          ],
+          "notes": "新发现域名先与范围比对再建项",
+          "evidence_level": "upstream_definition"
+        }
+      ]
+    },
+    {
+      "id": "service.inventory",
+      "required_input": [
+        "scope",
+        "target_set"
+      ],
+      "expected_output": "资产、端口、服务和观察时间",
+      "choices": [
+        {
+          "provider": "hexstrike",
+          "tool_candidates": [
+            "nmap_scan"
+          ],
+          "notes": "参数按约定范围和预算生成，不继承任意默认扫描强度",
+          "evidence_level": "upstream_definition"
+        }
+      ]
+    },
+    {
+      "id": "web.crawl",
+      "required_input": [
+        "scope",
+        "entrypoints"
+      ],
+      "expected_output": "URL/API入口、来源与访问条件",
+      "choices": [
+        {
+          "provider": "hexstrike",
+          "tool_candidates": [
+            "katana_crawl"
+          ],
+          "notes": "保留页面深度和身份条件",
+          "evidence_level": "upstream_definition"
+        }
+      ]
+    },
+    {
+      "id": "web.templates",
+      "required_input": [
+        "scope",
+        "target_set",
+        "checks"
+      ],
+      "expected_output": "模板、版本、原始匹配与候选结论",
+      "choices": [
+        {
+          "provider": "hexstrike",
+          "tool_candidates": [
+            "nuclei_scan"
+          ],
+          "notes": "仅按适用检查筛选模板；匹配不是确认",
+          "evidence_level": "upstream_definition"
+        }
+      ]
+    },
+    {
+      "id": "browser.observe",
+      "required_input": [
+        "scope",
+        "page_ref"
+      ],
+      "expected_output": "页面上下文和可追溯观察",
+      "choices": [
+        {
+          "provider": "js-reverse",
+          "tool_candidates": [
+            "select_page",
+            "navigate_page"
+          ],
+          "notes": "沿用外部Chrome与目标页；无需另开标签",
+          "evidence_level": "upstream_definition"
+        },
+        {
+          "provider": "jshook",
+          "tool_candidates": [
+            "search_tools",
+            "describe_tool",
+            "call_tool"
+          ],
+          "notes": "先搜索页面观察能力，再核验子工具真实schema",
+          "evidence_level": "upstream_documentation"
+        }
+      ]
+    },
+    {
+      "id": "http.history",
+      "required_input": [
+        "scope",
+        "traffic_context"
+      ],
+      "expected_output": "请求/响应、身份条件与分页完整性",
+      "choices": [
+        {
+          "provider": "burp",
+          "tool_candidates": [
+            "get_proxy_http_history",
+            "get_proxy_http_history_regex",
+            "get_proxy_websocket_history"
+          ],
+          "notes": "按项目和范围筛选，处理count/offset",
+          "evidence_level": "upstream_definition"
+        },
+        {
+          "provider": "js-reverse",
+          "tool_candidates": [
+            "list_network_requests"
+          ],
+          "notes": "仅代表附着后捕获的当前页面流量；不替代未捕获的历史",
+          "evidence_level": "upstream_definition"
+        }
+      ]
+    },
+    {
+      "id": "http.request",
+      "required_input": [
+        "scope",
+        "identity_ref",
+        "request_spec"
+      ],
+      "expected_output": "实际请求、响应、业务状态与对照结果",
+      "choices": [
+        {
+          "provider": "burp",
+          "tool_candidates": [
+            "send_http1_request",
+            "send_http2_request"
+          ],
+          "notes": "按实际协议和参数定义构造；不把创建Repeater标签当作已发送",
+          "evidence_level": "upstream_definition"
+        }
+      ]
+    },
+    {
+      "id": "js.source",
+      "required_input": [
+        "sample_or_page_ref",
+        "analysis_question"
+      ],
+      "expected_output": "脚本/函数位置、引用与完整源码片段",
+      "choices": [
+        {
+          "provider": "js-reverse",
+          "tool_candidates": [
+            "list_scripts",
+            "search_in_sources",
+            "get_script_source",
+            "save_script_source"
+          ],
+          "notes": "页面导航后旧scriptId可能失效；大型结果导出",
+          "evidence_level": "upstream_definition"
+        },
+        {
+          "provider": "jshook",
+          "tool_candidates": [
+            "search_tools",
+            "describe_tool",
+            "call_tool"
+          ],
+          "notes": "按脚本检索/转换需求动态解析工具",
+          "evidence_level": "upstream_documentation"
+        }
+      ]
+    },
+    {
+      "id": "js.runtime",
+      "required_input": [
+        "scope",
+        "page_ref",
+        "observation_goal"
+      ],
+      "expected_output": "调用位置、输入输出、对照与会话状态",
+      "choices": [
+        {
+          "provider": "js-reverse",
+          "tool_candidates": [
+            "get_request_initiator",
+            "break_on_xhr",
+            "get_paused_info",
+            "pause_or_resume",
+            "evaluate_script"
+          ],
+          "notes": "观察问题明确后使用；区分调试状态和业务结果",
+          "evidence_level": "upstream_definition"
+        },
+        {
+          "provider": "jshook",
+          "tool_candidates": [
+            "search_tools",
+            "describe_tool",
+            "call_tool"
+          ],
+          "notes": "仅在主路径缺能力时补充；完成后交回同一任务",
+          "evidence_level": "upstream_documentation"
+        }
+      ]
+    },
+    {
+      "id": "code.inspect",
+      "required_input": [
+        "source_ref",
+        "analysis_question"
+      ],
+      "expected_output": "文件/行号、调用链、控制条件",
+      "choices": [
+        {
+          "provider": "host",
+          "tool_candidates": [
+            "read_file",
+            "search_files"
+          ],
+          "notes": "本地能力别名；绑定宿主真实工具，不作为MCP工具名",
+          "evidence_level": "local_design"
+        }
+      ]
+    },
+    {
+      "id": "mobile.unpack",
+      "required_input": [
+        "sample_ref",
+        "output_dir"
+      ],
+      "expected_output": "样本标识、Manifest、资源与框架线索",
+      "choices": [
+        {
+          "provider": "apktool",
+          "tool_candidates": [
+            "decode_apk",
+            "get_manifest",
+            "analyze_project_structure"
+          ],
+          "notes": "输出目录由工具实际结果确定，保留样本hash",
+          "evidence_level": "upstream_definition"
+        }
+      ]
+    },
+    {
+      "id": "mobile.code",
+      "required_input": [
+        "sample_ref",
+        "analysis_question"
+      ],
+      "expected_output": "类/方法、资源、smali或交叉引用",
+      "choices": [
+        {
+          "provider": "jadx",
+          "tool_candidates": [
+            "get_android_manifest",
+            "get_class_source",
+            "get_method_by_name",
+            "search_classes_by_keyword",
+            "get_smali_of_class"
+          ],
+          "notes": "绑定正确样本；Java层结果不能代替Flutter/RN原生逻辑",
+          "evidence_level": "upstream_definition"
+        },
+        {
+          "provider": "apktool",
+          "tool_candidates": [
+            "get_smali_file",
+            "search_in_files"
+          ],
+          "notes": "补资源/smali证据；不假设与高级源码等价",
+          "evidence_level": "upstream_definition"
+        }
+      ]
+    },
+    {
+      "id": "binary.analysis",
+      "required_input": [
+        "sample_ref",
+        "analysis_question"
+      ],
+      "expected_output": "样本/地址/函数/调用关系与推断局限",
+      "choices": [
+        {
+          "provider": "ida",
+          "tool_candidates": [
+            "idb_open",
+            "list_funcs",
+            "lookup_funcs",
+            "decompile",
+            "xrefs_to"
+          ],
+          "notes": "数据库显式绑定；idb_open按上游README，分析工具已选读源码",
+          "evidence_level": "upstream_definition_and_documentation"
+        },
+        {
+          "provider": "ghidra",
+          "tool_candidates": [
+            "list_instances",
+            "connect_instance",
+            "search_tools",
+            "load_tool_group",
+            "list_functions",
+            "decompile_function",
+            "get_xrefs_to"
+          ],
+          "notes": "默认开源路径；具体分析工具按组启用后确认",
+          "evidence_level": "upstream_definition_and_documentation"
+        }
+      ]
+    },
+    {
+      "id": "cloud.posture",
+      "required_input": [
+        "scope",
+        "environment_ref",
+        "checks"
+      ],
+      "expected_output": "配置、检查依据、观察与影响条件",
+      "choices": [
+        {
+          "provider": "hexstrike",
+          "tool_candidates": [
+            "prowler_scan",
+            "checkov_iac_scan",
+            "trivy_scan",
+            "kube_bench_cis"
+          ],
+          "notes": "只启用实际涉及的云/容器/IaC检查，保留采集上下文",
+          "evidence_level": "upstream_definition"
+        }
+      ]
+    },
+    {
+      "id": "infra.observe",
+      "required_input": [
+        "scope",
+        "environment_ref",
+        "identity_ref"
+      ],
+      "expected_output": "服务、身份边界与待验证路径",
+      "choices": [
+        {
+          "provider": "hexstrike",
+          "tool_candidates": [
+            "nmap_scan",
+            "enum4linux_scan",
+            "netexec_scan"
+          ],
+          "notes": "围绕指定检查和身份形成工作项；可达不等于完整权限路径",
+          "evidence_level": "upstream_definition"
+        }
+      ]
+    },
+    {
+      "id": "ai.boundary",
+      "required_input": [
+        "scope",
+        "test_identity_refs",
+        "controlled_test_data"
+      ],
+      "expected_output": "可复核的数据/工具权限边界观察",
+      "choices": [
+        {
+          "provider": "burp",
+          "tool_candidates": [
+            "send_http1_request",
+            "send_http2_request"
+          ],
+          "notes": "真实接口请求与合成标记验证",
+          "evidence_level": "upstream_definition"
+        },
+        {
+          "provider": "js-reverse",
+          "tool_candidates": [
+            "select_page",
+            "navigate_page",
+            "list_network_requests"
+          ],
+          "notes": "补足实际产品交互证据",
+          "evidence_level": "upstream_definition"
+        }
+      ]
+    },
+    {
+      "id": "evidence.persist",
+      "required_input": [
+        "case_root",
+        "observation",
+        "raw_artifact"
+      ],
+      "expected_output": "本地文件、hash、Evidence引用与追加事件",
+      "choices": [
+        {
+          "provider": "host",
+          "tool_candidates": [
+            "write_file",
+            "hash_file"
+          ],
+          "notes": "能力别名；使用宿主真实文件工具，禁止把远端路径当本地文件",
+          "evidence_level": "local_design"
+        }
+      ]
+    },
+    {
+      "id": "report.compose",
+      "required_input": [
+        "coverage",
+        "findings",
+        "evidence_index"
+      ],
+      "expected_output": "摘要、报告、覆盖和续跑记录",
+      "choices": [
+        {
+          "provider": "host",
+          "tool_candidates": [
+            "read_file",
+            "write_file"
+          ],
+          "notes": "报告由已保存事实生成，复核引用后收口",
+          "evidence_level": "local_design"
+        }
+      ]
+    }
+  ]
+}

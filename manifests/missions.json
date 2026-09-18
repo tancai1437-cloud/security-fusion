@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "router": "semantic_intent_first",
+  "rules": [
+    "仅方案/调研/解释走只读路径",
+    "用户单点意图优先于完整任务模板",
+    "完整任务的主控不因附件关键词改变",
+    "core代表默认计划候选，仍检查适用性；conditional仅按事实加入",
+    "缺信息仅阻塞依赖它的工作项",
+    "三个层级均由当前主会话执行，不派生代理"
+  ],
+  "missions": [
+    {
+      "id": "pentest",
+      "label": "完整渗透",
+      "intent": "对授权系统进行完整安全评估",
+      "core": [
+        "fusion-recon",
+        "fusion-web",
+        "fusion-api",
+        "fusion-business"
+      ],
+      "conditional": [
+        "fusion-js",
+        "fusion-code",
+        "fusion-mobile",
+        "fusion-binary",
+        "fusion-cloud",
+        "fusion-infra",
+        "fusion-ai"
+      ],
+      "closure": [
+        "fusion-validate",
+        "fusion-report"
+      ]
+    },
+    {
+      "id": "src",
+      "label": "SRC/漏洞赏金",
+      "intent": "按项目范围和接受影响完成发现、验证与报告材料",
+      "core": [
+        "fusion-recon",
+        "fusion-web",
+        "fusion-api",
+        "fusion-business"
+      ],
+      "conditional": [
+        "fusion-js",
+        "fusion-code",
+        "fusion-mobile",
+        "fusion-ai"
+      ],
+      "closure": [
+        "fusion-validate",
+        "fusion-report"
+      ]
+    },
+    {
+      "id": "reverse",
+      "label": "逆向分析",
+      "intent": "从样本或运行行为回答具体分析问题",
+      "core": [],
+      "conditional": [
+        "fusion-mobile",
+        "fusion-binary",
+        "fusion-js",
+        "fusion-code"
+      ],
+      "closure": [
+        "fusion-validate",
+        "fusion-report"
+      ],
+      "selection": "按样本类型选择至少一个专项；没有安全候选时验证分析结论即可"
+    },
+    {
+      "id": "audit",
+      "label": "源码安全审计",
+      "intent": "以提供的源码与配置为主要材料检查控制路径",
+      "core": [
+        "fusion-code"
+      ],
+      "conditional": [
+        "fusion-api",
+        "fusion-business",
+        "fusion-cloud",
+        "fusion-ai"
+      ],
+      "closure": [
+        "fusion-validate",
+        "fusion-report"
+      ],
+      "selection": "动态检查只在任务范围包含运行环境时启用"
+    },
+    {
+      "id": "redteam",
+      "label": "红队/路径与检测验证",
+      "intent": "针对约定场景评估跨系统控制或检测",
+      "core": [
+        "fusion-recon",
+        "fusion-infra"
+      ],
+      "conditional": [
+        "fusion-web",
+        "fusion-api",
+        "fusion-cloud",
+        "fusion-mobile",
+        "fusion-binary",
+        "fusion-js",
+        "fusion-code"
+      ],
+      "closure": [
+        "fusion-validate",
+        "fusion-report"
+      ]
+    },
+    {
+      "id": "ai-assessment",
+      "label": "AI应用评估",
+      "intent": "核验AI应用的数据、身份及工具边界",
+      "core": [
+        "fusion-recon",
+        "fusion-ai"
+      ],
+      "conditional": [
+        "fusion-api",
+        "fusion-web",
+        "fusion-code"
+      ],
+      "closure": [
+        "fusion-validate",
+        "fusion-report"
+      ]
+    }
+  ]
+}

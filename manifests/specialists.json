@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "modules": [
+    {
+      "id": "fusion-recon",
+      "title": "资产与入口侦察",
+      "path": "specialists/fusion-recon/SKILL.md",
+      "applicable_when": "需要建立目标画像或入口基线",
+      "execution_routes": [
+        "asset.domains",
+        "service.inventory",
+        "web.crawl",
+        "browser.observe",
+        "http.history",
+        "evidence.persist"
+      ],
+      "source_ids": [
+        "S09",
+        "S06"
+      ],
+      "returns_to": "mission-controller"
+    },
+    {
+      "id": "fusion-web",
+      "title": "Web检查面评估",
+      "path": "specialists/fusion-web/SKILL.md",
+      "applicable_when": "目标存在Web入口",
+      "execution_routes": [
+        "http.history",
+        "http.request",
+        "web.templates",
+        "browser.observe",
+        "evidence.persist"
+      ],
+      "source_ids": [
+        "S09",
+        "S23",
+        "S05"
+      ],
+      "returns_to": "mission-controller"
+    },
+    {
+      "id": "fusion-api",
+      "title": "API与身份权限",
+      "path": "specialists/fusion-api/SKILL.md",
+      "applicable_when": "目标存在接口/身份/对象边界",
+      "execution_routes": [
+        "http.history",
+        "http.request",
+        "browser.observe",
+        "code.inspect",
+        "evidence.persist"
+      ],
+      "source_ids": [
+        "S27",
+        "S23",
+        "S05"
+      ],
+      "returns_to": "mission-controller"
+    },
+    {
+      "id": "fusion-business",
+      "title": "业务流程与状态",
+      "path": "specialists/fusion-business/SKILL.md",
+      "applicable_when": "目标存在明确业务状态与规则",
+      "execution_routes": [
+        "browser.observe",
+        "http.history",
+        "http.request",
+        "code.inspect",
+        "evidence.persist"
+      ],
+      "source_ids": [
+        "S22"
+      ],
+      "returns_to": "mission-controller"
+    },
+    {
+      "id": "fusion-js",
+      "title": "前端JS与运行时分析",
+      "path": "specialists/fusion-js/SKILL.md",
+      "applicable_when": "前端调用链阻塞当前问题或目标为JS分析",
+      "execution_routes": [
+        "browser.observe",
+        "http.history",
+        "js.source",
+        "js.runtime",
+        "evidence.persist"
+      ],
+      "source_ids": [
+        "S13",
+        "S14",
+        "S25",
+        "S26",
+        "S15",
+        "S20",
+        "S33"
+      ],
+      "returns_to": "mission-controller"
+    },
+    {
+      "id": "fusion-code",
+      "title": "源码审计与变体",
+      "path": "specialists/fusion-code/SKILL.md",
+      "applicable_when": "已提供源码/配置或可用代码材料",
+      "execution_routes": [
+        "code.inspect",
+        "evidence.persist"
+      ],
+      "source_ids": [
+        "S21",
+        "S08",
+        "S07"
+      ],
+      "returns_to": "mission-controller"
+    },
+    {
+      "id": "fusion-mobile",
+      "title": "移动端分流与链路对齐",
+      "path": "specialists/fusion-mobile/SKILL.md",
+      "applicable_when": "范围内有移动端样本或材料",
+      "execution_routes": [
+        "mobile.unpack",
+        "mobile.code",
+        "http.history",
+        "binary.analysis",
+        "js.source",
+        "evidence.persist"
+      ],
+      "source_ids": [
+        "S12",
+        "S11",
+        "S29",
+        "S18",
+        "S19"
+      ],
+      "returns_to": "mission-controller"
+    },
+    {
+      "id": "fusion-binary",
+      "title": "原生二进制分析",
+      "path": "specialists/fusion-binary/SKILL.md",
+      "applicable_when": "问题涉及原生二进制/JNI/SO",
+      "execution_routes": [
+        "binary.analysis",
+        "code.inspect",
+        "evidence.persist"
+      ],
+      "source_ids": [
+        "S16",
+        "S31",
+        "S32",
+        "S17",
+        "S30"
+      ],
+      "returns_to": "mission-controller"
+    },
+    {
+      "id": "fusion-cloud",
+      "title": "云、容器与配置",
+      "path": "specialists/fusion-cloud/SKILL.md",
+      "applicable_when": "范围中有云/容器/IaC材料",
+      "execution_routes": [
+        "cloud.posture",
+        "code.inspect",
+        "evidence.persist"
+      ],
+      "source_ids": [
+        "S06"
+      ],
+      "returns_to": "mission-controller"
+    },
+    {
+      "id": "fusion-infra",
+      "title": "网络与身份基础设施",
+      "path": "specialists/fusion-infra/SKILL.md",
+      "applicable_when": "范围中有网络/身份基础设施",
+      "execution_routes": [
+        "service.inventory",
+        "infra.observe",
+        "code.inspect",
+        "evidence.persist"
+      ],
+      "source_ids": [
+        "S03",
+        "S06"
+      ],
+      "returns_to": "mission-controller"
+    },
+    {
+      "id": "fusion-ai",
+      "title": "AI应用与工具边界",
+      "path": "specialists/fusion-ai/SKILL.md",
+      "applicable_when": "目标确有模型、检索或工具调用链",
+      "execution_routes": [
+        "browser.observe",
+        "http.history",
+        "http.request",
+        "ai.boundary",
+        "code.inspect",
+        "evidence.persist"
+      ],
+      "source_ids": [
+        "S28"
+      ],
+      "returns_to": "mission-controller"
+    },
+    {
+      "id": "fusion-validate",
+      "title": "候选验证与反证",
+      "path": "specialists/fusion-validate/SKILL.md",
+      "applicable_when": "已有候选问题或需要核对分析结论",
+      "execution_routes": [
+        "code.inspect",
+        "http.history",
+        "http.request",
+        "evidence.persist"
+      ],
+      "source_ids": [
+        "S07",
+        "S23",
+        "S10"
+      ],
+      "returns_to": "mission-controller"
+    },
+    {
+      "id": "fusion-report",
+      "title": "覆盖、报告与经验",
+      "path": "specialists/fusion-report/SKILL.md",
+      "applicable_when": "任务收口或需要交付阶段结果",
+      "execution_routes": [
+        "report.compose",
+        "evidence.persist"
+      ],
+      "source_ids": [
+        "S10",
+        "S01"
+      ],
+      "returns_to": "mission-controller"
+    }
+  ]
+}
