@@ -179,10 +179,10 @@ class Memory:
         config = self.db.execute("SELECT dimensions FROM embedding_models WHERE model=?", (model,)).fetchone()
         require(config is not None and config["dimensions"] == len(vector), "No compatible embedding model/dimensions")
         rows = self.db.execute("SELECT m.id,e.vector FROM memories m JOIN embeddings e ON e.memory_id=m.id"
-                               " WHERE e.model=? AND " + where, [model] + params).fetchall()
-        require(len(rows) <= 10000, "Exact vector scan exceeds 10000 eligible cards; narrow the namespace or use an indexed backend")
+                               " WHERE e.model=? AND " + where + " LIMIT 10001", [model] + params)
         scored = []
-        for row in rows:
+        for index, row in enumerate(rows):
+            require(index < 10000, "Exact vector scan exceeds 10000 eligible cards; narrow the namespace or use an indexed backend")
             similarity = sum(a * b for a, b in zip(vector, json.loads(row["vector"])))
             if similarity >= minimum:
                 scored.append((similarity, row["id"]))
