@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "instruction_pack_draft_not_live_integration",
+  "status": "instruction_pack_with_local_runtime_not_live_mcp_validated",
   "selection_policy": "完成同一检查所需的输入/输出和上下文优先；同一上下文内保持连续。未知接口先发现，实际工具调用只由当前Agent通过宿主完成。",
   "providers": [
     {

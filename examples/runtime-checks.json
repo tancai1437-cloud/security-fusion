@@ -1,0 +1,15 @@
+[
+  {
+    "key": "fixture",
+    "target": "local-fixture",
+    "target_version": "fixture-v1",
+    "identity_ref": "local-test-user",
+    "check_type": "fixture-read",
+    "inputs": {"fixture_ref": "fixture-v1"},
+    "method_version": "fixture-print-v1",
+    "capability_id": "evidence.persist",
+    "skill_id": "fusion-validate",
+    "purpose": "Capture and review an offline fixture",
+    "depends_on": []
+  }
+]

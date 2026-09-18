@@ -1,0 +1,35 @@
+{
+  "generated_at": "2026-09-18T20:48:59.850442+00:00",
+  "local_runtime": {
+    "status": "PASS",
+    "python": "3.11.9",
+    "os": "Windows",
+    "tests": 23,
+    "failures": 0,
+    "errors": 0
+  },
+  "context_measurement": {
+    "unit": "unicode_characters_not_model_tokens",
+    "budget_chars": 6000,
+    "catalog_chars": 767,
+    "resume_before_history_chars": 1217,
+    "history_notes": 1000,
+    "resume_after_history_chars": 5996,
+    "omitted_global_notes": 975
+  },
+  "structural_gate": {
+    "status": "DEGRADED",
+    "baseline_quality": 8351,
+    "observed_quality": 6684,
+    "cycles": 0,
+    "god_files": 0,
+    "reason": "Added a three-module Python runtime to a mostly instruction-only baseline; modularity/size-distribution score dropped; complex functions 1 -> 3. This check is not reported as passed."
+  },
+  "architectural_rules": {
+    "status": "NOT_CONFIGURED",
+    "reason": "Repository has no .sentrux/rules.toml"
+  },
+  "live_mcp_integration": "NOT_RUN",
+  "kali_agent_integration": "NOT_RUN",
+  "actual_model_token_savings": "NOT_MEASURED"
+}

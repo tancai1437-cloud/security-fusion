@@ -4,25 +4,29 @@
 
 ```text
 work/<case>/
-  scope.md
-  plan.json
+  case.sqlite3
+  captures/CALL-id/
   events.jsonl
   state.json
-  timeline.md
-  workitems.md
   assets/
   evidence/records.json
   evidence/artifacts/
   specialists/<skill-id>/
   report/summary.md
   report/report.md
+  report/ledger.md
+  report/coverage.json
   report/findings.json
   report/coverage.md
   resume.md
   learning/candidates.md
 ```
 
-scope是范围来源；plan是本版计划；events保存追加执行事件；state与workitems为可重建视图；timeline追加可读过程。报告由证据和覆盖派生。原始证据不能被报告文字取代。
+case.sqlite3 是权威来源：config 保存目标/范围/约束，checks 保存计划与结构化指纹，attempts 保存调用及依赖版本，notes 保存事实/阴性/反证/决策，events 是追加事件。事务保证这些状态的一致性。运行路径、命令和边界见 [运行协议](runtime.md)。
+
+captures 保存原始进程输出和可恢复回执；evidence/artifacts 是有 hash 的独立证据副本。report 命令生成 events.jsonl、state.json、evidence/records.json、report/ledger.md、report/coverage.json、resume.md；仅在阶段结束或交付时导出，带事件版本，可从账本重建。
+
+summary.md、report.md、findings.json、解释性 coverage.md 和专项文件由 Agent 根据实际证据补充。运行程序不会伪造漏洞结论、覆盖这些技术报告或替 Agent 判断全部适用面。原始证据不能被报告文字取代；可重建导出不用于覆盖最新账本状态。
 
 **每个工作项。** id、mission_id、skill_id、target_refs、scope_revision、applicability及依据、depends_on、execution_routes、completion_criteria、status、evidence_ids、blockers。
 
@@ -33,6 +37,10 @@ scope是范围来源；plan是本版计划；events保存追加执行事件；st
 **结论。** F-id、候选主张、根因、成立条件、evidence_ids、复现/反证记录、影响及局限、verdict。verdict为candidate / validated / false_positive / accepted_risk。最后一种是独立的业务处置，不能由技术失败自动推导。
 
 **专项返回。** status、observations、evidence_ids、artifacts、coverage_delta、candidates、blockers、next_conditions。没有新发现也要保存检查结果。
+
+**长期恢复。** 确定性查重使用 target / target_version / identity_ref / check_type / inputs / method_version / capability_id。输入条件不同不混为同一检查；条件相同、证据完整且有效才复用。依赖检查重新执行后，下游旧结果不再自动复用。未知调用先核对；不因压缩或重启自动重放。
+
+**上下文。** 完整数据保存在磁盘，模型默认只读取 bounded resume / query / catalog。上限按字符执行，不能假称精确 token 数；必要约束超限明确失败。否定结论、失败反例、覆盖局限均保留，按目标/检查检索。调用方仍应记录，不保证恢复从未写入账本的想法。
 
 **覆盖和报告。** 保留固定计划版本的适用分母，新增/排除项有依据。不删困难项提高完成率。报告分别列出已完成、受阻、未执行和不适用；confirmed数量与覆盖率独立。零发现、部分完成或工具失败仍交付摘要和恢复条件。
 

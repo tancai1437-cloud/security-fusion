@@ -14,7 +14,7 @@ description: 评估LLM应用、RAG与Agent的身份、检索和工具权限边�
 3. 对关键行为重复观察并设置负例，记录模型/应用版本与状态，避免把一次随机输出推导为稳定漏洞。
 4. 跨身份/租户结果回fusion-api核对；涉及工具权限的结果绑定实际请求和服务端状态，再交统一验证。
 
-执行路由：`browser.observe`、`http.history`、`http.request`、`ai.boundary`、`code.inspect`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 及 [工具匹配表](../../manifests/execution-routes.json) 选择对应工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。
+执行路由：`browser.observe`、`http.history`、`http.request`、`ai.boundary`、`code.inspect`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 执行 fusion.py catalog --capability <id> 按需选择工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
 输出：`ai-boundaries.json`、`controlled-observations.json`、`ai-candidates.json`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
 

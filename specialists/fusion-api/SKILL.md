@@ -15,7 +15,7 @@ description: 评估REST、GraphQL等接口的身份、会话、对象/功能/租
 4. 接口文档、字段存在或不同状态码只作为线索；确认对象归属、敏感字段控制与跨角色结果是否违背业务规则。
 5. 出现签名/前端序列化依赖提交fusion-js；有源码时提交fusion-code以补控制路径。
 
-执行路由：`http.history`、`http.request`、`browser.observe`、`code.inspect`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 及 [工具匹配表](../../manifests/execution-routes.json) 选择对应工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。
+执行路由：`http.history`、`http.request`、`browser.observe`、`code.inspect`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 执行 fusion.py catalog --capability <id> 按需选择工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
 输出：`identity-matrix.json`、`api-checks.json`、`candidate-evidence.json`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
 

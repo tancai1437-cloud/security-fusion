@@ -14,7 +14,7 @@ description: 评估已识别Web入口的输入、文件、客户端策略及服�
 3. 响应200、错误页、页面回显或技术栈匹配不能单独确认为漏洞；检查是否只是统一兜底或自有数据展示。
 4. 认证/权限问题交给fusion-api；交易状态交给fusion-business；前端调用链问题交给fusion-js，并把工作项返回主控安排。
 
-执行路由：`http.history`、`http.request`、`web.templates`、`browser.observe`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 及 [工具匹配表](../../manifests/execution-routes.json) 选择对应工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。
+执行路由：`http.history`、`http.request`、`web.templates`、`browser.observe`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 执行 fusion.py catalog --capability <id> 按需选择工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
 输出：`web-checks.json：逐项结果与证据`、`candidates.json：待验证问题与缺失条件`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
 

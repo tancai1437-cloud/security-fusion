@@ -14,7 +14,7 @@ description: 在指定网络和身份范围内梳理服务、身份边界与可�
 3. 将路径分解为可验证的边，分别记录前提和观察；一个端口可达、一次枚举成功不等于获得完整权限路径。
 4. 遇到云或Web控制条件交对应专项；发现新事实后回主控更新计划。用于检测验证时记录预期信号与实际观测，不能以动作返回成功代替检测有效。
 
-执行路由：`service.inventory`、`infra.observe`、`code.inspect`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 及 [工具匹配表](../../manifests/execution-routes.json) 选择对应工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。
+执行路由：`service.inventory`、`infra.observe`、`code.inspect`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 执行 fusion.py catalog --capability <id> 按需选择工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
 输出：`infra-map.json`、`path-hypotheses.json`、`observed-controls.json`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
 

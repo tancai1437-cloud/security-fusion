@@ -4,9 +4,11 @@
 
 一个主入口包含 6 类任务、13 个专项和 18 类执行能力映射。Agent 根据任务材料安排适用检查，保存证据、覆盖记录、报告和续跑信息。
 
+本次升级增加 Python 标准库运行辅助程序：SQLite 案件账本、执行前查重、中断恢复、证据校验、按需查询及报告导出。三层路由保持不变。
+
 ## 在 Kali / Linux 上一条命令安装
 
-需要 Node.js >= 22.20.0、npm，以及能访问 GitHub 的网络。在终端运行：
+安装需要 Node.js >= 22.20.0、npm 和 GitHub 网络；执行运行辅助程序需要 Python >= 3.9。在目标 Kali / Linux 的终端运行（已安装时同一命令可更新）：
 
 ```bash
 npx --yes skills@1.7.0 add tancai1437-cloud/security-fusion --skill security-fusion --agent universal --global --copy --yes
@@ -52,7 +54,8 @@ npx --yes skills@1.7.0 add tancai1437-cloud/security-fusion --list
 
 ```text
 使用 security-fusion，继续 work/lab-001。
-先读取 resume.md、state.json 和已有证据，再处理未完成项。
+先运行 fusion.py resume --case work/lab-001 获取精简恢复包。
+按当前检查查询相关证据与旧结论，再处理未完成项；待核对调用不要直接重发。
 ```
 
 ## 三层如何衔接
@@ -63,44 +66,62 @@ npx --yes skills@1.7.0 add tancai1437-cloud/security-fusion --list
 
 所有层由当前主会话顺序协调。新线索可以扩展适用检查，单项受阻时继续其余可执行项。
 
+## 长任务与上下文成本
+
+| 问题 | 实际处理 |
+|---|---|
+| 上下文压缩或会话重启 | 读取同一案件账本，恢复目标、约束、当前检查、未决调用和必要笔记 |
+| 重复执行 | 结构化检查指纹查重；有效完成项复用；换身份、版本或方法重新建项 |
+| 忘记失败、反证和阴性结果 | 用 notes 持久化，按目标/检查检索；修订保留旧记录 |
+| 超时后不确定是否执行 | running/unknown 保留待核对状态，有证据才恢复或重试 |
+| token 和来回调用开销 | 只载当前专项/能力；机械记录不调用模型；本地执行与记录合并为 run；阶段结束才导出全量文件 |
+| 上下文越来越大 | 默认响应预算 6,000 字符，省略项给计数，支持分页；必要约束超限报错 |
+
+这是字符预算，不是模型 token 或宿主总上下文上限。原生 MCP 的大量输出若已进入宿主上下文，本包无法撤回；应结合 MCP 分页、过滤和导出。实际模型 token/费用改善尚未测量。
+
+Agent 的命令、示例与中断处理见 [运行协议](references/runtime.md)。由 Agent 使用这些命令，业务用户仍可直接用自然语言提交任务。
+
 ## 产物
 
 [证据契约](references/evidence-contract.md)约定每项任务使用独立目录：
 
 ```text
 work/<case>/
-  scope.md
-  plan.json
+  case.sqlite3
+  captures/
   events.jsonl
   state.json
-  timeline.md
-  workitems.md
   evidence/
   specialists/
   report/
     summary.md
     report.md
+    ledger.md
+    coverage.json
     findings.json
     coverage.md
   resume.md
   learning/candidates.md
 ```
 
-没有确认发现、部分完成或工具失败时仍生成对应状态的报告。原始证据、候选问题和已验证结论分别记录。
+没有确认发现、部分完成或工具失败时仍生成对应状态的报告。原始证据、候选问题和已验证结论分别记录。账本是事实来源；JSON/Markdown 导出带事件版本，由运行程序重建。summary.md、report.md 和 findings.json 由报告专项据实编写，运行程序只生成机械覆盖和证据视图。
 
 ## 当前交付范围
 
-本仓库提供 Agent 可读取的技能指令、路由数据、输出契约与结构校验脚本。MCP 调用使用宿主已经接入的服务；安装此包不自动安装 MCP 服务、分析软件、账号凭证或系统依赖。
+本仓库提供融合指令、路由数据、输出契约、持久化运行辅助程序与校验脚本。MCP 调用使用宿主已经接入的服务；安装此包不自动安装 MCP 服务、分析软件、账号凭证或系统依赖。
 
-已完成 Skill 格式、文件引用、路由映射和示例依赖检查；曾在 Windows 隔离目录验证标准安装器能完整复制技能包。Kali 上的 Agent 行为与真实 MCP 联调尚未验证，结构检查不代表这些任务已经执行成功。
+本地 run 可组合查重与执行；原生 MCP 使用 begin / record / review 协议，Skill 无法拦截绕过协议的直接调用，也无法保证任意外部服务 exactly-once。已有纯文件案件未自动迁移，不能建空账本后把历史检查重跑一遍。
+
+已完成 Skill 格式、文件引用、路由映射、依赖及本地持久化回归检查；曾在 Windows 隔离目录验证标准安装器能完整复制技能包。本次未向当前电脑的 Agent 目录安装 Skill。Kali 上的 Agent 行为与真实 MCP 联调尚未验证，离线检查不代表这些任务已经执行成功。
 
 维护时可运行（Python >= 3.9）：
 
 ```bash
 python3 scripts/validate_pack.py
+python3 -m unittest discover -s tests -v
 ```
 
-结构结果见 [validation-results.json](validation-results.json)，格式结果见 [skill-format-validation.json](skill-format-validation.json)。
+结构结果见 [validation-results.json](validation-results.json)，格式结果见 [skill-format-validation.json](skill-format-validation.json)，运行与字符预算结果见 [runtime-validation.json](runtime-validation.json)。[持续集成](https://github.com/tancai1437-cloud/security-fusion/actions)运行 Ubuntu / Windows 离线测试，不能替代 Kali Agent 与真实 MCP 联调。
 
 ## 来源
 

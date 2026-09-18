@@ -1,0 +1,181 @@
+#!/usr/bin/env python3
+"""Portable, file-backed helpers for security-fusion. Python 3.9+ stdlib only."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import sqlite3
+import subprocess
+import sys
+import time
+
+from fusion_store import Case, FusionError, encode, read_json, require
+from fusion_views import bounded, catalog, query, report, resume, write_view
+
+
+def parser():
+    root = argparse.ArgumentParser(description=__doc__)
+    commands = root.add_subparsers(dest="command", required=True)
+    listing = commands.add_parser("catalog", help="Read only one routing layer or capability")
+    selectors = listing.add_mutually_exclusive_group()
+    for name in ("mission", "skill", "capability"):
+        selectors.add_argument("--" + name)
+    listing.add_argument("--inventory")
+    listing.add_argument("--max-chars", type=int, default=6000)
+    for name in ("init", "plan", "begin", "record", "review", "reconcile", "note", "resume", "query", "report", "run"):
+        command = commands.add_parser(name)
+        command.add_argument("--case", required=True)
+        if name in {"init", "plan"}:
+            command.add_argument("--input", required=True)
+        if name in {"begin", "run"}:
+            command.add_argument("--check", required=True)
+            command.add_argument("--retest-reason", default="")
+        if name == "begin":
+            command.add_argument("--provider", required=True)
+            command.add_argument("--tool", required=True)
+        if name in {"record", "review", "reconcile"}:
+            command.add_argument("--attempt", required=True)
+            command.add_argument("--summary", required=True)
+        if name in {"record", "reconcile"}:
+            command.add_argument("--artifact", action="append", default=[])
+        if name == "record":
+            command.add_argument("--status", required=True, choices=["review", "failed", "blocked", "unknown"])
+            command.add_argument("--mcp-result", help="Local file containing the full MCP CallToolResult")
+        if name == "review":
+            command.add_argument("--verdict", required=True, choices=["done", "failed", "blocked"])
+            command.add_argument("--valid-for", type=float, default=0)
+        if name == "reconcile":
+            command.add_argument("--outcome", required=True, choices=["observed", "not_executed"])
+        if name == "note":
+            command.add_argument("--kind", required=True)
+            command.add_argument("--text", required=True)
+            command.add_argument("--evidence", action="append", default=[])
+            command.add_argument("--supersedes")
+        if name in {"note", "resume", "query"}:
+            command.add_argument("--check")
+        if name in {"resume", "query"}:
+            command.add_argument("--max-chars", type=int, default=6000)
+        if name == "query":
+            command.add_argument("--kind", choices=["checks", "notes", "events", "attempts"], required=True)
+            command.add_argument("--offset", type=int, default=0)
+            command.add_argument("--limit", type=int, default=10)
+            command.add_argument("--target", help="Exact canonical target; filters checks or their notes")
+        if name == "run":
+            command.add_argument("--timeout", type=float, default=300)
+            command.add_argument("--cwd", help="Defaults to the case directory")
+            command.add_argument("argv", nargs=argparse.REMAINDER)
+    return root
+
+
+def local_run(case, args):
+    argv = args.argv[1:] if args.argv[:1] == ["--"] else args.argv
+    require(bool(argv), "run requires -- followed by an executable and its arguments")
+    require(0 < args.timeout <= 86400, "timeout must be between 0 and 86400 seconds")
+    cwd = Path(args.cwd).resolve() if args.cwd else case.root
+    require(cwd.is_dir(), "Working directory does not exist")
+    command_digest = hashlib.sha256(encode({"argv": argv, "cwd": str(cwd)}).encode("utf-8")).hexdigest()
+    receipt = case.begin(args.check, "host", "local_process", args.retest_reason, command_digest)
+    if receipt["decision"] != "execute":
+        return receipt
+    attempt = receipt["attempt_id"]
+    capture = case.root / "captures" / attempt
+    capture.mkdir(parents=True, exist_ok=False, mode=0o700)
+    require(capture.resolve().is_relative_to(case.root), "Capture path escapes case")
+    stdout, stderr = capture / "stdout", capture / "stderr"
+    state, code, detail = "unknown", None, "Interrupted; reconcile before retrying"
+    started = time.time()
+    with stdout.open("xb") as out, stderr.open("xb") as err:
+        if os.name != "nt":
+            os.chmod(stdout, 0o600)
+            os.chmod(stderr, 0o600)
+        try:
+            process = subprocess.Popen(argv, cwd=cwd, stdout=out, stderr=err, shell=False)
+            try:
+                code = process.wait(timeout=args.timeout)
+                state = "review" if code == 0 else "failed"
+                detail = f"Local process exited {code}; inspect captured output before accepting completion"
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+                detail = "Timeout; parent process stopped; child/remote effects may remain; reconcile before retrying"
+        except OSError as exc:
+            state, detail = "blocked", "Process launch failed: " + type(exc).__name__
+        finally:
+            out.flush()
+            err.flush()
+            os.fsync(out.fileno())
+            os.fsync(err.fileno())
+    execution = {"attempt_id": attempt, "command_sha256": command_digest, "returncode": code,
+                 "status": state, "started": started, "finished": time.time(), "summary": detail}
+    write_view(case, f"captures/{attempt}/receipt.json", encode(execution) + "\n")
+    recorded = case.record(attempt, state, detail, [stdout, stderr, capture / "receipt.json"])
+    return dict(recorded, returncode=code, capture_dir=f"captures/{attempt}")
+
+
+def dispatch(args, case):
+    command = args.command
+    if command == "plan":
+        result = case.plan(read_json(args.input))["checks"]
+        return {"total": len(result), "checks": result[:10], "omitted": max(0, len(result) - 10),
+                "next": "query --kind checks or resume --check <plan-key>"}
+    if command == "begin":
+        return case.begin(args.check, args.provider, args.tool, args.retest_reason)
+    if command == "record":
+        status, paths = args.status, list(args.artifact)
+        if args.mcp_result:
+            result = read_json(args.mcp_result)
+            require(isinstance(result, dict), "MCP result must be an object")
+            require("isError" not in result or isinstance(result["isError"], bool), "Invalid MCP isError")
+            if result.get("isError") or result.get("error") is not None:
+                status = "failed"
+            paths.append(args.mcp_result)
+        return case.record(args.attempt, status, args.summary, paths)
+    if command == "review":
+        return case.review(args.attempt, args.verdict, args.summary, args.valid_for)
+    if command == "reconcile":
+        return case.reconcile(args.attempt, args.outcome, args.summary, args.artifact)
+    if command == "note":
+        return case.note(args.kind, args.text, args.check, args.evidence, args.supersedes)
+    if command in {"resume", "query"}:
+        with case.transaction():
+            if command == "resume":
+                return resume(case, args.check, args.max_chars)
+            return bounded(query(case, args.kind, args.offset, args.limit, args.check, args.target), args.max_chars)
+    if command == "report":
+        return report(case)
+    if command == "run":
+        return local_run(case, args)
+    raise FusionError("Unknown command")
+
+
+def main(argv=None):
+    args = parser().parse_args(argv)
+    case = None
+    try:
+        if args.command == "catalog":
+            require(not args.inventory or args.capability, "--inventory requires --capability")
+            result = bounded(catalog(args.mission, args.skill, args.capability,
+                                     read_json(args.inventory) if args.inventory else None), args.max_chars)
+        elif args.command == "init":
+            case = Case.create(args.case, read_json(args.input))
+            result = {"status": "created", "case_id": case.meta("case_id")}
+        else:
+            case = Case(args.case)
+            result = dispatch(args, case)
+        print(encode(result))
+        return 0
+    except (FusionError, OSError, sqlite3.Error, json.JSONDecodeError, KeyError, TypeError) as exc:
+        message = str(exc) if isinstance(exc, FusionError) else type(exc).__name__ + ": check input, ledger and file access"
+        print(encode({"status": "error", "error": message}), file=sys.stderr)
+        return 2
+    finally:
+        if case is not None:
+            case.close()
+
+
+if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    sys.exit(main())

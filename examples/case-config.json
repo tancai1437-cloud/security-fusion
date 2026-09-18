@@ -1,0 +1,9 @@
+{
+  "mission_id": "pentest",
+  "objective": "Validate the offline execution workflow",
+  "scope": "Local fixture files in the case directory only; no network targets",
+  "constraints": [
+    "This is a runtime demonstration, not a security assessment result",
+    "Keep credentials out of check inputs and notes"
+  ]
+}

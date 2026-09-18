@@ -14,7 +14,7 @@ description: 分析提供的PE/ELF/SO等原生程序，通过函数、交叉引�
 3. 函数命名、反编译类型和静态路径可能不准确；保留地址、样本标识及原始依据，必要时交叉核对。
 4. 工具错误、函数缺失与不可达路径分别记录。确认影响所需运行条件交fusion-validate，不由反编译文本直接推导运行成功。
 
-执行路由：`binary.analysis`、`code.inspect`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 及 [工具匹配表](../../manifests/execution-routes.json) 选择对应工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。
+执行路由：`binary.analysis`、`code.inspect`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 执行 fusion.py catalog --capability <id> 按需选择工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
 输出：`binary-profile.json`、`function-evidence.json`、`behavior-analysis.md`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
 

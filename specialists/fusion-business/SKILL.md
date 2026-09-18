@@ -14,7 +14,7 @@ description: 评估订单、额度、审批、邀请等业务流程中的状态�
 3. 依赖并发、真实支付或不可逆状态的检查按本次任务范围处理；使用可控测试资源，不从抽象异常推导经济影响。
 4. 有异常时先复测正常路径与负例，排除过期状态、重复提交提示和测试环境特例。
 
-执行路由：`browser.observe`、`http.history`、`http.request`、`code.inspect`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 及 [工具匹配表](../../manifests/execution-routes.json) 选择对应工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。
+执行路由：`browser.observe`、`http.history`、`http.request`、`code.inspect`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 执行 fusion.py catalog --capability <id> 按需选择工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
 输出：`business-invariants.json`、`state-transition-checks.json`、`business-impact-evidence.json`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
 
