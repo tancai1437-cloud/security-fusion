@@ -15,9 +15,9 @@ description: 对提供的源码建立调用上下文，审查安全控制与跨�
 4. 保持问题覆盖与上下文文件关联；外观相似的代码不直接合并为同一漏洞。
 5. 将已存在的Semgrep/CodeQL等结果作为线索，通过本专项回到当前源码证据；本包不假装新增了对应MCP。
 
-执行路由：`code.inspect`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 执行 fusion.py catalog --capability <id> 按需选择工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
+执行路由：`code.inspect`、`evidence.persist`。已有本地工具直接 start/run；需要 MCP 且工具选择不明确时，按 [执行路由规则](../../references/execution-router.md) 只查当前能力。能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
-输出：`code-context.md`、`trace-records.json`、`variant-candidates.json`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
+阶段输出（执行中先用账本和原始证据记录，阶段结束再整理这些文件）：`code-context.md`、`trace-records.json`、`variant-candidates.json`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
 
 完成条件：关键假设和调用链可引用，候选/变体均附确认或否定依据。
 

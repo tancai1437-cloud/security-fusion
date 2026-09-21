@@ -9,9 +9,11 @@ WORKSPACE="$HOME/security-fusion-private"
 SESSION="agent:host:conversation-id"
 ```
 
-每个执行命令都需要显式案件、注册库和会话绑定。首次使用、继续旧版案件、多会话交接或沉淀经验时，先读 [隔离与经验协议](scoped-memory.md)。标识由当前 Agent 维护，不让业务用户逐步操作。
+每个执行命令都需要显式案件、注册库和会话绑定。新案件优先使用 [快速执行](first-action.md) 的 start，将下面分开的建案步骤合并；可在同一次调用实际执行首个本地检查。只有继续旧版案件、多会话交接或沉淀经验时才读 [隔离与经验协议](scoped-memory.md) 的对应部分。标识由当前 Agent 维护，不让业务用户逐步操作。
 
-## 建案与计划
+## 分步建案与增量计划
+
+以下底层步骤用于迁移、排障或需要单独操作的场景；普通新任务用 start，不再逐项执行本节。后续追加检查复用 plan。
 
 从 [案件配置示例](../examples/case-config.json) 和 [检查示例](../examples/runtime-checks.json) 生成符合实际任务的两个 JSON 文件。示例仅测试离线流程，未执行任何安全评估。
 

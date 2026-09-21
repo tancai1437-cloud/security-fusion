@@ -15,9 +15,9 @@ description: 复核其他专项提交的候选问题，检查成立条件、反�
 4. 按根因和资产/路径去重，保留所有影响位置；验证一个候选失败只结束该候选，不停止整个任务。
 5. 当前主会话顺序复核，记录review_mode=sequential_same_agent，不标成独立代理验证。
 
-执行路由：`code.inspect`、`http.history`、`http.request`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 执行 fusion.py catalog --capability <id> 按需选择工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
+执行路由：`code.inspect`、`http.history`、`http.request`、`evidence.persist`。已有本地工具直接 start/run；需要 MCP 且工具选择不明确时，按 [执行路由规则](../../references/execution-router.md) 只查当前能力。能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
-输出：`findings.json`、`refutation-records.json`、`unresolved-validation.json`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
+阶段输出（执行中先用账本和原始证据记录，阶段结束再整理这些文件）：`findings.json`、`refutation-records.json`、`unresolved-validation.json`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
 
 完成条件：每个候选有结论或最小缺失事实，确认项有可复核执行/代码证据。
 

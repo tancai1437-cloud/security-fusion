@@ -14,11 +14,13 @@ from fusion_store import Case, FusionError, encode, read_json, require
 from fusion_views import bounded, catalog, query, report, resume, write_view
 from fusion_scope_cli import add_commands, binding_options, execute_bound, memory_query_options
 from fusion_workspace import Workspace
+from fusion_start import add_start_command, start
 
 
 def parser():
     root = argparse.ArgumentParser(description=__doc__)
     commands = root.add_subparsers(dest="command", required=True)
+    add_start_command(commands)
     listing = commands.add_parser("catalog", help="Read only one routing layer or capability")
     selectors = listing.add_mutually_exclusive_group()
     for name in ("mission", "skill", "capability"):
@@ -164,7 +166,9 @@ def main(argv=None):
     args = parser().parse_args(argv)
     case = None
     try:
-        if args.command == "catalog":
+        if args.command == "start":
+            result = start(args, local_run)
+        elif args.command == "catalog":
             require(not args.inventory or args.capability, "--inventory requires --capability")
             if args.environment:
                 from fusion_environment import Environment

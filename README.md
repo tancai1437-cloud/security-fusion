@@ -8,7 +8,7 @@
 
 现在还包括会话/案件绑定、共享工具上下文占用、经验候选与版本审核，以及本地 BM25 和可选向量混合检索。不同目标分别维护案件，同项目可复用经过审核的方法。
 
-首次使用会由 Agent 自动完成环境检测、已有工具复用、缺项安装、当前宿主 MCP 接入和实际调用验收。验证通过的能力进入私有索引；后续路由只取当前需要的可用工具。
+实际任务先用已有工具完成一个具体检查，再按结果扩展；start 命令合并建案、绑定、首项登记和可选本地执行。当前检查确实缺少 MCP 能力时才检测、补齐并验收该能力；显式安装/初始化仍按完整环境流程执行。验证通过的 MCP 能力进入私有索引。
 
 ## 在 Kali / Linux 上一条命令安装
 
@@ -44,7 +44,7 @@ npx --yes skills@1.7.0 add tancai1437-cloud/security-fusion --list
 通过实际调用验收后建立能力索引，交付可用项、阻塞项及证据位置。
 ```
 
-普通 `skills add` 是文件安装器，不会自动运行包内脚本；初始化发生在 Agent 首次加载 Skill 时。让 Agent 执行安装时，它应在安装后直接继续初始化。无需用户手写 MCP 配置，完整流程见 [环境初始化](references/environment-bootstrap.md)。实际下载、软件安装、配置合并及调用由目标机 Agent 执行；本包的脚本负责检测、生成配置、验证收据和维护索引。
+普通 `skills add` 是文件安装器，不会自动运行包内脚本；让 Agent 执行安装或显式初始化时，它应继续完成环境接入；直接执行任务时只补齐当前检查缺少的能力，已有本地工具可先执行。无需用户手写 MCP 配置，完整流程见 [环境初始化](references/environment-bootstrap.md)。实际下载、软件安装、配置合并及调用由目标机 Agent 执行；本包的脚本负责检测、生成配置、验证收据和维护索引。
 
 ## 提交任务
 
@@ -58,7 +58,7 @@ npx --yes skills@1.7.0 add tancai1437-cloud/security-fusion --list
 范围：仅该服务以及我提供的测试账号。
 输出目录：work/lab-001。
 
-先自动检测、补齐并验收所需工具和 MCP，再选择专项、编排适用检查并执行。
+先选当前适用专项和具体检查，使用已有本地工具执行，或复用当前已验收的 MCP。只有检查所需能力缺失时才补齐；不先盘点全部工具或生成全量计划。见 [快速执行](references/first-action.md)。
 持续保存动作、结果和原始证据。
 交付总结、报告、覆盖清单和续跑记录。
 缺工具先自动补齐；确实缺账号、许可证或必要权限的项目记录阻塞，继续其他可执行项。
@@ -76,7 +76,7 @@ npx --yes skills@1.7.0 add tancai1437-cloud/security-fusion --list
 
 1. [主路由](references/main-router.md)识别渗透、SRC、逆向、源码审计、红队路径或 AI 应用评估，维护范围、计划、工作项与进度。
 2. [专项路由](manifests/specialists.json)按实际材料选择 recon、web、api、business、js、code、mobile、binary、cloud、infra、ai、validate、report。
-3. [执行路由](references/execution-router.md)根据[能力映射](manifests/execution-routes.json)，先完成环境就绪，再从经当前宿主验收的索引匹配 MCP / 本地工具，核对调用结果并将证据交回专项。
+3. [执行路由](references/execution-router.md)根据[能力映射](manifests/execution-routes.json)，直接使用已有本地工具，或从经当前宿主验收的索引匹配当前所需 MCP；缺项按需补齐，核对结果并将证据交回专项。
 
 所有层由当前主会话顺序协调。新线索可以扩展适用检查，单项受阻时继续其余可执行项。
 
@@ -129,7 +129,7 @@ work/<case>/
 
 ## 当前交付范围
 
-本仓库提供融合指令、路由数据、环境补齐流程、输出契约、持久化运行辅助程序与校验脚本。首次使用由目标机 Agent 完成外部工具安装/复用、MCP 配置与验收，普通文件安装器本身不执行这些动作。需要账号、许可证或交互提权的步骤明确报告阻塞。
+本仓库提供融合指令、路由数据、环境补齐流程、输出契约、持久化运行辅助程序与校验脚本。安装/初始化请求及当前检查的缺项由目标机 Agent 完成外部工具安装/复用、MCP 配置与验收，普通文件安装器本身不执行这些动作。需要账号、许可证或交互提权的步骤明确报告阻塞。
 
 能力索引按机器、Agent、宿主实例和配置版本隔离；实际工具调用失败、验收过期或证据/配置变化会使绑定失效。索引证明记录的验收上下文可用，不代表任意目标、身份、项目都已经就绪；每个案件仍须绑定实际工具上下文。收据的业务含义由执行 Agent 核验，程序不会独立伪装成 MCP 客户端探测所有服务。
 
@@ -145,6 +145,8 @@ python3 -m unittest discover -s tests -v
 ```
 
 结构结果见 [validation-results.json](validation-results.json)，格式结果见 [skill-format-validation.json](skill-format-validation.json)，运行与字符预算结果见 [runtime-validation.json](runtime-validation.json)。[持续集成](https://github.com/tancai1437-cloud/security-fusion/actions)运行 Ubuntu / Windows 离线测试，不能替代 Kali Agent 与真实 MCP 联调。
+
+首项执行回归见 [test_start.py](tests/test_start.py)：启动命令真实访问回环 HTTP 服务、保留原始响应、在进程重启后阻止重复请求，并核对会话隔离、历史文件保护和失败报告。该测试验证程序路径，不代表已验证 DSH/OpenCode/Pi 中模型的实际任务表现。
 
 本次环境初始化与索引回归结果见 [bootstrap-validation.json](bootstrap-validation.json)。测试使用明确标注的离线收据与临时目录，不将测试替身列为可用 MCP，也未在开发机安装外部安全工具。
 

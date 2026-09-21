@@ -15,9 +15,9 @@ description: 分析前端脚本、接口发起链和运行时输入输出，为W
 4. 导航会改变脚本标识，暂停会影响页面行为；每次观察记录页面与脚本版本，完成后恢复本次改变的调试状态。
 5. 用可控输入比较观察与本地重建的输出；缺环境条件则返回缺口，不声称已复现。
 
-执行路由：`browser.observe`、`http.history`、`js.source`、`js.runtime`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 执行 fusion.py catalog --capability <id> 按需选择工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
+执行路由：`browser.observe`、`http.history`、`js.source`、`js.runtime`、`evidence.persist`。已有本地工具直接 start/run；需要 MCP 且工具选择不明确时，按 [执行路由规则](../../references/execution-router.md) 只查当前能力。能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
-输出：`script-map.json`、`runtime-observations.json`、`exported-artifacts/`、`analysis-answer.md`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
+阶段输出（执行中先用账本和原始证据记录，阶段结束再整理这些文件）：`script-map.json`、`runtime-observations.json`、`exported-artifacts/`、`analysis-answer.md`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
 
 完成条件：核心问题有代码位置或运行证据支持；为原任务返回必要参数/条件，不夺取任务主控。
 

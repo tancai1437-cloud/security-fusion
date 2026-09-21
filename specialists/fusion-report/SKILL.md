@@ -16,9 +16,9 @@ description: 根据案件的实际检查、证据和验证结论生成摘要、�
 
 阶段结束时按 [隔离与经验协议](../../references/scoped-memory.md) 将值得复用的方法保存为 memory-add 候选，引用已经完成且有证据的来源笔记，保留适用条件和失败反例。核对来源、脱敏及实际验证后才 memory-review accept，默认 project 范围；general 只放可跨项目的方法。原始报告不进入共享索引，不自动改写 SKILL.md。
 
-执行路由：`report.compose`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 执行 fusion.py catalog --capability <id> 按需选择工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
+执行路由：`report.compose`、`evidence.persist`。已有本地工具直接 start/run；需要 MCP 且工具选择不明确时，按 [执行路由规则](../../references/execution-router.md) 只查当前能力。能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
-输出：`report/summary.md`、`report/report.md`、`report/coverage.md`、`report/findings.json`、`resume.md`、`learning/candidates.md`。这些交付产物位于当前案件根目录对应路径；运行程序生成的 report/ledger.md、report/coverage.json 是技术报告的输入，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
+阶段输出（执行中先用账本和原始证据记录，阶段结束再整理这些文件）：`report/summary.md`、`report/report.md`、`report/coverage.md`、`report/findings.json`、`resume.md`、`learning/candidates.md`。这些交付产物位于当前案件根目录对应路径；运行程序生成的 report/ledger.md、report/coverage.json 是技术报告的输入，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
 
 完成条件：报告与原始记录一致，所有未完成项可解释，业务负责人可直接验收。
 

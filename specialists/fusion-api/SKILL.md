@@ -9,15 +9,17 @@ description: 评估REST、GraphQL等接口的身份、会话、对象/功能/租
 
 输入：接口集合；测试身份及角色/租户关系；预期允许和拒绝的行为。读取当前工作项与必要证据，不默认载入全部专项或全部MCP工具。
 
+**起手动作。** 先检查一条真实请求及当前测试身份，确认正常请求能到达业务处理；使用现有对照，不先填写全量身份矩阵。无身份只阻塞需要该身份的检查；不要用参数格式错误替代权限验证。
+
 1. 先确认每个测试身份实际生效及角色，再建立身份×对象×动作矩阵；账号无效则记录受阻，不能得出无权限问题。
 2. 围绕同一个接口和资源设置正常与拒绝对照，保留身份引用、输入、返回和服务端业务状态。
 3. 认证检查使用可被解析的正常请求；参数校验错误不能证明认证已经通过。
 4. 接口文档、字段存在或不同状态码只作为线索；确认对象归属、敏感字段控制与跨角色结果是否违背业务规则。
 5. 出现签名/前端序列化依赖提交fusion-js；有源码时提交fusion-code以补控制路径。
 
-执行路由：`http.history`、`http.request`、`browser.observe`、`code.inspect`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 执行 fusion.py catalog --capability <id> 按需选择工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
+执行路由：`http.history`、`http.request`、`browser.observe`、`code.inspect`、`evidence.persist`。已有本地工具直接 start/run；需要 MCP 且工具选择不明确时，按 [执行路由规则](../../references/execution-router.md) 只查当前能力。能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
-输出：`identity-matrix.json`、`api-checks.json`、`candidate-evidence.json`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
+阶段输出（执行中先用账本和原始证据记录，阶段结束再整理这些文件）：`identity-matrix.json`、`api-checks.json`、`candidate-evidence.json`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
 
 完成条件：已选身份和接口边界有可追溯对照，未验证结论保留明确缺口。
 

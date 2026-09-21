@@ -15,9 +15,9 @@ description: 分析Android样本的框架、Manifest、代码与网络接口，�
 4. JNI/SO线索交fusion-binary，WebView/JS逻辑交fusion-js。原生分析不是每个APK必经阶段。
 5. 风险综合后进入fusion-validate，最后形成样本画像、协议映射、证据和报告。
 
-执行路由：`mobile.unpack`、`mobile.code`、`http.history`、`binary.analysis`、`js.source`、`evidence.persist`。按 [执行路由规则](../../references/execution-router.md) 执行 fusion.py catalog --capability <id> 按需选择工具；能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
+执行路由：`mobile.unpack`、`mobile.code`、`http.history`、`binary.analysis`、`js.source`、`evidence.persist`。已有本地工具直接 start/run；需要 MCP 且工具选择不明确时，按 [执行路由规则](../../references/execution-router.md) 只查当前能力。能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
-输出：`app-profile.json`、`entrypoints.json`、`traffic-code-map.json`、`mobile-findings.json`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
+阶段输出（执行中先用账本和原始证据记录，阶段结束再整理这些文件）：`app-profile.json`、`entrypoints.json`、`traffic-code-map.json`、`mobile-findings.json`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
 
 完成条件：框架分流有依据、关键链路有证据；未覆盖的运行环境与原生部分明确列出。
 
