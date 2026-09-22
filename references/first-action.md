@@ -17,6 +17,23 @@
 
 ## 一次启动并执行本地检查
 
+新 Web/SRC 任务只有一个明确 HTTP(S) 入口时，可用更短的 entry 模式；targets 必须包含该入口，config 仍记录本次范围和约束：
+
+```json
+{
+  "project": "actual-project",
+  "targets": ["https://authorized.example/"],
+  "config": {"mission_id": "src", "objective": "检查已授权入口", "scope": "仅用户约定入口与测试条件", "constraints": ["只读起手"]},
+  "entry": "https://authorized.example/"
+}
+```
+
+```bash
+python3 "$FUSION_ROOT/scripts/fusion.py" start --workspace "$WORKSPACE" --session "$SESSION" --case "$CASE" --input task.json --execute-local
+```
+
+程序选择 fusion-recon → web.crawl → 当前 curl，执行一次精确入口的匿名读取，不跟随跳转；有凭据的请求和其他检查仍按实际工具处理。没有 curl 时返回候选和 planned_not_executed，不伪造调用。HTTP 错误响应仍需语义复核，成功退出不等于完成。`entry` 和下面的显式 `check` 二选一。首份证据 review 后，优先用 [事实路由](observation-routing.md) 生成下一项；目标不是 HTTP 或已有明确检查时沿用下面的格式。
+
 使用已安装的实际脚本路径，生成一个 task.json，放在案件目录之外。下列结构仅示例，目标、输入、版本与完成条件由当前任务事实替换：
 
 ```json
@@ -65,4 +82,4 @@ start 自动复用已有注册库，建立新案件、绑定会话、登记这�
 
 ## 拿到结果之后
 
-用简明记录保存“观察到了什么、支持/否定什么、还有什么缺口”。新增检查才 plan；同目标有历史时 query 指定目标/检查，复用已有结果。不在每一步重读 Skill、重新建案或生成全套报告。方法受阻才检索经验，阶段结束再导出报告与提炼经验。范围、预算或明确阻塞决定停止；不能用增加工具调用次数替代有效证据。
+用简明记录保存“观察到了什么、支持/否定什么、还有什么缺口”。已观察事实能匹配现有方法时用 route 直接登记下一项；未匹配的明确检查才手工 plan。每份观察只涉及一个资源和身份条件，带当前已复核证据引用。同目标有历史时 query 指定目标/检查，复用已有结果。不在每一步重读 Skill、重新建案或生成全套报告。方法受阻才检索经验，阶段结束再导出报告与提炼经验。范围、预算或明确阻塞决定停止；不能用增加工具调用次数替代有效证据。

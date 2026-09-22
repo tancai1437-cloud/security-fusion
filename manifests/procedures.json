@@ -1,0 +1,595 @@
+{
+  "schema_version": 1,
+  "scope": "Observable facts to bounded checks; no autonomous target classification or host MCP calls.",
+  "procedures": [
+    {
+      "id": "entry-baseline",
+      "skill_id": "fusion-recon",
+      "capability_id": "web.crawl",
+      "any_features": [
+        "http.entry"
+      ],
+      "requires": [],
+      "unless": [
+        "baseline.captured"
+      ],
+      "priority": 10,
+      "question": "确认真实入口、响应含义和跳转边界",
+      "steps": [
+        "读取指定入口，保留状态、Location、内容类型及响应正文；跳转目标先核对范围。",
+        "对照已有正常/不存在资源响应，区分业务内容、登录壳与错误页；未取得对照就保留缺口。",
+        "从实际响应提取页面/API/脚本线索及来源，按观察到的功能继续路由。"
+      ],
+      "acceptance": [
+        "状态码或页面标题不足以判断业务可达。",
+        "基线只覆盖实际读取的入口和身份。"
+      ],
+      "next_on": {
+        "business_response": "按实际功能提供 api.operation / api.object / input.text 等事实",
+        "login_shell": "http.login-shell",
+        "authentication_required": "http.auth-required"
+      },
+      "required_inputs": [],
+      "source_refs": [
+        "specialists/fusion-recon/SKILL.md"
+      ]
+    },
+    {
+      "id": "login-shell-map",
+      "skill_id": "fusion-js",
+      "capability_id": "http.history",
+      "any_features": [
+        "http.login-shell"
+      ],
+      "requires": [],
+      "unless": [],
+      "priority": 90,
+      "question": "从登录壳定位实际业务请求",
+      "steps": [
+        "查询当前入口已有浏览器流量、HTML 引用和已捕获脚本；不要对随机路径重复发送请求。",
+        "记录真实请求的方法、路径、身份传递和响应类型；静态字符串保留为候选。",
+        "有实际接口则回 API/身份路由；没有流量或脚本则返回具体材料缺口。"
+      ],
+      "acceptance": [
+        "同一登录 HTML 不能证明多个接口存在。",
+        "仅对已观察且在范围内的地址创建后续检查。"
+      ],
+      "next_on": {
+        "api_observed": "api.operation",
+        "authentication_required": "http.auth-required",
+        "no_material": "记录流量或脚本缺口；继续独立项"
+      },
+      "required_inputs": [],
+      "source_refs": [
+        "specialists/fusion-js/SKILL.md"
+      ]
+    },
+    {
+      "id": "identity-baseline",
+      "skill_id": "fusion-api",
+      "capability_id": "http.request",
+      "any_features": [
+        "http.auth-required",
+        "api.object"
+      ],
+      "requires": [
+        "identity.available"
+      ],
+      "unless": [
+        "identity.verified"
+      ],
+      "priority": 85,
+      "question": "确认测试身份与正常业务请求是否有效",
+      "steps": [
+        "使用提供的测试身份和一条已知正常请求，核对当前用户、角色/租户及预期资源。",
+        "与无身份或无效身份对照，区分登录壳、认证拒绝和输入校验错误。",
+        "身份未生效时保留原始结果并阻塞依赖它的权限检查；不要反复修改业务参数。"
+      ],
+      "acceptance": [
+        "不能以 200、参数错误或空列表单独证明身份生效。",
+        "凭据只使用安全引用，记录有效身份与适用时间。"
+      ],
+      "next_on": {
+        "verified": "identity.verified",
+        "rejected": "保留身份阻塞；转向已有脚本/源码等独立材料"
+      },
+      "required_inputs": [
+        "request_ref"
+      ],
+      "source_refs": [
+        "specialists/fusion-api/SKILL.md"
+      ]
+    },
+    {
+      "id": "object-boundary",
+      "skill_id": "fusion-api",
+      "capability_id": "http.request",
+      "any_features": [
+        "api.object"
+      ],
+      "requires": [
+        "identity.verified",
+        "objects.controlled"
+      ],
+      "unless": [
+        "http.login-shell"
+      ],
+      "priority": 80,
+      "question": "核对受控对象在不同身份与动作下的访问边界",
+      "steps": [
+        "从真实接口记录身份 A/B、各自受控对象、角色/租户及应允许/拒绝的关系。",
+        "以正常允许请求为对照，核对另一身份对该受控对象的读取；其他实际存在的动作分别登记。",
+        "对照返回对象归属和实际业务状态，排除缓存、公开资源、自有对象、过期会话及统一成功包装。"
+      ],
+      "acceptance": [
+        "每个结论必须有对象归属、有效身份、正常对照和实际结果。",
+        "一个列表或详情结果不能覆盖导出、分享、修改等其他动作。"
+      ],
+      "next_on": {
+        "boundary_violation": "candidate.observed",
+        "expected_denial": "保存当前身份/对象/动作下的阴性；继续未覆盖实际动作",
+        "invalid_identity": "http.auth-required"
+      },
+      "required_inputs": [
+        "identity_refs",
+        "object_refs",
+        "operation"
+      ],
+      "source_refs": [
+        "specialists/fusion-api/SKILL.md"
+      ]
+    },
+    {
+      "id": "api-contract",
+      "skill_id": "fusion-api",
+      "capability_id": "http.history",
+      "any_features": [
+        "api.operation",
+        "api.graphql",
+        "api.websocket"
+      ],
+      "requires": [],
+      "unless": [],
+      "priority": 55,
+      "question": "把已观察接口拆为可验证的身份、对象和操作",
+      "steps": [
+        "读取当前资源对应的已有请求/响应或接口材料，保留方法、字段、身份和实际操作。",
+        "GraphQL 按实际操作/字段识别对象边界；WebSocket 分开记录握手身份和消息操作。",
+        "把带对象标识、文件、业务状态、URL 参数的实际功能分别交给对应方法，不从接口名猜测功能。"
+      ],
+      "acceptance": [
+        "握手/网关成功不代表每项操作被授权。",
+        "静态文档与真实观察分开标记。"
+      ],
+      "next_on": {
+        "object_observed": "api.object",
+        "workflow_observed": "business.workflow",
+        "url_input_observed": "input.url"
+      },
+      "required_inputs": [],
+      "source_refs": [
+        "specialists/fusion-api/SKILL.md"
+      ]
+    },
+    {
+      "id": "file-boundary",
+      "skill_id": "fusion-web",
+      "capability_id": "http.request",
+      "any_features": [
+        "file.download",
+        "file.share",
+        "file.upload"
+      ],
+      "requires": [
+        "identity.verified",
+        "objects.controlled"
+      ],
+      "unless": [
+        "http.login-shell"
+      ],
+      "priority": 75,
+      "question": "核对文件归属、访问边界与实际处理结果",
+      "steps": [
+        "从已观察的上传/下载/分享流程记录文件对象、所有者、存储位置和访问方式。",
+        "用受控文件与测试身份比较正常可访问与预期拒绝结果；处理/转换仅在本次范围允许时验证。",
+        "保存实际返回内容、访问身份及文件关联，区分公开分享、自有文件、缓存和越权读取。"
+      ],
+      "acceptance": [
+        "文件名、扩展名或请求被接受不能替代实际处理结果。",
+        "没有受控对象时记录缺口，不拿未知用户文件作验证。"
+      ],
+      "next_on": {
+        "boundary_violation": "candidate.observed",
+        "expected_behavior": "记录已测文件/动作与未覆盖处理分支"
+      },
+      "required_inputs": [
+        "identity_refs",
+        "object_refs",
+        "operation"
+      ],
+      "source_refs": [
+        "specialists/fusion-web/SKILL.md"
+      ]
+    },
+    {
+      "id": "input-context",
+      "skill_id": "fusion-web",
+      "capability_id": "http.request",
+      "any_features": [
+        "input.text",
+        "input.search",
+        "input.template"
+      ],
+      "requires": [
+        "response.business"
+      ],
+      "unless": [
+        "http.login-shell"
+      ],
+      "priority": 65,
+      "question": "识别输入实际进入的处理和输出位置",
+      "steps": [
+        "从正常请求记录输入字段、有效身份、正常输出和校验行为。",
+        "用无害可辨识标记核对输入出现在文本、属性、脚本、查询结果或模板的哪个位置。",
+        "根据实际编码、调用路径和对照选择更具体的验证；异常不稳定时保留不确定结果。"
+      ],
+      "acceptance": [
+        "回显、单次 500 或延迟不足以确认漏洞。",
+        "未进入业务处理或仍为登录壳时不继续下游输入变体。"
+      ],
+      "next_on": {
+        "context_observed": "按已确认上下文补具体检查；有源码时 code.source",
+        "unexpected_boundary": "candidate.observed",
+        "authentication_required": "http.auth-required"
+      },
+      "required_inputs": [
+        "request_ref",
+        "parameter"
+      ],
+      "source_refs": [
+        "specialists/fusion-web/SKILL.md"
+      ]
+    },
+    {
+      "id": "url-origin",
+      "skill_id": "fusion-web",
+      "capability_id": "http.history",
+      "any_features": [
+        "input.url",
+        "integration.webhook"
+      ],
+      "requires": [],
+      "unless": [],
+      "priority": 65,
+      "question": "确认外部地址由谁使用以及实际请求边界",
+      "steps": [
+        "从已有请求和调用链定位 URL 参数用途，区分浏览器导航、服务端获取和异步回调。",
+        "有范围内受控回调证据时对齐请求时间、来源和应用行为；没有则明确仍未验证。",
+        "仅按观察到的处理位置补当前问题需要的验证；不能由字段名直接判定服务端请求。"
+      ],
+      "acceptance": [
+        "地址出现在响应中不等于服务端发起请求。",
+        "不自动探测内部地址或新增目标。"
+      ],
+      "next_on": {
+        "server_request_evidence": "按本次范围补来源限制与控制证据",
+        "browser_only": "转浏览器上下文；保留当前限制",
+        "boundary_violation": "candidate.observed"
+      },
+      "required_inputs": [],
+      "source_refs": [
+        "specialists/fusion-web/SKILL.md"
+      ]
+    },
+    {
+      "id": "business-transition",
+      "skill_id": "fusion-business",
+      "capability_id": "http.request",
+      "any_features": [
+        "business.workflow",
+        "business.quota",
+        "business.order"
+      ],
+      "requires": [
+        "identity.verified"
+      ],
+      "unless": [
+        "http.login-shell"
+      ],
+      "priority": 75,
+      "question": "核对实际业务状态转换及一次性约束",
+      "steps": [
+        "记录一个真实流程的起始/结束状态、允许的身份、前置条件及预期副作用。",
+        "从已有证据或获准的受控操作核对服务端前后状态；区分界面限制与服务端规则。",
+        "围绕具体不变量补正常对照，排除重复提交提示、过期状态和测试环境特例。"
+      ],
+      "acceptance": [
+        "接受请求不等于状态已改变。",
+        "支付、并发或不可逆操作遵循本次范围；不能为提高等级扩大影响。"
+      ],
+      "next_on": {
+        "state_violation": "candidate.observed",
+        "expected_behavior": "记录该转换结果并继续未覆盖的实际转换"
+      },
+      "required_inputs": [
+        "state_ref",
+        "operation"
+      ],
+      "source_refs": [
+        "specialists/fusion-business/SKILL.md"
+      ]
+    },
+    {
+      "id": "js-request-map",
+      "skill_id": "fusion-js",
+      "capability_id": "js.source",
+      "any_features": [
+        "js.bundle",
+        "js.request-builder"
+      ],
+      "requires": [],
+      "unless": [],
+      "priority": 60,
+      "question": "还原当前问题所需的请求构造",
+      "steps": [
+        "只读取与当前入口有关的脚本或已定位函数，保留文件/行号。",
+        "沿调用点提取方法、路径、base URL、参数构造、身份传递和响应解析。",
+        "用已有流量核对静态推断；动态依赖确实阻塞当前问题时才选择 js.runtime。"
+      ],
+      "acceptance": [
+        "字符串中的路径只算候选。",
+        "没有脚本时转已有流量/文档，不阻塞纯 API 检查。"
+      ],
+      "next_on": {
+        "request_observed": "api.operation",
+        "runtime_dependency": "仅为该调用补 js.runtime",
+        "no_material": "记录材料缺口"
+      },
+      "required_inputs": [],
+      "source_refs": [
+        "specialists/fusion-js/SKILL.md"
+      ]
+    },
+    {
+      "id": "browser-boundary",
+      "skill_id": "fusion-web",
+      "capability_id": "browser.observe",
+      "any_features": [
+        "browser.cross-origin",
+        "browser.cache"
+      ],
+      "requires": [],
+      "unless": [],
+      "priority": 60,
+      "question": "验证实际浏览器上下文与身份边界",
+      "steps": [
+        "记录页面来源、目标来源、身份、缓存状态及真实请求。",
+        "在受控浏览器上下文比较预期允许/拒绝的读取或缓存复用。",
+        "核对脚本实际可读内容和用户影响，排除只看到头部或代理结果的情况。"
+      ],
+      "acceptance": [
+        "配置头存在不代表浏览器可利用。",
+        "代理成功不能代替浏览器的真实访问结果。"
+      ],
+      "next_on": {
+        "boundary_violation": "candidate.observed",
+        "expected_behavior": "保存具体来源/身份/缓存条件下的阴性"
+      },
+      "required_inputs": [],
+      "source_refs": [
+        "specialists/fusion-web/SKILL.md"
+      ]
+    },
+    {
+      "id": "code-control",
+      "skill_id": "fusion-code",
+      "capability_id": "code.inspect",
+      "any_features": [
+        "code.source"
+      ],
+      "requires": [],
+      "unless": [],
+      "priority": 70,
+      "question": "沿当前入口核对输入到安全控制的实际调用链",
+      "steps": [
+        "定位用户问题相关入口、输入来源、控制检查和敏感操作的文件/行号。",
+        "逐层核对调用方保证、当前函数假设和被调用方行为，保留未解决的路径。",
+        "有具体根因后再找同条件变体；搜索命中只作线索。"
+      ],
+      "acceptance": [
+        "必须给出实际调用路径，不能只凭模式命中确认问题。",
+        "不可达路径和缺失运行前提分别说明。"
+      ],
+      "next_on": {
+        "candidate_path": "candidate.observed",
+        "need_runtime": "在任务包含运行环境时补动态对照，否则说明限制"
+      },
+      "required_inputs": [],
+      "source_refs": [
+        "specialists/fusion-code/SKILL.md"
+      ]
+    },
+    {
+      "id": "mobile-profile",
+      "skill_id": "fusion-mobile",
+      "capability_id": "mobile.unpack",
+      "any_features": [
+        "sample.apk"
+      ],
+      "requires": [],
+      "unless": [],
+      "priority": 70,
+      "question": "识别移动端框架并选择相关代码路径",
+      "steps": [
+        "记录样本 hash、包名、框架特征与关键入口的文件依据。",
+        "Java/Kotlin 转 mobile.code；WebView/JS 转 JS；JNI/SO 只在与问题相关时转 binary.analysis。",
+        "把实际调用方法、接口与身份传递对齐，缺少代码不能当作没有功能。"
+      ],
+      "acceptance": [
+        "框架识别须有文件证据。",
+        "静态发现与运行观察分开。"
+      ],
+      "next_on": {
+        "managed_code": "需要时选择 mobile.code",
+        "javascript": "js.bundle",
+        "native_dependency": "sample.binary"
+      },
+      "required_inputs": [],
+      "source_refs": [
+        "specialists/fusion-mobile/SKILL.md"
+      ]
+    },
+    {
+      "id": "binary-context",
+      "skill_id": "fusion-binary",
+      "capability_id": "binary.analysis",
+      "any_features": [
+        "sample.binary"
+      ],
+      "requires": [],
+      "unless": [],
+      "priority": 70,
+      "question": "绑定样本并定位当前问题相关函数",
+      "steps": [
+        "记录样本 hash、架构与当前分析工程；复用已有 IDA 或 Ghidra 上下文。",
+        "先查询字符串/函数/引用索引，再读取相关反编译，保留地址及调用关系。",
+        "核对类型推断与不可达路径，动态影响缺前提时明确标注。"
+      ],
+      "acceptance": [
+        "反编译文本不能证明运行成功。",
+        "同一问题默认不重复跑两套分析器。"
+      ],
+      "next_on": {
+        "candidate_path": "candidate.observed",
+        "missing_runtime": "记录所缺运行条件"
+      },
+      "required_inputs": [],
+      "source_refs": [
+        "specialists/fusion-binary/SKILL.md"
+      ]
+    },
+    {
+      "id": "cloud-context",
+      "skill_id": "fusion-cloud",
+      "capability_id": "cloud.posture",
+      "any_features": [
+        "cloud.config",
+        "cloud.iac",
+        "cloud.cluster"
+      ],
+      "requires": [],
+      "unless": [],
+      "priority": 65,
+      "question": "把云配置发现与实际环境条件对齐",
+      "steps": [
+        "区分提供的静态配置、镜像、IaC 与运行集群，选择对应现有接口。",
+        "记录环境、版本和采集时间；结合实际暴露与身份条件复核命中。",
+        "只读材料可先分析；缺运行环境单独列出覆盖缺口。"
+      ],
+      "acceptance": [
+        "测试配置不能代表生产环境。",
+        "规则命中不能直接写成可达攻击路径。"
+      ],
+      "next_on": {
+        "candidate_control": "candidate.observed",
+        "no_runtime": "保留静态结论及运行态缺口"
+      },
+      "required_inputs": [],
+      "source_refs": [
+        "specialists/fusion-cloud/SKILL.md"
+      ]
+    },
+    {
+      "id": "infra-context",
+      "skill_id": "fusion-infra",
+      "capability_id": "infra.observe",
+      "any_features": [
+        "network.service",
+        "identity.infrastructure"
+      ],
+      "requires": [],
+      "unless": [],
+      "priority": 65,
+      "question": "核对网络服务与身份关系",
+      "steps": [
+        "从已有资产/服务事实绑定目标、身份和单项观察目的。",
+        "把约定路径拆成具体前提与控制边，选择能回答当前问题的接口。",
+        "记录实际结果或缺口；检测验证另核对预期信号与真实观测。"
+      ],
+      "acceptance": [
+        "端口可达或一次枚举不等于完整路径成功。",
+        "不能由一个服务推断整个网络范围。"
+      ],
+      "next_on": {
+        "web_surface": "http.entry",
+        "cloud_surface": "cloud.config",
+        "candidate_control": "candidate.observed"
+      },
+      "required_inputs": [],
+      "source_refs": [
+        "specialists/fusion-infra/SKILL.md"
+      ]
+    },
+    {
+      "id": "ai-boundary",
+      "skill_id": "fusion-ai",
+      "capability_id": "ai.boundary",
+      "any_features": [
+        "ai.tools",
+        "ai.retrieval"
+      ],
+      "requires": [],
+      "unless": [],
+      "priority": 70,
+      "question": "区分模型文本、真实工具请求和结果",
+      "steps": [
+        "记录用户输入、检索资料、模型输出、工具参数与数据边界。",
+        "使用受控数据和身份设置正常与拒绝对照，追踪实际工具返回及外部动作。",
+        "对候选影响重复核对，跨身份问题回 API 对象边界。"
+      ],
+      "acceptance": [
+        "模型自称执行成功不能作证据。",
+        "没有工具调用记录时只报告可观察文本行为。"
+      ],
+      "next_on": {
+        "boundary_violation": "candidate.observed",
+        "cross_identity": "api.object",
+        "no_tool_evidence": "记录真实工具证据缺口"
+      },
+      "required_inputs": [],
+      "source_refs": [
+        "specialists/fusion-ai/SKILL.md"
+      ]
+    },
+    {
+      "id": "candidate-review",
+      "skill_id": "fusion-validate",
+      "capability_id": "evidence.persist",
+      "any_features": [
+        "candidate.observed"
+      ],
+      "requires": [],
+      "unless": [],
+      "priority": 95,
+      "question": "复核候选的前提、对照和替代解释",
+      "steps": [
+        "核对候选的触发事实、有效身份/版本、原始证据和预期业务规则。",
+        "逐项检查正常对照、影响证据及可能推翻结论的解释。",
+        "缺哪项就创建对应具体检查；证据不支持时保留反证，不直接升级严重性。"
+      ],
+      "acceptance": [
+        "候选与确认分开。",
+        "单次失败不能宣布整类方法失效。"
+      ],
+      "next_on": {
+        "supported": "整理复现、影响边界与修复建议",
+        "refuted": "保存反证并继续未覆盖项",
+        "incomplete": "仅补明确缺失的证据"
+      },
+      "required_inputs": [],
+      "source_refs": [
+        "specialists/fusion-validate/SKILL.md"
+      ]
+    }
+  ]
+}

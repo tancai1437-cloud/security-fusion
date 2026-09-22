@@ -16,6 +16,7 @@ from fusion_scope_cli import add_commands, binding_options, execute_bound, memor
 from fusion_workspace import Workspace
 from fusion_start import add_start_command, start
 from fusion_methods import check_guidance, execution_route
+from fusion_routing import dispatch_route
 
 
 def parser():
@@ -32,13 +33,19 @@ def parser():
     listing.add_argument("--instance", help="Current host instance; prevents reusing another host's readiness")
     listing.add_argument("--max-chars", type=int, default=6000)
     add_commands(commands)
-    for name in ("init", "plan", "begin", "record", "review", "reconcile", "note", "resume", "query", "report", "run"):
+    for name in ("init", "plan", "route", "begin", "record", "review", "reconcile", "note", "resume", "query", "report", "run"):
         command = commands.add_parser(name)
         command.add_argument("--case", required=True)
         if name != "init":
             binding_options(command)
-        if name in {"init", "plan"}:
+        if name in {"init", "plan", "route"}:
             command.add_argument("--input", required=True)
+        if name == "route":
+            command.add_argument("--environment")
+            command.add_argument("--agent", choices=["dsh", "opencode", "pi"])
+            command.add_argument("--instance")
+            command.add_argument("--execute-local", action="store_true")
+            command.add_argument("--max-chars", type=int, default=6000)
         if name in {"begin", "run"}:
             command.add_argument("--check", required=True)
             command.add_argument("--retest-reason", default="")
@@ -128,8 +135,22 @@ def local_run(case, args):
     return dict(recorded, route=route, returncode=code, capture_dir=f"captures/{attempt}")
 
 
+def record_result(args, case):
+    status, paths = args.status, list(args.artifact)
+    if args.mcp_result:
+        result = read_json(args.mcp_result)
+        require(isinstance(result, dict), "MCP result must be an object")
+        require("isError" not in result or isinstance(result["isError"], bool), "Invalid MCP isError")
+        if result.get("isError") or result.get("error") is not None:
+            status = "failed"
+        paths.append(args.mcp_result)
+    return case.record(args.attempt, status, args.summary, paths)
+
+
 def dispatch(args, case):
     command = args.command
+    if command == "route":
+        return dispatch_route(args, case, local_run)
     if command == "plan":
         specs = read_json(args.input)
         guidance = check_guidance(specs[0]) if specs else None
@@ -141,15 +162,7 @@ def dispatch(args, case):
         route = execution_route(json.loads(case.check(args.check)["spec"]), args.provider, args.tool)
         return dict(case.begin(args.check, args.provider, args.tool, args.retest_reason), route=route)
     if command == "record":
-        status, paths = args.status, list(args.artifact)
-        if args.mcp_result:
-            result = read_json(args.mcp_result)
-            require(isinstance(result, dict), "MCP result must be an object")
-            require("isError" not in result or isinstance(result["isError"], bool), "Invalid MCP isError")
-            if result.get("isError") or result.get("error") is not None:
-                status = "failed"
-            paths.append(args.mcp_result)
-        return case.record(args.attempt, status, args.summary, paths)
+        return record_result(args, case)
     if command == "review":
         return case.review(args.attempt, args.verdict, args.summary, args.valid_for)
     if command == "reconcile":

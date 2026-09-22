@@ -43,4 +43,9 @@ def execution_route(spec, provider=None, tool=None):
 
 
 def check_guidance(spec):
-    return {"specialist": specialist_card(spec["skill_id"]), "route": execution_route(spec)}
+    guidance = {"specialist": specialist_card(spec["skill_id"]), "route": execution_route(spec)}
+    if spec.get("procedure_id"):
+        from fusion_routing import procedure_card
+        guidance["procedure"] = (spec["procedure_snapshot"] if "procedure_snapshot" in spec
+                                 else procedure_card(spec["procedure_id"]))
+    return guidance

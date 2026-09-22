@@ -94,6 +94,10 @@ def scope_command(args, case, workspace, registration):
 
 
 def prepare_execution(args, case, workspace):
+    if args.command == "route":
+        args.observation = read_json(args.input)
+        require(isinstance(args.observation, dict), "Observation must be an object")
+        workspace.require_target(case, args.observation.get("target"))
     if args.command == "plan":
         specs = read_json(args.input)
         require(isinstance(specs, list), "Plan must be a list")

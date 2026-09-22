@@ -130,15 +130,27 @@ def resume(case, identity=None, maximum=6000, binding=None, experiences=None):
         "omitted_notes": len(optional_notes), "omitted_queue": len(queue),
     }
     if current:
+        current_spec = json.loads(current["spec"])
         packet["current"] = dict(check_card(case, current, verify=True),
-                                 spec=json.loads(current["spec"]), dependencies=json.loads(current["deps"]),
+                                 spec={k: v for k, v in current_spec.items() if k != "procedure_snapshot"},
+                                 dependencies=json.loads(current["deps"]),
                                  evidence=case.artifacts(current["latest_attempt"]) if current["latest_attempt"] else [])
-        packet["guidance"] = check_guidance(json.loads(current["spec"]))
+        packet["guidance"] = check_guidance(current_spec)
         packet["next"] = ("Inspect/reconcile this existing attempt before repeating it; independent checks may proceed."
                           if current["status"] in {"running", "unknown", "review"}
                           else "Execute the current check using its specialist method and route; then inspect evidence.")
     if binding:
         packet["binding"] = binding
+    last_route = case.db.execute("SELECT seq,payload FROM events WHERE kind='observation_routed' ORDER BY seq DESC LIMIT 1").fetchone()
+    if last_route:
+        routed = json.loads(last_route["payload"])
+        observation = routed["observation"]
+        if current is None or current["target"] == observation["target"]:
+            packet["routing"] = {"event_seq": last_route["seq"], "target": observation["target"],
+                                 "decisions_are_historical": True,
+                                 "resource": observation["resource"], "decisions": routed["decisions"][:6],
+                                 "omitted_decisions": max(0, len(routed["decisions"]) - 6),
+                                 "details": {"kind": "events", "offset": last_route["seq"] - 1, "limit": 1}}
     if experiences is not None:
         packet["experience_hints"] = []
         packet["experience_engine"] = experiences["engine"]

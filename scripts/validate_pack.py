@@ -35,6 +35,16 @@ def main():
         if provider["id"] != "host":
             require(provider["guide"].startswith("https://github.com/"), "Missing upstream installation guide")
     missions = unique_index(read_json("manifests/missions.json")["missions"], "missions")
+    procedures = unique_index(read_json("manifests/procedures.json")["procedures"], "procedures")
+    for procedure in procedures.values():
+        require(procedure["skill_id"] in modules, "Unknown procedure specialist")
+        require(procedure["capability_id"] in modules[procedure["skill_id"]]["execution_routes"],
+                "Procedure capability must belong to its specialist")
+        require(procedure["any_features"] and procedure["steps"] and procedure["acceptance"] and procedure["next_on"],
+                "Procedure must specify triggers, concrete steps, acceptance and follow-up decisions")
+        require(isinstance(procedure["priority"], int), "Procedure priority must be numeric")
+        for source in procedure["source_refs"]:
+            require((ROOT / source).is_file(), "Missing procedure method source")
     used_routes = set()
     for source in source_index.values():
         require(bool(re.fullmatch(r"[0-9a-f]{40}", source.get("blob_sha", ""))),
@@ -108,6 +118,7 @@ def main():
         "validation_kind": "offline_references_and_dependency_graph",
         "missions": len(missions),
         "specialists": len(modules),
+        "observation_procedures": len(procedures),
         "mcp_providers": len(providers) - 1,
         "execution_capabilities": len(routes),
         "environment_recipes": len(setup),

@@ -5,6 +5,7 @@ from pathlib import Path
 from fusion_store import Case, PACK, read_json, reject_credentials, require, text_field, validate_spec
 from fusion_workspace import Workspace, file_lock
 from fusion_methods import check_guidance
+from fusion_routing import initial_http_spec
 
 
 def add_start_command(commands):
@@ -14,6 +15,7 @@ def add_start_command(commands):
     command.add_argument("--expect-case", help="Required to reopen an existing case; never takes over another session")
     command.add_argument("--timeout", type=float, default=300)
     command.add_argument("--cwd", help="Defaults to the case directory")
+    command.add_argument("--execute-local", action="store_true", help="Execute the built-in read-only HTTP entry adapter")
     command.add_argument("argv", nargs=argparse.REMAINDER)
 
 
@@ -27,6 +29,13 @@ def start_input(args):
     require(isinstance(targets, list) and targets, "Start input requires explicit canonical targets")
     for target in targets:
         text_field(target, "target", 1000)
+    require(not (task.get("entry") and task.get("check")), "Use entry or check, not both")
+    if task.get("entry"):
+        require(task["config"].get("mission_id") in {"pentest", "src", "redteam", "ai-assessment"},
+                "HTTP entry discovery is not the starting method for this mission")
+        task["check"], task["entry_binding"] = initial_http_spec(task["entry"])
+    require(not args.execute_local or task.get("entry"), "Automatic local execution requires entry mode")
+    require(not (args.execute_local and args.argv), "Choose built-in entry execution or an explicit command")
     check = task.get("check")
     validate_spec(check)
     require(check["target"] in targets, "First check target is outside the case binding")
@@ -83,6 +92,10 @@ def start(args, run_local):
             result = {"case_id": binding["case_id"], "case_path": str(case.root),
                       "project": binding["project"], "session": args.session, "check_id": args.check,
                       "guidance": guidance}
+            if task.get("entry_binding"):
+                result["entry_binding"] = task["entry_binding"]
+                if args.execute_local and task["entry_binding"]["status"] == "local_callable":
+                    args.argv = task["entry_binding"]["argv"]
             if args.argv:
                 result["execution"] = run_local(case, args)
                 result["next"] = "Inspect captured evidence; review only when the check's completion conditions hold."

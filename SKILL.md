@@ -7,6 +7,8 @@ description: 执行获准的渗透、SRC、逆向、源码审计、红队路径�
 
 **先完成一个具体检查，再按结果展开。** 有目标、范围和现成工具时，起手选一个能回答实际问题的检查；不先编写全量计划、读取所有协议或盘点全部 MCP。已有材料足够时直接验证问题，不重复侦察。范围或身份缺失仅阻塞依赖它的检查。
 
+**已有 URL 的新任务可直接起手。** 按 [快速执行](references/first-action.md) 的 entry 模式启动；程序选择入口方法、专项和只读本地适配器。首份证据复核后，用 [事实路由](references/observation-routing.md) 的 route 提交实际观察与证据引用，自动选择具体方法、生成检查项并匹配当前工具；无需每次手填专项 ID、能力 ID 或逐层 catalog。缺身份、登录壳、受控对象不足有独立分支，不用泛化扫描代替前提核对。已有案件从 resume 继续。
+
 **直接选当前专项。** 渗透/SRC → `pentest`/`src`，已有入口从 [recon](specialists/fusion-recon/SKILL.md) 获取基线；已知 Web 问题直接 [web](specialists/fusion-web/SKILL.md)，接口/权限走 [api](specialists/fusion-api/SKILL.md)，交易流程走 [business](specialists/fusion-business/SKILL.md)。源码审计 → `audit` + [code](specialists/fusion-code/SKILL.md)；逆向 → `reverse`，按样本选 [JS](specialists/fusion-js/SKILL.md)、[移动端](specialists/fusion-mobile/SKILL.md) 或 [二进制](specialists/fusion-binary/SKILL.md)；AI 评估 → `ai-assessment` + [ai](specialists/fusion-ai/SKILL.md)。云/容器、网络身份、约定红队路径等不明确时才 `catalog --mission <id>` 查候选；完整映射见 [主路由](references/main-router.md)，无需逐层遍历 catalog。
 
 **新任务只取当前专项方法和 [快速执行](references/first-action.md)。** 读上面的专项文件，或用 `catalog --skill <id>` 取得同源行动卡，二者选一；卡片包含实际方法、完成条件和阶段产物。生成一个任务 JSON，`fusion.py start` 一次完成注册库复用/创建、建案、会话绑定和首项登记；已按方法选定检查时，追加 `-- <真实命令及参数>` 同次执行并捕获输出；尚未取得方法时先不追加程序，读返回的 guidance 后再 run。start、plan、resume 都附当前专项行动卡，不必再打开相同文件。不要以健康检查或建目录冒充目标证据。后续检查按新事实增量 plan，不把所有专项预先登记为待办；首项成功不算完整任务完成。
