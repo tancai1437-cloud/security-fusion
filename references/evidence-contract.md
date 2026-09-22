@@ -24,7 +24,7 @@ work/<case>/
 
 case.sqlite3 是权威来源：config 保存目标/范围/约束，checks 保存计划与结构化指纹，attempts 保存调用及依赖版本，notes 保存事实/阴性/反证/决策，events 是追加事件。事务保证这些状态的一致性。运行路径、命令和边界见 [运行协议](runtime.md)。
 
-captures 保存原始进程输出和可恢复回执；evidence/artifacts 是有 hash 的独立证据副本。report 命令生成 events.jsonl、state.json、evidence/records.json、report/ledger.md、report/coverage.json、resume.md；仅在阶段结束或交付时导出，带事件版本，可从账本重建。
+captures 保存原始进程输出和可恢复回执；evidence/artifacts 是有 hash 的独立证据副本。report 命令生成 events.jsonl、state.json、evidence/records.json、report/ledger.md、report/coverage.json、report/delivery.json、resume.md；仅在阶段结束或交付时导出，带事件版本。delivery.json 核对当前专项文件并记录 hash；其他账本视图可从账本重建。登记动作次数不等于宿主总调用数，没有宿主记录时不能计算漏记比例。
 
 summary.md、report.md、findings.json、解释性 coverage.md 和专项文件由 Agent 根据实际证据补充。运行程序不会伪造漏洞结论、覆盖这些技术报告或替 Agent 判断全部适用面。原始证据不能被报告文字取代；可重建导出不用于覆盖最新账本状态。
 

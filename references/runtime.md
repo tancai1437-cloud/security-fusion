@@ -44,7 +44,7 @@ python3 "$FUSION" run --workspace "$WORKSPACE" --session "$SESSION" --case "$CAS
 
 只接受参数数组，shell=False；不会按 shell 展开管道或通配符。需要脚本时先保存脚本再调用解释器。默认工作目录是案件目录，可显式 --cwd。命令和目录摘要用于防止同一检查下换命令误复用，实际参数不写入摘要；通过安全环境变量传凭证。脚本文件内容或工具版本变化仍需更新方法版本。
 
-返回短回执；stdout、stderr、receipt 保存在 captures/CALL-id/，同时复制到不可覆盖的证据索引。大量输出不回灌给模型。退出码 0 进入 review；非零进入 failed；超时进入 unknown。启动失败进入 blocked。超时只停止启动的父进程，不代表子进程或远端动作已撤销。
+返回短回执和 route（专项、能力、实际程序及所需证据）；stdout、stderr、receipt 保存在 captures/CALL-id/，同时复制到不可覆盖的证据索引。MCP begin 同样返回所登记提供者与工具的 route，这不替代真实调用或接通验收。本地程序为 Python/shell 包装时，仅登记该实际程序，不猜测其内部调用。大量输出不回灌给模型。退出码 0 进入 review；非零进入 failed；超时进入 unknown。启动失败进入 blocked。超时只停止启动的父进程，不代表子进程或远端动作已撤销。
 
 原生 MCP 无法由这个 Python 包直接代理。按以下协议接入宿主：
 
@@ -70,7 +70,7 @@ python3 "$FUSION" query --workspace "$WORKSPACE" --session "$SESSION" --case "$C
 python3 "$FUSION" query --workspace "$WORKSPACE" --session "$SESSION" --case "$CASE" --kind notes --target local-fixture --limit 5
 ```
 
-恢复包包含目标/范围/约束、当前检查、相关笔记、未决调用、队列片段及省略计数。stored_status_counts 是存储状态，不能替代逐项证据复核。当前检查以外的记录按 --check 或精确 --target 查询；新增方法前查同目标的 checks 和 notes，复用已否定结论及限制条件。不同身份/版本下的阴性结论不可无条件推广。
+恢复包包含目标/范围/约束、当前检查、同源专项行动卡 guidance、相关笔记、未决调用、队列片段及省略计数。默认先选 running/unknown/review，再选依赖已满足的 pending；--check 可显式选择独立项。行动卡从安装包专项原文提取，附源文件 hash，不能把“已返回方法”当成“已遵循方法”。默认总上限仍为 6,000 字符，先保留范围、当前方法和必要证据，历史与经验只按剩余空间填入；必要内容超限明确报错。stored_status_counts 不能替代逐项证据复核。其他记录按 --check 或精确 --target 查询；不同身份/版本下的阴性结论不可无条件推广。
 
 遇到 running/unknown，先核对 captures/CALL-id、宿主调用记录或实际远端状态：
 
@@ -97,9 +97,9 @@ kind 为 fact / negative / refuted / hypothesis / decision / constraint / blocke
 python3 "$FUSION" report --workspace "$WORKSPACE" --session "$SESSION" --case "$CASE"
 ```
 
-生成 report/ledger.md、report/coverage.json、state.json、events.jsonl、evidence/records.json、resume.md。它们是可重建视图，带事件版本；数据库才是事实来源。阶段结束或交付时导出，不每步重写全套文件。
+生成 report/ledger.md、report/coverage.json、report/delivery.json、state.json、events.jsonl、evidence/records.json、resume.md。它们是可重建视图，带事件版本；数据库才是事实来源。阶段结束或交付时导出，不每步重写全套文件。delivery.json 按已登记专项核对其规定产物路径、非空与 JSON 语法，记录当前文件 hash，并列出实际登记的能力/提供者/工具/调用次数；缺失或无效文件逐项返回。它不审查产物内容是否充分，不推测账本外的动作。
 
-fusion-report 另外编写 summary.md、report.md、findings.json 和必要的解释性覆盖说明。运行辅助程序不会编造漏洞，也不会覆盖 Agent 编写的 report.md。账本 completed 仅表示已登记检查都完成；完整任务是否覆盖全部适用面、技术结论是否有效，仍由主控和验证专项验收。
+fusion-report 另外编写 summary.md、report.md、findings.json 和必要的解释性覆盖说明。运行辅助程序不会编造漏洞，也不会覆盖 Agent 编写的 report.md。report 的 ledger_status=completed 仅表示已登记检查都完成；status 在存在执行或产物缺口时为 partial，齐全时为 review_required，不再返回整体 completed。旧版读取 report.status=completed 的调用方应改读 ledger_status，并另行核对 delivery_status。完整适用面、技术结论、文件内容和实际宿主动作有无漏记，仍由主控和验证专项验收；缺宿主记录时 untracked_actions 明确为 unknown_without_host_trace。
 
 默认 6,000 字符是恢复/查询/目录响应的上限，不是总会话 token 上限。省略队列/全局笔记有计数，可分页；必需信息或单个 schema 超限报错。实际 token 取决于模型，宿主也可能仍加载全部工具定义；本包不能撤回已经进入宿主上下文的 MCP 大输出。优先使用服务自身的分页、过滤、导出能力。
 

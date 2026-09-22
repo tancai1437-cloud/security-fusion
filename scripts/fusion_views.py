@@ -6,6 +6,8 @@ from pathlib import Path
 import uuid
 
 from fusion_store import FusionError, encode, manifest, require
+from fusion_methods import check_guidance, specialist_card
+from fusion_delivery import delivery_audit
 
 
 def bounded(value, maximum):
@@ -26,7 +28,8 @@ def catalog(mission=None, skill=None, capability=None, inventory=None):
     if skill:
         match = next((m for m in modules if m["id"] == skill), None)
         require(match is not None, "Unknown specialist")
-        return {k: v for k, v in match.items() if k not in {"source_ids", "returns_to"}}
+        result = {k: v for k, v in match.items() if k not in {"source_ids", "returns_to"}}
+        return dict(result, action_card=specialist_card(skill))
     if not capability:
         return {"missions": [{"id": m["id"], "label": m["label"]} for m in missions],
                 "specialists": [{"id": m["id"], "title": m["title"]} for m in modules]}
@@ -79,7 +82,12 @@ def note_card(row):
 
 
 def select_current(case, rows, identity):
-    return case.check(identity) if identity else next((
+    if identity:
+        return case.check(identity)
+    unresolved = next((r for r in rows if r["status"] in {"running", "unknown", "review"}), None)
+    if unresolved:
+        return unresolved
+    return next((
         r for r in rows if r["status"] == "pending" and all(
             case.effective_status(case.check(d)) == "done" for d in json.loads(r["deps"]))), None)
 
@@ -125,6 +133,10 @@ def resume(case, identity=None, maximum=6000, binding=None, experiences=None):
         packet["current"] = dict(check_card(case, current, verify=True),
                                  spec=json.loads(current["spec"]), dependencies=json.loads(current["deps"]),
                                  evidence=case.artifacts(current["latest_attempt"]) if current["latest_attempt"] else [])
+        packet["guidance"] = check_guidance(json.loads(current["spec"]))
+        packet["next"] = ("Inspect/reconcile this existing attempt before repeating it; independent checks may proceed."
+                          if current["status"] in {"running", "unknown", "review"}
+                          else "Execute the current check using its specialist method and route; then inspect evidence.")
     if binding:
         packet["binding"] = binding
     if experiences is not None:
@@ -187,13 +199,22 @@ def report(case):
         notes = [note_card(r) for r in case.db.execute("SELECT * FROM notes WHERE superseded=0 ORDER BY created")]
         events = [dict(r) for r in case.db.execute("SELECT * FROM events ORDER BY seq")]
         artifacts = [dict(r) for r in case.db.execute("SELECT * FROM artifacts ORDER BY rowid")]
+        attempts = [dict(r) for r in case.db.execute("SELECT * FROM attempts ORDER BY started")]
         config = case.meta("config")
     counts = dict(Counter(r["status"] for r in checks))
-    status = "completed" if checks and all(c["status"] == "done" for c in checks) else "partial"
+    ledger_status = "completed" if checks and all(c["status"] == "done" for c in checks) else "partial"
     revision = events[-1]["seq"] if events else 0
-    snapshot = {"status": status, "completion_scope": "recorded_plan_only", "revision": revision,
-                "counts": counts, "checks": checks}
-    lines = ["# Execution ledger", "", f"Status: {status}; revision: {revision}", "",
+    write_view(case, "resume.md",
+               f"# Recovery pointer\n\nExport revision: {revision}\n\n"
+               "Inspect fusion.py identify --case <case-directory> to recover the explicit binding.\n"
+               "Then run fusion.py resume --workspace <registry> --session <session-id> --case <case-directory>.\n"
+               "Do not reload all history or assume this export is current.\n")
+    delivery = delivery_audit(case, checks, attempts)
+    status = "review_required" if ledger_status == "completed" and not delivery["gaps"] else "partial"
+    snapshot = {"status": status, "ledger_status": ledger_status,
+                "completion_scope": "no_overall_completion_claim", "revision": revision,
+                "counts": counts, "checks": checks, "delivery_status": delivery["status"]}
+    lines = ["# Execution ledger", "", f"Status: {status}; recorded checks: {ledger_status}; revision: {revision}", "",
              "Completion refers to the recorded checks, not overall target security or confirmed vulnerabilities.",
              "", "## Objective", "", config["objective"], "", "## Scope", "", config["scope"],
              "", "## Constraints", ""] + ["- " + c for c in config.get("constraints", [])]
@@ -208,15 +229,22 @@ def report(case):
     lines += ["", "## Evidence index", ""]
     for artifact in artifacts:
         lines += [f"- {artifact['id']}: {artifact['path']} (sha256: {artifact['sha256']})"]
+    lines += ["", "## Delivery gaps", ""]
+    lines += [f"- {gap['path']}: {gap['status']}" for gap in delivery["gaps"]]
+    lines += ["", f"Registered attempts: {delivery['registered_attempts']}. "
+              "Actions outside this runtime are unknown without the host trace.",
+              "File presence does not verify methodology, semantic correctness or full scope coverage.",
+              "See report/delivery.json for actual recorded routes and stage requirements."]
     write_view(case, "report/ledger.md", "\n".join(lines) + "\n")
     write_view(case, "report/coverage.json", encode(snapshot) + "\n")
     write_view(case, "state.json", encode(snapshot) + "\n")
     write_view(case, "events.jsonl", "".join(encode(e) + "\n" for e in events))
     write_view(case, "evidence/records.json", encode(artifacts) + "\n")
-    write_view(case, "resume.md",
-               f"# Recovery pointer\n\nExport revision: {revision}\n\n"
-               "Inspect fusion.py identify --case <case-directory> to recover the explicit binding.\n"
-               "Then run fusion.py resume --workspace <registry> --session <session-id> --case <case-directory>.\n"
-               "Do not reload all history or assume this export is current.\n")
-    return {"status": status, "completion_scope": "recorded_plan_only", "revision": revision,
-            "counts": counts, "artifacts": ["report/ledger.md", "report/coverage.json", "resume.md"]}
+    write_view(case, "report/delivery.json", encode(dict(delivery, revision=revision)) + "\n")
+    return {"status": status, "ledger_status": ledger_status,
+            "completion_scope": "no_overall_completion_claim", "revision": revision,
+            "counts": counts, "registered_attempts": delivery["registered_attempts"],
+            "delivery_status": delivery["status"], "delivery_gaps": delivery["gaps"][:10],
+            "omitted_gaps": max(0, len(delivery["gaps"]) - 10),
+            "untracked_actions": delivery["untracked_actions"],
+            "artifacts": ["report/ledger.md", "report/coverage.json", "report/delivery.json", "resume.md"]}

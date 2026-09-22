@@ -15,6 +15,7 @@ from fusion_views import bounded, catalog, query, report, resume, write_view
 from fusion_scope_cli import add_commands, binding_options, execute_bound, memory_query_options
 from fusion_workspace import Workspace
 from fusion_start import add_start_command, start
+from fusion_methods import check_guidance, execution_route
 
 
 def parser():
@@ -88,9 +89,10 @@ def local_run(case, args):
     cwd = Path(args.cwd).resolve() if args.cwd else case.root
     require(cwd.is_dir(), "Working directory does not exist")
     command_digest = hashlib.sha256(encode({"argv": argv, "cwd": str(cwd)}).encode("utf-8")).hexdigest()
-    receipt = case.begin(args.check, "host", "local_process", args.retest_reason, command_digest)
+    route = execution_route(json.loads(case.check(args.check)["spec"]), "host", Path(argv[0]).name)
+    receipt = case.begin(args.check, "host", route["tool"], args.retest_reason, command_digest)
     if receipt["decision"] != "execute":
-        return receipt
+        return dict(receipt, route=route)
     attempt = receipt["attempt_id"]
     capture = case.root / "captures" / attempt
     capture.mkdir(parents=True, exist_ok=False, mode=0o700)
@@ -119,21 +121,25 @@ def local_run(case, args):
             err.flush()
             os.fsync(out.fileno())
             os.fsync(err.fileno())
-    execution = {"attempt_id": attempt, "command_sha256": command_digest, "returncode": code,
+    execution = {"attempt_id": attempt, "route": route, "command_sha256": command_digest, "returncode": code,
                  "status": state, "started": started, "finished": time.time(), "summary": detail}
     write_view(case, f"captures/{attempt}/receipt.json", encode(execution) + "\n")
     recorded = case.record(attempt, state, detail, [stdout, stderr, capture / "receipt.json"])
-    return dict(recorded, returncode=code, capture_dir=f"captures/{attempt}")
+    return dict(recorded, route=route, returncode=code, capture_dir=f"captures/{attempt}")
 
 
 def dispatch(args, case):
     command = args.command
     if command == "plan":
-        result = case.plan(read_json(args.input))["checks"]
+        specs = read_json(args.input)
+        guidance = check_guidance(specs[0]) if specs else None
+        result = case.plan(specs)["checks"]
         return {"total": len(result), "checks": result[:10], "omitted": max(0, len(result) - 10),
+                "guidance": guidance,
                 "next": "query --kind checks or resume --check <plan-key>"}
     if command == "begin":
-        return case.begin(args.check, args.provider, args.tool, args.retest_reason)
+        route = execution_route(json.loads(case.check(args.check)["spec"]), args.provider, args.tool)
+        return dict(case.begin(args.check, args.provider, args.tool, args.retest_reason), route=route)
     if command == "record":
         status, paths = args.status, list(args.artifact)
         if args.mcp_result:

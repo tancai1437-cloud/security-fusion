@@ -4,7 +4,7 @@
 
 ## 选一项能拿到证据的检查
 
-只读当前专项。问清“这一次调用要回答什么、用什么输出判断”，然后选择已有工具：
+只取当前专项：读专项文件或 `catalog --skill <id>` 的行动卡，二者选一。尚未读取时，start 不追加本地程序，直接从返回的 guidance 获取方法后再 run。行动卡由专项原文生成，不要求重复读文件；其中 completion 是本阶段完成条件，不表示一次调用就应完成整个阶段。确定“这一次调用要回答什么、用什么输出判断”，然后选择已有工具：
 
 | 已有材料 | 第一份业务证据 | 随后的决定 |
 |---|---|---|
@@ -51,7 +51,7 @@ python3 "$FUSION_ROOT/scripts/fusion.py" start --workspace "$WORKSPACE" --sessio
 
 `WORKSPACE` 是同一执行环境共享的私有注册库，`SESSION` 是当前宿主/会话唯一 ID，`CASE` 是本目标的新案件目录；都由 Agent 维护，不让用户逐步填表。数据留在安装目录之外。命令参数必须对应 check 的目标、身份与 inputs；程序不独立验证任意程序的网络范围，不要把不同动作合并成一个含糊检查。
 
-start 自动复用已有注册库，建立新案件、绑定会话、登记这项检查，随后通过既有 run 流程真正执行命令。stdout/stderr/回执落盘，返回 case_id、check_id、execution 与捕获位置。不先跑 catalog、workspace-init、init、bind、plan、resume 六组准备命令。只填写实际需要的路径与当前检查，不编写完整测试计划。
+start 自动复用已有注册库，建立新案件、绑定会话、登记这项检查；追加本地程序时通过既有 run 流程真正执行命令。stdout/stderr/回执落盘，返回 case_id、check_id、guidance、execution 与捕获位置。guidance 提供本专项的方法、完成条件、产物路径，以及本检查能力的输入/输出要求。plan 返回本批首项的方法；resume 返回当前实际需要处理项的方法。不先跑 catalog、workspace-init、init、bind、plan、resume 六组准备命令。只填写当前检查，不编写完整测试计划。
 
 - 已有案件不自动覆盖：恢复用 resume；修复启动中断时，可 identify 核对后给 start 加 `--expect-case <原ID>`，但配置、绑定和会话仍需一致。
 - 有历史文件却没有账本时拒绝创建空账本，防止把已测任务当新任务；按运行协议迁移。

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from fusion_store import Case, PACK, read_json, reject_credentials, require, text_field, validate_spec
 from fusion_workspace import Workspace, file_lock
+from fusion_methods import check_guidance
 
 
 def add_start_command(commands):
@@ -68,6 +69,7 @@ def open_case(args, task):
 
 def start(args, run_local):
     task = start_input(args)
+    guidance = check_guidance(task["check"])
     workspace = open_workspace(args.workspace)
     case = None
     try:
@@ -79,7 +81,8 @@ def start(args, run_local):
             args.check = planned["check_id"]
             args.retest_reason = ""
             result = {"case_id": binding["case_id"], "case_path": str(case.root),
-                      "project": binding["project"], "session": args.session, "check_id": args.check}
+                      "project": binding["project"], "session": args.session, "check_id": args.check,
+                      "guidance": guidance}
             if args.argv:
                 result["execution"] = run_local(case, args)
                 result["next"] = "Inspect captured evidence; review only when the check's completion conditions hold."

@@ -102,10 +102,51 @@ class StartTests(unittest.TestCase):
             self.assertEqual(reused["execution"]["decision"], "reuse")
             self.assertEqual(len(requests), 1)
             report = self.cli("report")
-            self.assertEqual(report["status"], "completed")
-            self.assertEqual(report["completion_scope"], "recorded_plan_only")
+            self.assertEqual(report["ledger_status"], "completed")
+            self.assertEqual(report["status"], "partial")
+            self.assertEqual(report["delivery_status"], "missing_artifacts")
             self.assertIn("baseline only", (self.case / "report" / "ledger.md").read_text())
             self.assertGreater(len(json.loads((self.case / "evidence" / "records.json").read_text())), 0)
+
+    def test_recovery_brings_back_method_and_unreviewed_result_before_next_specialist(self):
+        with local_service() as (url, requests):
+            task = self.task(url)
+            task["check"].update(skill_id="fusion-recon", capability_id="web.crawl")
+            self.write_task(task)
+            command = [sys.executable, "-c",
+                       "import sys,urllib.request; print(urllib.request.urlopen(sys.argv[1], timeout=5).read().decode())", url]
+            started = self.start("--", *command)
+            card = started["guidance"]["specialist"]
+            self.assertEqual(card["skill_id"], "fusion-recon")
+            self.assertTrue(card["method"])
+            self.assertIn("specialists/fusion-recon/baselines.json", card["stage_outputs"])
+            self.assertEqual(started["execution"]["route"]["tool"], Path(sys.executable).name)
+
+            next_spec = self.task(url)["check"]
+            next_spec.update(key="api-next", check_type="api-read", skill_id="fusion-api")
+            plan = self.root / "next.json"
+            plan.write_text(json.dumps([next_spec]), encoding="utf-8")
+            planned = self.cli("plan", "--input", plan)
+            self.assertEqual(planned["guidance"]["specialist"]["skill_id"], "fusion-api")
+
+            # Process/conversation memory is absent: recover the unreviewed recon, not the pending API.
+            recovered = self.cli("resume")
+            self.assertEqual(recovered["current"]["status"], "review")
+            self.assertEqual(recovered["guidance"]["specialist"], card)
+            self.assertLessEqual(len(json.dumps(recovered, ensure_ascii=False, separators=(",", ":"))), 6000)
+            self.assertTrue(recovered["current"]["evidence"])
+            self.assertEqual(self.cli("run", "--check", "baseline", "--", *command)["decision"], "hold")
+            self.assertEqual(requests, ["/baseline"])
+
+            self.cli("review", "--attempt", started["execution"]["attempt_id"], "--verdict", "done",
+                     "--summary", "Fixture marker read; no scope-wide conclusion", "--valid-for", "600")
+            advanced = self.cli("resume")
+            self.assertEqual(advanced["current"]["skill"], "fusion-api")
+            self.assertEqual(advanced["guidance"]["specialist"]["skill_id"], "fusion-api")
+            audit = self.cli("report")
+            self.assertEqual(audit["registered_attempts"], 1)
+            self.assertEqual(audit["status"], "partial")
+            self.assertEqual(requests, ["/baseline"])
 
     def test_start_without_command_does_not_invent_execution_or_mcp_readiness(self):
         self.write_task(self.task())

@@ -4,6 +4,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from fusion_methods import specialist_card
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -39,6 +40,9 @@ def main():
         require(bool(re.fullmatch(r"[0-9a-f]{40}", source.get("blob_sha", ""))),
                 f"Missing observed source fingerprint: {source['id']}")
     for module in modules.values():
+        card = specialist_card(module["id"])
+        require(len(json.dumps(card, ensure_ascii=False)) <= 3000,
+                f"Specialist action card exceeds context allowance: {module['id']}")
         path = (ROOT / module["path"]).resolve()
         require(path.is_relative_to(ROOT) and path.is_file(), f"Missing module: {module['id']}")
         require(bool(module["execution_routes"]), f"No execution routes: {module['id']}")

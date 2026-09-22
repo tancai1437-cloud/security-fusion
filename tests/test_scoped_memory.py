@@ -318,7 +318,7 @@ class ScopedMemoryTests(unittest.TestCase):
                 "--scope", "project", "--redacted", "--validation", "Source and conditions reviewed", "--valid-for", 3600)
         hits = execute("memory-search", *flags, "--skill", "fusion-api", "--query", "ownership")
         self.assertEqual(hits["items"][0]["memory_id"], candidate["memory_id"])
-        self.assertEqual(execute("report", *flags)["status"], "completed")
+        self.assertEqual(execute("report", *flags)["ledger_status"], "completed")
         execute("handoff", *flags, "--to-session", "cli-next", "--reason", "Continue in next conversation")
         identified = execute("identify", "--case", directory)
         self.assertEqual(identified["binding_hint"]["session"], "cli-next")

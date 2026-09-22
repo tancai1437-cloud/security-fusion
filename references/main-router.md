@@ -37,4 +37,4 @@
 
 任务：completed / partial / failed / cancelled。所有适用项满足完成证据且报告检查通过，才为completed。单个候选被否定后，其他检查仍继续。用户终止、预算耗尽或无法继续时保存恢复信息并交付对应状态。
 
-运行辅助程序 report 的 completed 仅限已登记计划；主控还必须核对适用面和最终技术报告。命令与恢复步骤见 [运行协议](runtime.md)。
+运行辅助程序 report 的 ledger_status=completed 仅限已登记计划；产物缺口会使 status=partial，齐全也只是 review_required。主控还必须核对适用面、宿主漏记动作和最终技术报告。命令与恢复步骤见 [运行协议](runtime.md)。

@@ -76,6 +76,10 @@ npx --yes skills@1.7.0 add tancai1437-cloud/security-fusion --list
 
 ## 三层如何衔接
 
+`catalog --skill`、`start`、`plan`、`resume` 会直接返回当前专项的实际方法、完成条件与产物路径；方法从专项原文生成，只加载当前一项。持续执行的 `run/begin` 返回专项→能力→实际工具回执，避免每步重新阅读整套文档。压缩恢复优先处理原有未决/待复核结果，不先跳到新待办。
+
+阶段 `report` 另输出 `report/delivery.json`，显示已登记工具调用和缺失专项产物。`ledger_status=completed` 只代表登记检查完成；`status=partial/review_required` 不替 Agent 宣称整个任务完成。没有宿主日志就无法核对绕过脚本的动作；本包不能强制 DSH 等宿主遵循方法。验收应看真实目标证据、对照与适用面覆盖，不能只看“读了哪些文件”。
+
 1. [主路由](references/main-router.md)识别渗透、SRC、逆向、源码审计、红队路径或 AI 应用评估，维护范围、计划、工作项与进度。
 2. [专项路由](manifests/specialists.json)按实际材料选择 recon、web、api、business、js、code、mobile、binary、cloud、infra、ai、validate、report。
 3. [执行路由](references/execution-router.md)根据[能力映射](manifests/execution-routes.json)，直接使用已有本地工具，或从经当前宿主验收的索引匹配当前所需 MCP；缺项按需补齐，核对结果并将证据交回专项。
