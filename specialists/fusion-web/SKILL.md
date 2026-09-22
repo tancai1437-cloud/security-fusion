@@ -16,6 +16,8 @@ description: 评估已识别Web入口的输入、文件、客户端策略及服�
 3. 响应200、错误页、页面回显或技术栈匹配不能单独确认为漏洞；检查是否只是统一兜底或自有数据展示。
 4. 认证/权限问题交给fusion-api；交易状态交给fusion-business；前端调用链问题交给fusion-js，并把工作项返回主控安排。
 
+**现场判定。** 先区分正常业务响应、统一登录 HTML 和鉴权拒绝。已有业务接口被同一身份前提阻挡时，记录受阻并处理独立项，不对同一拒绝响应反复开展下游输入检查。超时、500 和空列表分别核对，不能混成漏洞或无漏洞；具体反例见 [Web 判定](../../references/field-methods.md#web)。不知道下一面选什么时才查 [特征路由](../../references/field-methods.md#features) 的相关行。
+
 执行路由：`http.history`、`http.request`、`web.templates`、`browser.observe`、`evidence.persist`。已有本地工具直接 start/run；需要 MCP 且工具选择不明确时，按 [执行路由规则](../../references/execution-router.md) 只查当前能力。能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
 阶段输出（执行中先用账本和原始证据记录，阶段结束再整理这些文件）：`web-checks.json：逐项结果与证据`、`candidates.json：待验证问题与缺失条件`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
@@ -25,6 +27,8 @@ description: 评估已识别Web入口的输入、文件、客户端策略及服�
 结束时返回 status、observations、evidence_ids、artifacts、coverage_delta、candidates、blockers、next_conditions。主控接收后继续剩余工作；无需用户逐阶段选菜单。缺少前提时返回blocked及最小缺口，不伪造完成。
 
 **方法来源。**
+
+- L01 用户提供的 SRC 工作流包：方法选择与推进思路，见 [融合记录](../../references/upstream-decisions.md#src-field-methods)。
 
 - S09 [elementalsouls/Claude-BugHunter · skills/hunt-dispatch/SKILL.md](https://github.com/elementalsouls/Claude-BugHunter/blob/HEAD/skills/hunt-dispatch/SKILL.md)
 - S23 [elementalsouls/Claude-BugHunter · skills/triage-validation/SKILL.md](https://github.com/elementalsouls/Claude-BugHunter/blob/HEAD/skills/triage-validation/SKILL.md)

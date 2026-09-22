@@ -16,6 +16,8 @@ description: 根据案件的实际检查、证据和验证结论生成摘要、�
 
 阶段结束时按 [隔离与经验协议](../../references/scoped-memory.md) 将值得复用的方法保存为 memory-add 候选，引用已经完成且有证据的来源笔记，保留适用条件和失败反例。核对来源、脱敏及实际验证后才 memory-review accept，默认 project 范围；general 只放可跨项目的方法。原始报告不进入共享索引，不自动改写 SKILL.md。
 
+**经验保留增量。** 沉淀前核对能否跨同类目标使用、相比已有方法新增什么、是否有已复核来源及反例；没有新增条件的重复成功留在案件。阴性、误判识别和中低风险方法也可有价值。已有同类只形成必要修订，按 supersedes 和审核机制保留历史。详细准则见 [经验筛选](../../references/field-methods.md#learning)。报告保留原始证据引用，正文使用脱敏值，不复制完整凭据或会话值。
+
 执行路由：`report.compose`、`evidence.persist`。已有本地工具直接 start/run；需要 MCP 且工具选择不明确时，按 [执行路由规则](../../references/execution-router.md) 只查当前能力。能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
 阶段输出（执行中先用账本和原始证据记录，阶段结束再整理这些文件）：`report/summary.md`、`report/report.md`、`report/coverage.md`、`report/findings.json`、`resume.md`、`learning/candidates.md`。这些交付产物位于当前案件根目录对应路径；运行程序生成的 report/ledger.md、report/coverage.json 是技术报告的输入，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
@@ -25,6 +27,8 @@ description: 根据案件的实际检查、证据和验证结论生成摘要、�
 结束时返回 status、observations、evidence_ids、artifacts、coverage_delta、candidates、blockers、next_conditions。主控接收后继续剩余工作；无需用户逐阶段选菜单。缺少前提时返回blocked及最小缺口，不伪造完成。
 
 **方法来源。**
+
+- L01 用户提供的 SRC 工作流包：方法选择与推进思路，见 [融合记录](../../references/upstream-decisions.md#src-field-methods)。
 
 - S10 [cloudflare/security-audit-skill · skills/security-audit/VALIDATION-AND-REPORTING.md](https://github.com/cloudflare/security-audit-skill/blob/HEAD/skills/security-audit/VALIDATION-AND-REPORTING.md)
 - S01 [GreyDGL/PentestGPT · pentestgpt_agent/README.md](https://github.com/GreyDGL/PentestGPT/blob/HEAD/pentestgpt_agent/README.md)

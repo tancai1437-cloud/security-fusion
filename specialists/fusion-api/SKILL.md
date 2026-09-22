@@ -17,6 +17,8 @@ description: 评估REST、GraphQL等接口的身份、会话、对象/功能/租
 4. 接口文档、字段存在或不同状态码只作为线索；确认对象归属、敏感字段控制与跨角色结果是否违背业务规则。
 5. 出现签名/前端序列化依赖提交fusion-js；有源码时提交fusion-code以补控制路径。
 
+**围绕对象补覆盖。** 从一个受控对象梳理实际存在的列表、详情、导出、分享或修改关系，逐项核对身份和服务端控制；请求格式正确、身份生效和拥有对象分别证明。已完成匿名基线不能代表登录后检查已完成；缺身份记受阻。需要细化时读 [对象与权限关系](../../references/field-methods.md#api)。
+
 执行路由：`http.history`、`http.request`、`browser.observe`、`code.inspect`、`evidence.persist`。已有本地工具直接 start/run；需要 MCP 且工具选择不明确时，按 [执行路由规则](../../references/execution-router.md) 只查当前能力。能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
 阶段输出（执行中先用账本和原始证据记录，阶段结束再整理这些文件）：`identity-matrix.json`、`api-checks.json`、`candidate-evidence.json`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
@@ -26,6 +28,8 @@ description: 评估REST、GraphQL等接口的身份、会话、对象/功能/租
 结束时返回 status、observations、evidence_ids、artifacts、coverage_delta、candidates、blockers、next_conditions。主控接收后继续剩余工作；无需用户逐阶段选菜单。缺少前提时返回blocked及最小缺口，不伪造完成。
 
 **方法来源。**
+
+- L01 用户提供的 SRC 工作流包：方法选择与推进思路，见 [融合记录](../../references/upstream-decisions.md#src-field-methods)。
 
 - S27 [elementalsouls/Claude-BugHunter · skills/hunt-api-misconfig/SKILL.md](https://github.com/elementalsouls/Claude-BugHunter/blob/HEAD/skills/hunt-api-misconfig/SKILL.md)
 - S23 [elementalsouls/Claude-BugHunter · skills/triage-validation/SKILL.md](https://github.com/elementalsouls/Claude-BugHunter/blob/HEAD/skills/triage-validation/SKILL.md)

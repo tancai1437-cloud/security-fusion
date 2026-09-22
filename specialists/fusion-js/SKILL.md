@@ -9,11 +9,13 @@ description: 分析前端脚本、接口发起链和运行时输入输出，为W
 
 输入：页面/脚本材料；需要回答的调用或数据流问题。读取当前工作项与必要证据，不默认载入全部专项或全部MCP工具。
 
-1. 优先JS Reverse MCP，先选正确页面，再定位请求和发起脚本；按列表→详情→完整导出逐级读取。
+1. 已有脚本或流量能回答问题时先直接检查；需要页面/动态证据时优先 JS Reverse MCP，先选正确页面，再定位请求和发起脚本；按列表→详情→完整导出逐级读取。
 2. 围绕实际调用问题定位函数与输入输出，不将整站脚本一次塞入上下文。静态推断和运行观察分别记录。
 3. 需要额外变换或动态观察能力时才调用jshook的搜索/描述/调用路径；不得把元工具搜索结果当执行证据。
 4. 导航会改变脚本标识，暂停会影响页面行为；每次观察记录页面与脚本版本，完成后恢复本次改变的调试状态。
 5. 用可控输入比较观察与本地重建的输出；缺环境条件则返回缺口，不声称已复现。
+
+**把线索变成可验证请求。** 除路径外，保留方法、参数构造、身份传递、响应解析和脚本位置，并与实际流量核对。字符串里的路径只算候选；敏感值用安全引用。JS 取不到时利用已有流量、内联内容或文档继续，并注明限制，不让其阻塞纯 API 工作。细节见 [JS 线索与降级](../../references/field-methods.md#js)。
 
 执行路由：`browser.observe`、`http.history`、`js.source`、`js.runtime`、`evidence.persist`。已有本地工具直接 start/run；需要 MCP 且工具选择不明确时，按 [执行路由规则](../../references/execution-router.md) 只查当前能力。能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
@@ -24,6 +26,8 @@ description: 分析前端脚本、接口发起链和运行时输入输出，为W
 结束时返回 status、observations、evidence_ids、artifacts、coverage_delta、candidates、blockers、next_conditions。主控接收后继续剩余工作；无需用户逐阶段选菜单。缺少前提时返回blocked及最小缺口，不伪造完成。
 
 **方法来源。**
+
+- L01 用户提供的 SRC 工作流包：方法选择与推进思路，见 [融合记录](../../references/upstream-decisions.md#src-field-methods)。
 
 - S13 [zhizhuodemao/js-reverse-mcp · src/tools/network.ts](https://github.com/zhizhuodemao/js-reverse-mcp/blob/HEAD/src/tools/network.ts)
 - S14 [zhizhuodemao/js-reverse-mcp · src/tools/script.ts](https://github.com/zhizhuodemao/js-reverse-mcp/blob/HEAD/src/tools/script.ts)

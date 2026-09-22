@@ -65,6 +65,8 @@ python3 "$FUSION" begin --workspace "$WORKSPACE" --session "$SESSION" --case "$C
 
 ## 经验生命周期
 
+候选选择按 [经验筛选](field-methods.md#learning)：优先新增的适用条件、判断依据或反例，不重复收录相同方法的不同目标实例。以下状态与审核规则保持不变，不因方法启发自动晋级。
+
 阶段结束时，当前 Agent 从已完成检查的 fact / negative / refuted / decision 笔记中提炼少量方法，使用 [经验卡片示例](../examples/experience-card.json)。不要复制案件报告、目标地址或原始请求。候选必须关联自己的来源笔记和可校验原始证据：
 
 ```bash

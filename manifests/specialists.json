@@ -18,7 +18,8 @@
         "S09",
         "S06"
       ],
-      "returns_to": "mission-controller"
+      "returns_to": "mission-controller",
+      "method_reference": "references/field-methods.md#recon"
     },
     {
       "id": "fusion-web",
@@ -37,7 +38,8 @@
         "S23",
         "S05"
       ],
-      "returns_to": "mission-controller"
+      "returns_to": "mission-controller",
+      "method_reference": "references/field-methods.md#web"
     },
     {
       "id": "fusion-api",
@@ -56,7 +58,8 @@
         "S23",
         "S05"
       ],
-      "returns_to": "mission-controller"
+      "returns_to": "mission-controller",
+      "method_reference": "references/field-methods.md#api"
     },
     {
       "id": "fusion-business",
@@ -73,7 +76,8 @@
       "source_ids": [
         "S22"
       ],
-      "returns_to": "mission-controller"
+      "returns_to": "mission-controller",
+      "method_reference": "references/field-methods.md#business"
     },
     {
       "id": "fusion-js",
@@ -96,7 +100,8 @@
         "S20",
         "S33"
       ],
-      "returns_to": "mission-controller"
+      "returns_to": "mission-controller",
+      "method_reference": "references/field-methods.md#js"
     },
     {
       "id": "fusion-code",
@@ -203,7 +208,8 @@
       "source_ids": [
         "S28"
       ],
-      "returns_to": "mission-controller"
+      "returns_to": "mission-controller",
+      "method_reference": "references/field-methods.md#ai"
     },
     {
       "id": "fusion-validate",
@@ -221,7 +227,8 @@
         "S23",
         "S10"
       ],
-      "returns_to": "mission-controller"
+      "returns_to": "mission-controller",
+      "method_reference": "references/field-methods.md#validate"
     },
     {
       "id": "fusion-report",
@@ -236,7 +243,8 @@
         "S10",
         "S01"
       ],
-      "returns_to": "mission-controller"
+      "returns_to": "mission-controller",
+      "method_reference": "references/field-methods.md#learning"
     }
   ]
 }

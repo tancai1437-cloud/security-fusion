@@ -14,6 +14,8 @@ description: 评估LLM应用、RAG与Agent的身份、检索和工具权限边�
 3. 对关键行为重复观察并设置负例，记录模型/应用版本与状态，避免把一次随机输出推导为稳定漏洞。
 4. 跨身份/租户结果回fusion-api核对；涉及工具权限的结果绑定实际请求和服务端状态，再交统一验证。
 
+**执行与文本分开。** 分别保存模型输出、实际工具请求和工具结果，只有真实越界结果支持相应结论。看见工具名只触发能力/身份核对，模型声称执行成功不算证据；按需读 [AI 工具边界](../../references/field-methods.md#ai)。
+
 执行路由：`browser.observe`、`http.history`、`http.request`、`ai.boundary`、`code.inspect`、`evidence.persist`。已有本地工具直接 start/run；需要 MCP 且工具选择不明确时，按 [执行路由规则](../../references/execution-router.md) 只查当前能力。能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
 阶段输出（执行中先用账本和原始证据记录，阶段结束再整理这些文件）：`ai-boundaries.json`、`controlled-observations.json`、`ai-candidates.json`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
@@ -23,6 +25,8 @@ description: 评估LLM应用、RAG与Agent的身份、检索和工具权限边�
 结束时返回 status、observations、evidence_ids、artifacts、coverage_delta、candidates、blockers、next_conditions。主控接收后继续剩余工作；无需用户逐阶段选菜单。缺少前提时返回blocked及最小缺口，不伪造完成。
 
 **方法来源。**
+
+- L01 用户提供的 SRC 工作流包：方法选择与推进思路，见 [融合记录](../../references/upstream-decisions.md#src-field-methods)。
 
 - S28 [elementalsouls/Claude-BugHunter · skills/hunt-llm-ai/SKILL.md](https://github.com/elementalsouls/Claude-BugHunter/blob/HEAD/skills/hunt-llm-ai/SKILL.md)
 

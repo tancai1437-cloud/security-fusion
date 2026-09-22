@@ -30,3 +30,9 @@
 | [bethington/ghidra-mcp](https://github.com/bethington/ghidra-mcp) | 外部 Ghidra MCP 接口映射 | Apache-2.0 |
 
 上游软件继续使用各自许可。引用项目名称及接口不表示获得其官方背书。本包保留文件中已有的许可说明，不将混合来源统一宣称为 MIT。
+
+## 用户提供的本地方法来源
+
+L01：`src-6k-skill.zip`（包根 `clown-src-6k-skill/`）。用户提供该档案用于分析和学习工作方法；包内未见覆盖整个档案的许可声明，作者归属及再分发条款未核实。这里记录来源，不将其宣称为具有某种开源许可。
+
+本次仅学习业务特征分流、现场推进、反证条件和经验筛选等一般思路，并针对现有协议重新编写指导。没有复制、发布原档案、原始知识库正文、脚本、配置、凭据或目标材料。档案指纹和具体取舍见 [来源锁定](sources.lock.json) 与 [融合记录](references/upstream-decisions.md#src-field-methods)。

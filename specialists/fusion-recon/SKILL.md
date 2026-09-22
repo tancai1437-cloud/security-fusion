@@ -16,6 +16,8 @@ description: 识别获准目标的资产、服务、入口与技术栈，建立�
 3. 域名、服务、URL、接口分别去重，保留每条发现的来源与身份条件。新资产与范围比对后才进入执行清单。
 4. 发现登录/API/上传/业务状态/源码/移动端线索时，向主控提交适用性事实；不自行切换整项任务。
 
+**现场推进。** 先处理当前业务面中能取得有效证据的未完成项，再扩大采集；响应里的新接口、对象和地址带来源记入案件，核对范围和绑定后排队。去重保留路径、方法、身份和参数差异；同类页面的采样不能把其他实例直接记成 done。只有这些情况需要细化时才读 [入口与去重](../../references/field-methods.md#recon)。
+
 执行路由：`asset.domains`、`service.inventory`、`web.crawl`、`browser.observe`、`http.history`、`evidence.persist`。已有本地工具直接 start/run；需要 MCP 且工具选择不明确时，按 [执行路由规则](../../references/execution-router.md) 只查当前能力。能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
 
 阶段输出（执行中先用账本和原始证据记录，阶段结束再整理这些文件）：`assets.json：资产、入口、来源与范围`、`baselines.json：基线和采样边界`、`surface-facts.json：触发后续专项的事实`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
@@ -25,6 +27,8 @@ description: 识别获准目标的资产、服务、入口与技术栈，建立�
 结束时返回 status、observations、evidence_ids、artifacts、coverage_delta、candidates、blockers、next_conditions。主控接收后继续剩余工作；无需用户逐阶段选菜单。缺少前提时返回blocked及最小缺口，不伪造完成。
 
 **方法来源。**
+
+- L01 用户提供的 SRC 工作流包：方法选择与推进思路，见 [融合记录](../../references/upstream-decisions.md#src-field-methods)。
 
 - S09 [elementalsouls/Claude-BugHunter · skills/hunt-dispatch/SKILL.md](https://github.com/elementalsouls/Claude-BugHunter/blob/HEAD/skills/hunt-dispatch/SKILL.md)
 - S06 [0x4m4/hexstrike-ai · hexstrike_mcp.py](https://github.com/0x4m4/hexstrike-ai/blob/HEAD/hexstrike_mcp.py)

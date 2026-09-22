@@ -437,5 +437,51 @@
       "license_scope": "repository API snapshot; check file-level terms before copying",
       "integration_status": "distilled_instructions_or_provider_mapping; not runtime-tested"
     }
+  ],
+  "local_archives": [
+    {
+      "id": "L01",
+      "filename": "src-6k-skill.zip",
+      "archive_sha256": "1ef595e2a1e7e880ddc9f8844ccd82ebb60242ebcfb2a2fb07b368f3911cc341",
+      "reviewed_at": "2026-09-22",
+      "license_metadata": "No package license supplied; authorship and redistribution terms not verified",
+      "integration_status": "General workflow ideas studied; new guidance written for existing interfaces. No source archive content or executable code bundled.",
+      "files": [
+        {
+          "path": "clown-src-6k-skill/skills/skill/SKILL.md",
+          "sha256": "e5b162af1531f07f439a35b8b76996c8e4edf13c1ebea4143fdee36de6f94b06",
+          "read_scope": "selected routing, workflow, evidence and learning sections; static review only"
+        },
+        {
+          "path": "clown-src-6k-skill/rules/dig-scope-workflow.md",
+          "sha256": "ab88a72ca2b0083f66827d97136b7c9e4819ce71541a3a9a3defffc4bd6ce5d9",
+          "read_scope": "selected routing, workflow, evidence and learning sections; static review only"
+        },
+        {
+          "path": "clown-src-6k-skill/rules/hunt-iter.md",
+          "sha256": "614ed0f3146dd7911d70df781a2e68aea81210091dcae68bcc27e36da0a15086",
+          "read_scope": "selected routing, workflow, evidence and learning sections; static review only"
+        },
+        {
+          "path": "clown-src-6k-skill/skills/skill/知识库/打穿短表.md",
+          "sha256": "370dd6c3e77de3b229bda26723e367329a76cf4edc06230ac96aa37822e36db0",
+          "read_scope": "selected routing, workflow, evidence and learning sections; static review only"
+        }
+      ],
+      "adapted_into": [
+        "references/field-methods.md",
+        "references/main-router.md",
+        "references/scoped-memory.md",
+        "references/evidence-contract.md",
+        "specialists/fusion-recon/SKILL.md",
+        "specialists/fusion-web/SKILL.md",
+        "specialists/fusion-api/SKILL.md",
+        "specialists/fusion-js/SKILL.md",
+        "specialists/fusion-business/SKILL.md",
+        "specialists/fusion-ai/SKILL.md",
+        "specialists/fusion-validate/SKILL.md",
+        "specialists/fusion-report/SKILL.md"
+      ]
+    }
   ]
 }
