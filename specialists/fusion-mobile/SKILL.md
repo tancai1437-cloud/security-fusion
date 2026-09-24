@@ -5,7 +5,7 @@ description: 分析Android样本的框架、Manifest、代码与网络接口，�
 
 **移动端分流与链路对齐**
 
-在主控编排中只完成当前工作项，保留 mission_id / case_root / scope_ref / workitem_id / return_to。独立调用时以用户指定的小任务为边界。当前主会话顺序执行，不创建子代理。
+在当前会话执行本专项，沿用案件与目标绑定；独立调用以用户指定任务为边界。不创建子代理，不为层间交接另写一套表。
 
 输入：样本或反编译目录；样本标识、目标问题；可用流量/设备材料。读取当前工作项与必要证据，不默认载入全部专项或全部MCP工具。
 
@@ -15,13 +15,13 @@ description: 分析Android样本的框架、Manifest、代码与网络接口，�
 4. JNI/SO线索交fusion-binary，WebView/JS逻辑交fusion-js。原生分析不是每个APK必经阶段。
 5. 风险综合后进入fusion-validate，最后形成样本画像、协议映射、证据和报告。
 
-执行路由：`mobile.unpack`、`mobile.code`、`http.history`、`binary.analysis`、`js.source`、`evidence.persist`。已有本地工具直接 start/run；需要 MCP 且工具选择不明确时，按 [执行路由规则](../../references/execution-router.md) 只查当前能力。能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
+执行路由：`mobile.unpack`、`mobile.code`、`http.history`、`binary.analysis`、`js.source`、`evidence.persist`。按当前动作选择真实工具，本地用 run；显式目标 stdio MCP 用 [mcp-run](../../references/mcp-execution.md) 自动调用并保存结果；有状态 MCP 用 [宿主协议](../../references/execution-router.md)。只查当前所需能力，能力 ID 不当作工具名。
 
 阶段输出（执行中先用账本和原始证据记录，阶段结束再整理这些文件）：`app-profile.json`、`entrypoints.json`、`traffic-code-map.json`、`mobile-findings.json`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
 
 完成条件：框架分流有依据、关键链路有证据；未覆盖的运行环境与原生部分明确列出。
 
-结束时返回 status、observations、evidence_ids、artifacts、coverage_delta、candidates、blockers、next_conditions。主控接收后继续剩余工作；无需用户逐阶段选菜单。缺少前提时返回blocked及最小缺口，不伪造完成。
+读取结果后，按 [advance](../../references/observation-routing.md#简化入口advance) 提交复核结论与新事实，继续所选方法；没有新事实就处理当前证据缺口。保存阴性、反证和阻塞，阶段结束再整理上述产物，无需用户逐阶段选择。
 
 **方法来源。**
 

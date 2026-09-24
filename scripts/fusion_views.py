@@ -151,6 +151,8 @@ def resume(case, identity=None, maximum=6000, binding=None, experiences=None):
                                  "resource": observation["resource"], "decisions": routed["decisions"][:6],
                                  "omitted_decisions": max(0, len(routed["decisions"]) - 6),
                                  "details": {"kind": "events", "offset": last_route["seq"] - 1, "limit": 1}}
+            if current_id == routed.get("selected") and routed.get("adapter_hint"):
+                packet["routing"]["adapter_hint"] = routed["adapter_hint"]
     if experiences is not None:
         packet["experience_hints"] = []
         packet["experience_engine"] = experiences["engine"]

@@ -1,24 +1,38 @@
 ---
 name: security-fusion
-description: 执行获准的渗透、SRC、逆向、源码审计、红队路径和 AI 应用评估；按现场证据路由专项与 MCP/本地工具，保存检查结果、恢复进度并交付报告。
+description: 对获准目标执行渗透、SRC、逆向、源码审计或 AI 安全评估；根据页面、接口、身份与样本证据选择专项方法，调用 MCP 或本地工具，保存结果并继续未完成检查。
 ---
 
-**主路由 → 专项 Skill → 执行工具，由当前主会话完成。** 不创建子代理。方案、解释和调研只分析资料；实际任务要取得目标证据，安装和记账本身不算测试进展。
+主路由 → 当前专项的方法 → 实际工具，由当前会话执行，不创建子代理。分析、比较或方案请求只分析资料；有明确执行任务时，先取得一份能回答问题的目标证据。
 
-**先完成一个具体检查，再按结果展开。** 有目标、范围和现成工具时，起手选一个能回答实际问题的检查；不先编写全量计划、读取所有协议或盘点全部 MCP。已有材料足够时直接验证问题，不重复侦察。范围或身份缺失仅阻塞依赖它的检查。
+## 选择一个当前专项
 
-**已有 URL 的新任务可直接起手。** 按 [快速执行](references/first-action.md) 的 entry 模式启动；程序选择入口方法、专项和只读本地适配器。首份证据复核后，用 [事实路由](references/observation-routing.md) 的 route 提交实际观察与证据引用，自动选择具体方法、生成检查项并匹配当前工具；无需每次手填专项 ID、能力 ID 或逐层 catalog。缺身份、登录壳、受控对象不足有独立分支，不用泛化扫描代替前提核对。已有案件从 resume 继续。
+| 当前任务或已有材料 | 立即进入 | 起手证据 |
+|---|---|---|
+| 渗透 / SRC 新目标，已有 URL | [recon](specialists/fusion-recon/SKILL.md) | 入口的实际响应、业务入口与跳转 |
+| 已知 Web 输入、上传下载或浏览器边界 | [web](specialists/fusion-web/SKILL.md) | 正常请求与对应输出 |
+| API、登录、对象 ID、角色或租户关系 | [api](specialists/fusion-api/SKILL.md) | 有效身份下的真实请求与对象归属 |
+| 订单、额度、多阶段交易 | [business](specialists/fusion-business/SKILL.md) | 当前流程与服务端状态 |
+| JS、签名、请求构造 | [js](specialists/fusion-js/SKILL.md) | 请求发起位置与相关源码 |
+| 源码审计 | [code](specialists/fusion-code/SKILL.md) | 输入入口、调用方与控制检查 |
+| APK / 移动应用；原生二进制 | [mobile](specialists/fusion-mobile/SKILL.md) / [binary](specialists/fusion-binary/SKILL.md) | 样本标识、格式与当前分析工程 |
+| 云 / 容器；网络服务 / 身份基础设施 | [cloud](specialists/fusion-cloud/SKILL.md) / [infra](specialists/fusion-infra/SKILL.md) | 指定资源的配置与实际状态 |
+| AI 应用 / Agent 边界 | [ai](specialists/fusion-ai/SKILL.md) | 输入、检索、工具参数与实际结果 |
 
-**直接选当前专项。** 渗透/SRC → `pentest`/`src`，已有入口从 [recon](specialists/fusion-recon/SKILL.md) 获取基线；已知 Web 问题直接 [web](specialists/fusion-web/SKILL.md)，接口/权限走 [api](specialists/fusion-api/SKILL.md)，交易流程走 [business](specialists/fusion-business/SKILL.md)。源码审计 → `audit` + [code](specialists/fusion-code/SKILL.md)；逆向 → `reverse`，按样本选 [JS](specialists/fusion-js/SKILL.md)、[移动端](specialists/fusion-mobile/SKILL.md) 或 [二进制](specialists/fusion-binary/SKILL.md)；AI 评估 → `ai-assessment` + [ai](specialists/fusion-ai/SKILL.md)。云/容器、网络身份、约定红队路径等不明确时才 `catalog --mission <id>` 查候选；完整映射见 [主路由](references/main-router.md)，无需逐层遍历 catalog。
+明确问题直接进入对应专项；不为单点任务遍历主目录。完整任务类型或红队约定路径不明确时才读 [主路由](references/main-router.md)。只载当前专项，返回的 guidance 已含同源方法时不重复读文件。
 
-**新任务只取当前专项方法和 [快速执行](references/first-action.md)。** 读上面的专项文件，或用 `catalog --skill <id>` 取得同源行动卡，二者选一；卡片包含实际方法、完成条件和阶段产物。生成一个任务 JSON，`fusion.py start` 一次完成注册库复用/创建、建案、会话绑定和首项登记；已按方法选定检查时，追加 `-- <真实命令及参数>` 同次执行并捕获输出；尚未取得方法时先不追加程序，读返回的 guidance 后再 run。start、plan、resume 都附当前专项行动卡，不必再打开相同文件。不要以健康检查或建目录冒充目标证据。后续检查按新事实增量 plan，不把所有专项预先登记为待办；首项成功不算完整任务完成。
+## 从方法走到调用
 
-**按眼前问题准备工具。** 已有本地命令、文件或检索能力可直接走 `run`，无需先为宿主能力生成 MCP 验收收据。有可用 MCP 时按 [执行路由](references/execution-router.md) 只查所需能力；确有缺项才进入 [环境补齐](references/environment-bootstrap.md)。需要接入的 MCP 仍须真实验收后入索引，未知名称与静态候选不能当成已接通。补齐某个提供者不阻塞现成工具能完成的独立检查。用户明确要求安装/初始化时按环境流程完成，不受“先做目标检查”的顺序约束。
+1. **新任务**读 [快速执行](references/first-action.md)。HTTP 入口用 `start --execute-local` 合并建案、会话绑定和第一次读取；已有材料直接登记对应检查。Agent 维护案件与参数，用户不用逐步填表。
+2. **选工具**：现成本地命令走 `run`；已建立显式目标 stdio 配置的 MCP 走 [mcp-run](references/mcp-execution.md)，程序完成连接、实际工具查询、调用及证据落盘。依赖当前浏览器/工程的 MCP 用宿主已连接工具，按 [执行路由](references/execution-router.md) 核对上下文。只查当前能力，缺项才 [补齐环境](references/environment-bootstrap.md)。
+3. **读结果并推进**：取得输出后先判断实际响应；用 [advance](references/observation-routing.md#简化入口advance) 一次提交上一项复核结论与新事实，程序补齐来源和证据引用，返回下一具体方法。继续调用该方法所需工具。未匹配的问题按当前专项生成具体检查，不强凑标签。
 
-**每个检查形成短循环：实际调用 → 读必要证据 → 判断结果 → 选择下一项。** 本地走 `run`；MCP 先核对真实目标/身份并登记共享上下文，再 `begin → 宿主调用 → record`。仅 `decision=execute` 才调用；`reuse` 复用，`hold` 核对未决结果。退出码 0 仅进入 review，核对完成条件后才 `review --verdict done`。阴性、反例和阻塞同样记录。优先补齐当前业务问题的证据，新发现的入口先带来源排队，再按适用性扩展。专项中的现场方法只读命中的部分。正在取得有效证据时不为重写计划中断；连续两次只做 catalog/plan/读规则且没有消除具体阻塞时，回到当前检查执行，或给出真实阻塞并处理独立项，不继续扩写准备材料。
+每次下一步应回答一个明确问题，并给出可核对输出。连续准备却没有消除阻塞时，执行当前可用检查或转到独立可执行项。正常拒绝、登录壳、工具错误和结果未知分别处理；不能靠重复同一失败调用制造进展。缺身份只阻塞依赖身份的检查。
 
-**隔离与恢复。** 所有执行命令显式携带 `--workspace / --session / --case`；目标和案件不可凭最近使用选择。已有案件、压缩或重启后 `resume`，不要再次初始化；恢复优先返回待复核/未决调用及其专项方法，先判断原结果，再选择下一检查；换会话用 handoff。具体操作按需读 [运行协议](references/runtime.md) 和 [隔离协议](references/scoped-memory.md)。这些程序协调可信 Agent 的记录和共享上下文，不能拦截绕过 CLI 的调用。
+## 保留结果与恢复
 
-**交付与经验。** 当前检查的记录足以续跑，不逐步重写全套报告；阶段结束导出 `report`，按返回的 delivery_gaps 补齐当前专项产物。report/delivery.json 列出实际登记的工具、次数与缺口；ledger_status=completed 只代表已登记检查完成，文件齐全也只到 review_required。核对宿主实际动作有无漏记，以及适用面的已测/未测/受阻/不适用依据后，再由 [validate](specialists/fusion-validate/SKILL.md) 和 [report](specialists/fusion-report/SKILL.md) 判断交付。一条命令可含同一检查的多个对照，保留各自结果；不能以两条笼统记录代替不同检查。原始输出落盘，恢复包含当前行动卡仍默认最多 6,000 字符；持续执行的 run/begin 只返回短路由回执。经验检索按需，提炼与审核放在阶段结束。零发现、部分完成也按实际结果交付。
+运行命令显式携带 `--workspace / --session / --case`。同项目不同目标分案；压缩或重启后 `resume`，先处理未决调用与待复核证据；换会话按 [隔离协议](references/scoped-memory.md) 交接。`reuse` 不重发，`hold` 先核对。成功返回不等于检查完成，复核由当前 Agent 根据证据判断。
 
-Python >= 3.9，辅助程序只用标准库。MCP 调用由宿主提供；字段与证据要求见 [证据契约](references/evidence-contract.md)。来源与取舍见 [融合决策](references/upstream-decisions.md)，不需要为执行任务重读来源清单。
+原始输出自动保存，阶段结束再整理专项产物，经 [validate](specialists/fusion-validate/SKILL.md) 核对并由 [report](specialists/fusion-report/SKILL.md) 交付已测、未测、受阻与依据。账本完成不代表整个评估完成。经验按需检索，阶段结束再审核沉淀；恢复默认最多 6,000 字符。详细命令按需查 [运行协议](references/runtime.md)。
+
+Python >= 3.9，辅助程序只用标准库。Skill 文本不拦截绕过适配器的宿主调用；原生 MCP 与直接 stdio 连接的上下文不能互认。方法与许可取舍见 [融合记录](references/upstream-decisions.md)。

@@ -46,7 +46,7 @@ python3 "$FUSION" run --workspace "$WORKSPACE" --session "$SESSION" --case "$CAS
 
 返回短回执和 route（专项、能力、实际程序及所需证据）；stdout、stderr、receipt 保存在 captures/CALL-id/，同时复制到不可覆盖的证据索引。MCP begin 同样返回所登记提供者与工具的 route，这不替代真实调用或接通验收。本地程序为 Python/shell 包装时，仅登记该实际程序，不猜测其内部调用。大量输出不回灌给模型。退出码 0 进入 review；非零进入 failed；超时进入 unknown。启动失败进入 blocked。超时只停止启动的父进程，不代表子进程或远端动作已撤销。
 
-原生 MCP 无法由这个 Python 包直接代理。按以下协议接入宿主：
+显式目标 stdio MCP 使用 [mcp-run](mcp-execution.md)，把开始登记、实际调用和结果捕获合并。已经存在的原生宿主 MCP 连接无法被本程序接管，尤其是当前页面/工程；这些连接按以下协议使用：
 
 1. `catalog --capability <id>` 找候选。当前宿主可导出真实工具清单时，传 `--inventory tools.json`，仅返回匹配项的实际名称和 schema。
 2. 先按隔离协议登记实际工具上下文，再 `begin --workspace <registry> --session <session-id> --case <path> --check <key> --provider <provider-id> --tool <实际工具名> --context <已核对slot>`。

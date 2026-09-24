@@ -1,0 +1,33 @@
+{
+  "date": "2026-09-24",
+  "baseline_commit": "eaf7f245cf81e538efc0cdd9c2f190866c60d89f",
+  "validation_kind": "runtime_integration_with_test_only_stdio_mcp_and_real_loopback_http",
+  "test_command": "python -X utf8 -m unittest discover -s tests -q",
+  "tests": {
+    "total": 105,
+    "passed": 104,
+    "skipped": 1,
+    "failed": 0,
+    "skip_reason": "Windows symlink permissions"
+  },
+  "mcp_fixture": "tests/fixtures/stdio_mcp.py; synthetic provider, not Burp or HexStrike",
+  "verified": [
+    "stdio initialize/initialized/tools-list/tools-call and actual loopback HTTP",
+    "capture full result/schema/receipt",
+    "advance source metadata and API/JS/input method routing",
+    "explicit profile tool selection without fabricated readiness",
+    "profile hint restored for the selected check",
+    "wrong session/target/identity rejected before launch",
+    "dedup across CLI process restarts",
+    "tool error, protocol error, pending result, timeout and pagination"
+  ],
+  "entry_characters": {
+    "before": 3032,
+    "after": 2375,
+    "measurement": "Unicode characters; not model tokens"
+  },
+  "external_provider_integration": "NOT_RUN",
+  "kali_dsh_agent_routing_effectiveness": "NOT_MEASURED",
+  "sentrux": "UNAVAILABLE on this machine; no dependency installed",
+  "rollback": "Revert this change; existing case schema and legacy commands are unchanged"
+}

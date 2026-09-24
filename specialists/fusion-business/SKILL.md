@@ -5,7 +5,7 @@ description: 评估订单、额度、审批、邀请等业务流程中的状态�
 
 **业务流程与状态**
 
-在主控编排中只完成当前工作项，保留 mission_id / case_root / scope_ref / workitem_id / return_to。独立调用时以用户指定的小任务为边界。当前主会话顺序执行，不创建子代理。
+在当前会话执行本专项，沿用案件与目标绑定；独立调用以用户指定任务为边界。不创建子代理，不为层间交接另写一套表。
 
 输入：流程图或可观察正常流程；业务规则、测试身份和测试数据。读取当前工作项与必要证据，不默认载入全部专项或全部MCP工具。
 
@@ -16,13 +16,13 @@ description: 评估订单、额度、审批、邀请等业务流程中的状态�
 
 **当前异常优先收口。** 出现可复现的状态异常后，先围绕同一业务对象补齐前提、对照和影响边界，再切换新入口；新线索先落盘。后续检查必须回答新问题，不能仅为提高漏洞等级扩大操作。界面按钮、角色名或请求被接受不能直接证明服务端状态已改变；见 [业务证据](../../references/field-methods.md#business)。
 
-执行路由：`browser.observe`、`http.history`、`http.request`、`code.inspect`、`evidence.persist`。已有本地工具直接 start/run；需要 MCP 且工具选择不明确时，按 [执行路由规则](../../references/execution-router.md) 只查当前能力。能力ID不是工具名，最终参数和调用标识来自宿主实际接口。执行与结果用 [运行协议](../../references/runtime.md) 的 run 或 begin/record/review 记账；保存阴性结果和被否定假设，返回主控前确认已落盘。
+执行路由：`browser.observe`、`http.history`、`http.request`、`code.inspect`、`evidence.persist`。按当前动作选择真实工具，本地用 run；显式目标 stdio MCP 用 [mcp-run](../../references/mcp-execution.md) 自动调用并保存结果；有状态 MCP 用 [宿主协议](../../references/execution-router.md)。只查当前所需能力，能力 ID 不当作工具名。
 
 阶段输出（执行中先用账本和原始证据记录，阶段结束再整理这些文件）：`business-invariants.json`、`state-transition-checks.json`、`business-impact-evidence.json`。产物位于当前案件的本专项工作目录，按 [证据契约](../../references/evidence-contract.md) 关联，不在Skill目录写任务数据。
 
 完成条件：每个选定不变量有实际对照或清楚的验证前提，影响与证据相称。
 
-结束时返回 status、observations、evidence_ids、artifacts、coverage_delta、candidates、blockers、next_conditions。主控接收后继续剩余工作；无需用户逐阶段选菜单。缺少前提时返回blocked及最小缺口，不伪造完成。
+读取结果后，按 [advance](../../references/observation-routing.md#简化入口advance) 提交复核结论与新事实，继续所选方法；没有新事实就处理当前证据缺口。保存阴性、反证和阻塞，阶段结束再整理上述产物，无需用户逐阶段选择。
 
 **方法来源。**
 

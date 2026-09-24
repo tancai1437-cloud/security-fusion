@@ -45,6 +45,15 @@ L01 是用户提供的 `src-6k-skill.zip`，包根为 `clown-src-6k-skill/`。�
 
 **源文件索引。**
 
+**2026-09-24 路由与执行调整。** 对照 zhaoxuya520/reverse-skill 的 `cab634bd855fc287f6e420c1f36fd1a6b9245960` 和 Prohao42/aimy-skill 的 `b508f38681c3262be8efbe87926780b49bf80334`：
+
+- [reverse-skill 主路由](https://github.com/zhaoxuya520/reverse-skill/blob/cab634bd855fc287f6e420c1f36fd1a6b9245960/skills/scripts/master-route.sh)启发“给出一个当前专项”，[JS 专项](https://github.com/zhaoxuya520/reverse-skill/blob/cab634bd855fc287f6e420c1f36fd1a6b9245960/skills/js-reverse/SKILL.md)启发把动作和工具语义放在同一处；本包没有复制其路由脚本、关键词优先级或安装配置。
+- aimy 内含的 [HackSkills API 分类](https://github.com/Prohao42/aimy-skill/blob/b508f38681c3262be8efbe87926780b49bf80334/ai-mian/hack-skills/skills/api-sec/SKILL.md)启发“观察到的行为→具体方法”。该内含目录自述上游为 yaklang/hack-skills，不能把知识包与 aimy Python 检测器视为自动打通的一条链。
+- [aimy 工具注册与调用](https://github.com/Prohao42/aimy-skill/blob/b508f38681c3262be8efbe87926780b49bf80334/tools/tool_registry.py)启发将机械调用交给执行代码。新增 stdio 客户端按 MCP 公开协议独立实现，不捆绑 aimy 检测器，不复制批量扫描、利用或 payload 代码。
+- 落地改动：主入口缩短、13 个专项去除重复层间交接字段、四个常用专项增加动作表、advance 自动带入账本元数据、mcp-run 自动连接/调用/捕获。受控测试见 [执行链回归](../tests/test_execution_flow.py)。它验证协议和状态机制，不代表真实 Agent 的方法选择已测量。
+
+这些是新增的设计参考链接，不混入原有 33 个文件指纹快照；没有复制上游代码或整段正文。
+
 - S01 [GreyDGL/PentestGPT / pentestgpt_agent/README.md](https://github.com/GreyDGL/PentestGPT/blob/HEAD/pentestgpt_agent/README.md)；blob 735c76f534450f2400fff9d30a0a6696ec54adaa。
 - S02 [GreyDGL/PentestGPT / unified_agent/task.py](https://github.com/GreyDGL/PentestGPT/blob/HEAD/unified_agent/task.py)；blob abea6e9feeb18b0d5736f8ad835e700724f678f5。
 - S03 [AIPentest/CyberStrikeAI / agents/orchestrator-plan-execute.md](https://github.com/AIPentest/CyberStrikeAI/blob/HEAD/agents/orchestrator-plan-execute.md)；blob 967d8215b0de3022d0e4713a3cc6a1f4c445d7fb。

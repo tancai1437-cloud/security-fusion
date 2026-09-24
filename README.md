@@ -4,6 +4,8 @@
 
 一个主入口包含 6 类任务、13 个专项和 18 类执行能力映射。Agent 根据任务材料安排适用检查，保存证据、覆盖记录、报告和续跑信息。
 
+当前入口按现场材料直接进入一个专项，recon / Web / API / JS 给出具体动作与工具选择。`advance` 合并证据复核与下一方法选择，自动带入当前检查的目标、版本和证据引用；显式目标 stdio MCP 可用 `mcp-run` 真正连接并调用工具，一次完成登记和结果落盘。详见 [下一步](references/observation-routing.md#简化入口advance) 与 [MCP 执行](references/mcp-execution.md)。
+
 本次升级增加 Python 标准库运行辅助程序：SQLite 案件账本、执行前查重、中断恢复、证据校验、按需查询及报告导出。三层路由保持不变。
 
 现在还包括会话/案件绑定、共享工具上下文占用、经验候选与版本审核，以及本地 BM25 和可选向量混合检索。不同目标分别维护案件，同项目可复用经过审核的方法。
@@ -141,7 +143,7 @@ work/<case>/
 
 能力索引按机器、Agent、宿主实例和配置版本隔离；实际工具调用失败、验收过期或证据/配置变化会使绑定失效。索引证明记录的验收上下文可用，不代表任意目标、身份、项目都已经就绪；每个案件仍须绑定实际工具上下文。收据的业务含义由执行 Agent 核验，程序不会独立伪装成 MCP 客户端探测所有服务。
 
-本地 run 可组合查重与执行；原生 MCP 使用 begin / record / review 协议，Skill 无法拦截绕过协议的直接调用，也无法保证任意外部服务 exactly-once。已有纯文件案件未自动迁移，不能建空账本后把历史检查重跑一遍。
+本地 run 和显式目标 stdio 的 mcp-run 可组合查重与执行；后者每次使用新连接、实时 tools/list、实际 tools/call，不改宿主配置、不继承宿主页面/工程状态。原生有状态 MCP 仍使用 begin / record / review 协议。Skill 无法拦截绕过协议的直接调用，也无法保证任意外部服务 exactly-once。已有纯文件案件未自动迁移，不能建空账本后把历史检查重跑一遍。
 
 已完成 Skill 格式、文件引用、路由映射、依赖及本地持久化回归检查；曾在 Windows 隔离目录验证标准安装器能完整复制技能包。本次未向当前电脑的 Agent 目录安装 Skill。Kali 上的 Agent 行为与真实 MCP 联调尚未验证，离线检查不代表这些任务已经执行成功。
 
@@ -155,6 +157,10 @@ python3 -m unittest discover -s tests -v
 结构结果见 [validation-results.json](validation-results.json)，格式结果见 [skill-format-validation.json](skill-format-validation.json)，运行与字符预算结果见 [runtime-validation.json](runtime-validation.json)。[持续集成](https://github.com/tancai1437-cloud/security-fusion/actions)运行 Ubuntu / Windows 离线测试，不能替代 Kali Agent 与真实 MCP 联调。
 
 首项执行回归见 [test_start.py](tests/test_start.py)：启动命令真实访问回环 HTTP 服务、保留原始响应、在进程重启后阻止重复请求，并核对会话隔离、历史文件保护和失败报告。该测试验证程序路径，不代表已验证 DSH/OpenCode/Pi 中模型的实际任务表现。
+
+MCP 执行链回归见 [test_execution_flow.py](tests/test_execution_flow.py)：测试专用 stdio 服务经过真实协议交换读取回环 HTTP，验证自动落盘、advance 分流、进程重启后的查重，以及分页、错目标、错会话、工具错误和超时。该服务明确是测试替身，不能作为 Burp/HexStrike 等真实服务已接通的证据；真实 Kali Agent 的方法选择与调用效果仍需现场轨迹验证。
+
+2026-09-24 执行改造的验证范围和回退点见 [execution-validation.json](execution-validation.json)。旧版记录文件保留各自当时的验证范围。
 
 本次环境初始化与索引回归结果见 [bootstrap-validation.json](bootstrap-validation.json)。测试使用明确标注的离线收据与临时目录，不将测试替身列为可用 MCP，也未在开发机安装外部安全工具。
 

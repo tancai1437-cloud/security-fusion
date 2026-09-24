@@ -1,6 +1,27 @@
 # 从已观察事实生成下一项检查
 
-适用于首份目标证据已经捕获、复核之后。当前 Agent 从证据中识别业务特征；`route` 按明确条件选择方法、生成检查项，并匹配已有本地程序或当前宿主已验收的 MCP。它不独立理解响应内容，也不代替宿主调用 MCP。
+适用于首份目标证据已经捕获之后。当前 Agent 从证据中识别业务特征；程序按明确条件选择方法、生成检查项，并匹配已有本地程序或当前宿主已验收的 MCP。路由不独立理解响应内容。显式目标 stdio MCP 可用 [mcp-run](mcp-execution.md) 真正调用并保存结果，其他 MCP 仍由宿主调用。
+
+## 简化入口：advance
+
+读完实际输出后，优先使用下面的合并命令。`CHECK` 是刚刚检查的明确 ID；目标、版本、来源与 evidence_ids 自动取自它的当前有效证据，无需模型再写完整 observation.json。`--summary` 表示 Agent 已对原检查的完成条件作出判断，不是程序自动认定成功。
+
+```bash
+python3 "$FUSION_ROOT/scripts/fusion.py" advance \
+  --workspace "$WORKSPACE" --session "$SESSION" --case "$CASE" \
+  --check "$CHECK" --summary "原始响应已核对；这里只确认入口基线，发现真实 API 操作" \
+  --valid-for 600 --feature api.operation --resource /api/observed-operation
+```
+
+只有真实观察到的特征才传 `--feature`，可重复。`--resource` 不传则继承原检查资源；切换测试身份用 `--identity`，方法所需对象、请求或字段引用才另传 `--inputs inputs.json`。完整特征表见下文，当前专项也有常用分支。
+
+返回一个 `selected` 具体方法及工具选择，随后直接执行，不再打开同一个专项。仅当匹配内置本地读取适配器时，加 `--execute-local` 可同次执行。已有来源 done 时可以省略 summary；review 状态必须先给复核结论。运行中、结果未知、过期或证据损坏均不能借此绕过处理。有效复核会独立保存，后续路由失败可修正输入后重试，不必重跑原检查。
+
+已有直接 stdio 适配配置时，加 `--mcp-profile "$MCP_PROFILE"`，路由按当前能力返回配置中的具体工具与 `mcp_preflight_required`，接着用 mcp-run 执行；配置中的命令和环境变量不会回灌上下文。此状态不等于 ready，实际调用前仍查询当前连接。`--execute-local` 不会隐式执行 MCP。
+
+所选适配器的工具名与配置路径随路由事件落盘。resume 恢复同一检查时附上短引用，避免压缩后重新猜工具；这是历史选择提示，执行仍做实时核对。
+
+需要精确选择部分证据或兼容旧客户端时，继续使用下面的完整 route 接口。
 
 ## 一次路由
 

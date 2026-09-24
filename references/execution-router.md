@@ -1,5 +1,7 @@
 **第三层：执行路由。**
 
+当前方法与工具已明确时直接执行：本地命令走 `run`；显式目标 stdio MCP 走 [mcp-run](mcp-execution.md)，由程序连接、核对实时工具、调用并落盘。后者是新的直接连接，不复用宿主 ready 声明，也不改变宿主配置。下面的环境索引与共享上下文协议用于原生宿主 MCP，尤其是依赖当前页面/工程的工具。
+
 此层将当前专项问题变成实际调用。已有本地程序可以提供所需证据时，直接 start/run，记录实际程序与输出，不先给它安装 MCP 包装或制作宿主验收收据。需要 MCP 时再按 execution-routes.json 匹配候选。当前选择目标、工具与输入已明确，就执行这项检查；不要为遍历选择表反复 catalog。
 
 MCP 路径只查询当前所需能力；缺少有效绑定时按 [环境初始化](environment-bootstrap.md) 接入这一项、按需补缺并验收。无 --environment 的 catalog 只返回上游候选；带旧 --inventory 的结果仍仅为已观察 schema。执行默认使用 --environment / --agent / --instance 返回的 ready 绑定；连接配置存在、进程存活和 tools/list 都不足以将能力标为 ready。调用失败立即 invalidate，再按失败证据修复或验证替代路径。

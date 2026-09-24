@@ -17,6 +17,8 @@ from fusion_workspace import Workspace
 from fusion_start import add_start_command, start
 from fusion_methods import check_guidance, execution_route
 from fusion_routing import dispatch_route
+from fusion_advance import advance
+from fusion_mcp import mcp_run
 
 
 def parser():
@@ -33,22 +35,35 @@ def parser():
     listing.add_argument("--instance", help="Current host instance; prevents reusing another host's readiness")
     listing.add_argument("--max-chars", type=int, default=6000)
     add_commands(commands)
-    for name in ("init", "plan", "route", "begin", "record", "review", "reconcile", "note", "resume", "query", "report", "run"):
+    for name in ("init", "plan", "route", "advance", "mcp-run", "begin", "record", "review", "reconcile", "note", "resume", "query", "report", "run"):
         command = commands.add_parser(name)
         command.add_argument("--case", required=True)
         if name != "init":
             binding_options(command)
         if name in {"init", "plan", "route"}:
             command.add_argument("--input", required=True)
-        if name == "route":
+        if name in {"route", "advance"}:
+            command.add_argument("--mcp-profile", help="Optional explicit-target stdio adapter to match by capability")
             command.add_argument("--environment")
             command.add_argument("--agent", choices=["dsh", "opencode", "pi"])
             command.add_argument("--instance")
             command.add_argument("--execute-local", action="store_true")
             command.add_argument("--max-chars", type=int, default=6000)
-        if name in {"begin", "run"}:
+        if name == "advance":
+            command.add_argument("--check", required=True, help="Explicit source check; never chooses the latest case/check")
+            command.add_argument("--summary", help="Caller judgement after inspecting the source evidence")
+            command.add_argument("--valid-for", type=float, default=0)
+            command.add_argument("--feature", action="append", required=True)
+            command.add_argument("--resource")
+            command.add_argument("--identity")
+            command.add_argument("--inputs", help="Only method-specific inputs; source metadata is derived")
+        if name in {"begin", "run", "mcp-run"}:
             command.add_argument("--check", required=True)
             command.add_argument("--retest-reason", default="")
+        if name == "mcp-run":
+            command.add_argument("--profile", required=True, help="Private explicit-target stdio adapter profile")
+            command.add_argument("--arguments", required=True, help="Actual MCP tool arguments JSON")
+            command.add_argument("--timeout", type=float, default=60)
         if name == "begin":
             command.add_argument("--provider", required=True)
             command.add_argument("--tool", required=True)
@@ -151,6 +166,10 @@ def dispatch(args, case):
     command = args.command
     if command == "route":
         return dispatch_route(args, case, local_run)
+    if command == "advance":
+        return advance(args, case, local_run)
+    if command == "mcp-run":
+        return mcp_run(case, args)
     if command == "plan":
         specs = read_json(args.input)
         guidance = check_guidance(specs[0]) if specs else None

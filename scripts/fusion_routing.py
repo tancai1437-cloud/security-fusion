@@ -101,7 +101,7 @@ def local_binding(data, procedure):
     return None
 
 
-def tool_binding(data, procedure, environment=None, instance=None):
+def tool_binding(data, procedure, environment=None, instance=None, mcp_profile=None):
     if procedure["id"] == "candidate-review":
         return {"status": "evidence_review_required", "provider": "host", "evidence_ids": data["evidence_ids"],
                 "next": "Inspect the captured evidence and its controls; this does not imply a new target call"}
@@ -118,6 +118,11 @@ def tool_binding(data, procedure, environment=None, instance=None):
                 binding["schema_source"] = "Use the current host's schema for this exact tool name"
             return dict(binding, status="mcp_host_call_required", capability=procedure["capability_id"],
                         next="Bind actual target/identity context, begin, call this host tool, then record/review")
+    if mcp_profile:
+        from fusion_mcp import configured_binding
+        binding = configured_binding(mcp_profile, procedure["capability_id"])
+        if binding:
+            return binding
     route = next(r for r in manifest("execution-routes.json", "routes") if r["id"] == procedure["capability_id"])
     return {"status": "tool_selection_required", "capability": procedure["capability_id"],
             "candidates": route["choices"], "candidates_are_not_ready": True,
@@ -161,12 +166,12 @@ def classify_procedures(case, data, source):
     return decisions, candidates
 
 
-def select_executable(data, candidates, environment, instance):
+def select_executable(data, candidates, environment, instance, mcp_profile=None):
     # A working independent route may proceed while a higher-priority route lacks
     # a prerequisite/tool. Never silently substitute a tool with different semantics.
     fallback = None
     for item, spec, decision, existing in candidates:
-        binding = tool_binding(data, item, environment, instance)
+        binding = tool_binding(data, item, environment, instance, mcp_profile)
         candidate = (item, spec, decision, existing, binding)
         if fallback is None:
             fallback = candidate
@@ -175,10 +180,10 @@ def select_executable(data, candidates, environment, instance):
     return fallback
 
 
-def route_observation(case, data, environment=None, instance=None, maximum=6000):
+def route_observation(case, data, environment=None, instance=None, maximum=6000, mcp_profile=None):
     source = validate_observation(case, data)
     decisions, candidates = classify_procedures(case, data, source)
-    selected = select_executable(data, candidates, environment, instance)
+    selected = select_executable(data, candidates, environment, instance, mcp_profile)
     result = {"status": "no_new_executable_check" if decisions else "no_matching_method",
               "target": data["target"], "resource": data["resource"],
               "decisions": decisions, "coverage": "Only matched procedures; not a claim of complete assessment"}
@@ -196,8 +201,11 @@ def route_observation(case, data, environment=None, instance=None, maximum=6000)
             case.plan([spec])
             decision["status"] = "pending"
     with case.transaction():
+        adapter = result.get("execution", {})
+        hint = ({k: adapter[k] for k in ("provider", "name", "profile", "target_argument", "status")}
+                if adapter.get("status") == "mcp_preflight_required" else None)
         case.event("observation_routed", source["id"], {"observation": data, "decisions": decisions,
-                                                       "selected": result.get("check_id")})
+                                                       "selected": result.get("check_id"), "adapter_hint": hint})
     return result
 
 
@@ -211,7 +219,8 @@ def dispatch_route(args, case, run_local):
         require(not args.agent and not args.instance, "Agent/instance require an environment index")
     # Reserve capture receipt space before execution; budget errors must not hide a call.
     budget = args.max_chars - 1600 if args.execute_local else args.max_chars
-    result = route_observation(case, args.observation, environment, args.instance, budget)
+    result = route_observation(case, args.observation, environment, args.instance, budget,
+                               getattr(args, "mcp_profile", None))
     if args.execute_local and result.get("execution", {}).get("status") == "local_callable":
         execution_args = argparse.Namespace(check=result["check_id"], argv=result["execution"]["argv"],
                                             timeout=30, cwd=None, retest_reason="")

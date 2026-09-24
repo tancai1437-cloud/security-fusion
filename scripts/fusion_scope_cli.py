@@ -104,7 +104,7 @@ def prepare_execution(args, case, workspace):
         for spec in specs:
             require(isinstance(spec, dict), "Check must be an object")
             workspace.require_target(case, spec.get("target"))
-    if args.command not in {"begin", "run"}:
+    if args.command not in {"begin", "run", "advance", "mcp-run"}:
         return None
     check = case.check(args.check)
     workspace.require_target(case, json.loads(check["spec"])["target"])
