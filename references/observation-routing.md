@@ -74,7 +74,10 @@ python3 "$FUSION_ROOT/scripts/fusion.py" route --workspace "$WORKSPACE" --sessio
 | 已确定的转换、一次性操作规则 | `business.transition` / `business.single-use` | 具体转换 / 幂等效果；不再重复安排泛化业务检查 |
 | 脚本、请求构造函数 | `js.bundle` / `js.request-builder` | 请求链路提取 |
 | 浏览器跨源、缓存 | `browser.cross-origin` / `browser.cache` | 真实浏览器边界 |
-| 源码、APK、原生样本 | `code.source` / `sample.apk` / `sample.binary` | 对应材料专项 |
+| XFF / 代理信任路径 | `http.entry` + `http.proxy-trust` | [三组真实请求及服务端决策对照](proxy-trust.md) |
+| 源码、APK、未分类样本 | `code.source` / `sample.apk` / `sample.binary` | 对应材料专项；二进制先只读 profile |
+| 已有原生 / 托管 profile | `binary.profiled` + `binary.native` / `binary.managed` | [函数 / 类型与 IL 分流](binary-depth.md)，需 inputs.question |
+| 已保存崩溃报告 | `crash.log`；分类后为 `crash.classified` | 日志分类 → 复现；需受控样本和构建/失败输入/阴性对照引用 |
 | 云配置、IaC、集群 | `cloud.config` / `cloud.iac` / `cloud.cluster` | 静态与运行态条件分离 |
 | 网络服务、身份基础设施 | `network.service` / `identity.infrastructure` | 具体服务与控制关系 |
 | AI 工具或检索链 | `ai.tools` / `ai.retrieval` | 真实工具/数据边界 |

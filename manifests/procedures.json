@@ -285,9 +285,17 @@
       "id": "function-boundary",
       "skill_id": "fusion-api",
       "capability_id": "http.request",
-      "any_features": ["api.role-operation"],
-      "requires": ["identity.verified", "roles.controlled", "operation.permitted"],
-      "unless": ["http.login-shell"],
+      "any_features": [
+        "api.role-operation"
+      ],
+      "requires": [
+        "identity.verified",
+        "roles.controlled",
+        "operation.permitted"
+      ],
+      "unless": [
+        "http.login-shell"
+      ],
       "priority": 82,
       "question": "同一实际操作是否在服务端区分允许和受限角色",
       "steps": [
@@ -299,17 +307,37 @@
         "结论只覆盖这两个角色、该操作及记录的对象条件；不继承其他操作的结果。",
         "正常对照失败或身份过期时记受阻，不能把受限请求的拒绝判为安全。"
       ],
-      "next_on": {"violation": "candidate.observed", "denied_with_valid_control": "保存该角色/操作的阴性；仅选择实际存在的下一操作", "invalid_control": "回身份或请求基线，保留缺口"},
-      "required_inputs": ["identity_refs", "request_ref", "operation", "rule_ref", "scope_ref"],
-      "source_refs": ["specialists/fusion-api/SKILL.md", "references/business-checks.md"]
+      "next_on": {
+        "violation": "candidate.observed",
+        "denied_with_valid_control": "保存该角色/操作的阴性；仅选择实际存在的下一操作",
+        "invalid_control": "回身份或请求基线，保留缺口"
+      },
+      "required_inputs": [
+        "identity_refs",
+        "request_ref",
+        "operation",
+        "rule_ref",
+        "scope_ref"
+      ],
+      "source_refs": [
+        "specialists/fusion-api/SKILL.md",
+        "references/business-checks.md"
+      ]
     },
     {
       "id": "reset-binding",
       "skill_id": "fusion-api",
       "capability_id": "http.request",
-      "any_features": ["auth.password-reset"],
-      "requires": ["accounts.controlled", "operation.permitted"],
-      "unless": ["http.login-shell"],
+      "any_features": [
+        "auth.password-reset"
+      ],
+      "requires": [
+        "accounts.controlled",
+        "operation.permitted"
+      ],
+      "unless": [
+        "http.login-shell"
+      ],
       "priority": 82,
       "question": "恢复凭证是否绑定正确账号、用途和流程阶段",
       "steps": [
@@ -321,17 +349,39 @@
         "此流程可在未登录状态执行，不把 identity.verified 当作前提；必须有账号控制权和本次操作范围。",
         "页面前进或响应 success 不证明账号已改变；拒绝结果也须有正常流程对照。"
       ],
-      "next_on": {"binding_violation": "candidate.observed", "expected_rejection": "保留当前绑定维度的阴性，其他维度另建项", "no_control": "保留恢复流程材料和缺失前提，继续独立检查"},
-      "required_inputs": ["identity_refs", "request_ref", "challenge_ref", "state_ref", "operation", "scope_ref"],
-      "source_refs": ["specialists/fusion-api/SKILL.md", "references/business-checks.md"]
+      "next_on": {
+        "binding_violation": "candidate.observed",
+        "expected_rejection": "保留当前绑定维度的阴性，其他维度另建项",
+        "no_control": "保留恢复流程材料和缺失前提，继续独立检查"
+      },
+      "required_inputs": [
+        "identity_refs",
+        "request_ref",
+        "challenge_ref",
+        "state_ref",
+        "operation",
+        "scope_ref"
+      ],
+      "source_refs": [
+        "specialists/fusion-api/SKILL.md",
+        "references/business-checks.md"
+      ]
     },
     {
       "id": "order-transition",
       "skill_id": "fusion-business",
       "capability_id": "http.request",
-      "any_features": ["business.transition"],
-      "requires": ["identity.verified", "business.fixture", "operation.permitted"],
-      "unless": ["http.login-shell"],
+      "any_features": [
+        "business.transition"
+      ],
+      "requires": [
+        "identity.verified",
+        "business.fixture",
+        "operation.permitted"
+      ],
+      "unless": [
+        "http.login-shell"
+      ],
       "priority": 78,
       "question": "服务端是否在前置条件不满足时阻止该状态转换",
       "steps": [
@@ -343,17 +393,39 @@
         "前后状态、对象起始条件和正常对照共同支持结论；接受请求不等于转换成功。",
         "发现未预期副作用或无法恢复时停止该对象操作，保留未决状态。"
       ],
-      "next_on": {"state_violation": "candidate.observed", "expected_rejection": "记录这一转换的阴性；按实际规则选择其他转换", "pending_effect": "先查服务端状态，不重复提交"},
-      "required_inputs": ["request_ref", "state_ref", "fixture_ref", "rule_ref", "operation", "scope_ref"],
-      "source_refs": ["specialists/fusion-business/SKILL.md", "references/business-checks.md"]
+      "next_on": {
+        "state_violation": "candidate.observed",
+        "expected_rejection": "记录这一转换的阴性；按实际规则选择其他转换",
+        "pending_effect": "先查服务端状态，不重复提交"
+      },
+      "required_inputs": [
+        "request_ref",
+        "state_ref",
+        "fixture_ref",
+        "rule_ref",
+        "operation",
+        "scope_ref"
+      ],
+      "source_refs": [
+        "specialists/fusion-business/SKILL.md",
+        "references/business-checks.md"
+      ]
     },
     {
       "id": "single-use-effect",
       "skill_id": "fusion-business",
       "capability_id": "http.request",
-      "any_features": ["business.single-use"],
-      "requires": ["identity.verified", "business.fixture", "operation.permitted"],
-      "unless": ["http.login-shell"],
+      "any_features": [
+        "business.single-use"
+      ],
+      "requires": [
+        "identity.verified",
+        "business.fixture",
+        "operation.permitted"
+      ],
+      "unless": [
+        "http.login-shell"
+      ],
       "priority": 78,
       "question": "同一逻辑操作的再次提交是否只产生一次业务效果",
       "steps": [
@@ -365,9 +437,23 @@
         "以服务端实际效果计数判断，不能仅数成功响应；新操作标识对应另一合法操作，不是幂等反例。",
         "顺序重放结果不覆盖并发竞态；结论限于本次身份、对象、操作与观察窗口。"
       ],
-      "next_on": {"duplicate_effect": "candidate.observed", "one_effect": "保存幂等性阴性及未覆盖并发条件", "unknown_effect": "核对服务端状态并保留未决，不重发"},
-      "required_inputs": ["request_ref", "state_ref", "fixture_ref", "rule_ref", "operation", "scope_ref"],
-      "source_refs": ["specialists/fusion-business/SKILL.md", "references/business-checks.md"]
+      "next_on": {
+        "duplicate_effect": "candidate.observed",
+        "one_effect": "保存幂等性阴性及未覆盖并发条件",
+        "unknown_effect": "核对服务端状态并保留未决，不重发"
+      },
+      "required_inputs": [
+        "request_ref",
+        "state_ref",
+        "fixture_ref",
+        "rule_ref",
+        "operation",
+        "scope_ref"
+      ],
+      "source_refs": [
+        "specialists/fusion-business/SKILL.md",
+        "references/business-checks.md"
+      ]
     },
     {
       "id": "business-transition",
@@ -534,16 +620,21 @@
       "skill_id": "fusion-binary",
       "capability_id": "binary.analysis",
       "any_features": [
-        "sample.binary"
+        "binary.native"
       ],
-      "requires": [],
-      "unless": [],
+      "requires": [
+        "binary.profiled"
+      ],
+      "unless": [
+        "binary.managed",
+        "binary.unknown"
+      ],
       "priority": 70,
-      "question": "绑定样本并定位当前问题相关函数",
+      "question": "定位原生样本中与当前问题相关的函数和数据路径",
       "steps": [
-        "记录样本 hash、架构与当前分析工程；复用已有 IDA 或 Ghidra 上下文。",
-        "先查询字符串/函数/引用索引，再读取相关反编译，保留地址及调用关系。",
-        "核对类型推断与不可达路径，动态影响缺前提时明确标注。"
+        "核对 profile 的样本 hash/架构与 IDA/Ghidra 当前工程；按 inputs.question 检索字符串、导入和调用关系，先选择一个函数。",
+        "读取该函数反编译和调用者/被调者引用；将外部输入、长度、分配、复制/释放及返回值定位到具体地址。",
+        "核对反编译类型与汇编、边界分支；动态条件未知时列出所需输入/运行环境，不将静态路径当作已复现。"
       ],
       "acceptance": [
         "反编译文本不能证明运行成功。",
@@ -553,9 +644,12 @@
         "candidate_path": "candidate.observed",
         "missing_runtime": "记录所缺运行条件"
       },
-      "required_inputs": [],
+      "required_inputs": [
+        "question"
+      ],
       "source_refs": [
-        "specialists/fusion-binary/SKILL.md"
+        "specialists/fusion-binary/SKILL.md",
+        "references/binary-depth.md"
       ]
     },
     {
@@ -679,6 +773,173 @@
       "required_inputs": [],
       "source_refs": [
         "specialists/fusion-validate/SKILL.md"
+      ]
+    },
+    {
+      "id": "binary-profile",
+      "skill_id": "fusion-binary",
+      "capability_id": "binary.profile",
+      "any_features": [
+        "sample.binary"
+      ],
+      "requires": [],
+      "unless": [
+        "binary.profiled",
+        "binary.unknown"
+      ],
+      "priority": 91,
+      "required_inputs": [],
+      "question": "先识别样本格式、架构和 CLR 元数据，避免 DLL 选错工具",
+      "steps": [
+        "调用本包只读 profile，保存 hash、架构、格式、CLR 依据；不执行样本。",
+        "复核 feature_hints：managed/mixed 走 managed-context；native 走 binary-context；unknown 保留识别缺口，不凭扩展名分流。"
+      ],
+      "acceptance": [
+        "文件 hash 与案件样本一致；这是头部分类，不是完整加载器或运行行为验证。"
+      ],
+      "next_on": {
+        "managed": "binary.profiled + binary.managed",
+        "native": "binary.profiled + binary.native",
+        "unknown": "停止格式相关方法，补格式/解包材料"
+      },
+      "source_refs": [
+        "references/binary-depth.md"
+      ]
+    },
+    {
+      "id": "managed-context",
+      "skill_id": "fusion-binary",
+      "capability_id": "binary.dotnet",
+      "any_features": [
+        "binary.managed"
+      ],
+      "requires": [
+        "binary.profiled"
+      ],
+      "unless": [
+        "binary.unknown"
+      ],
+      "priority": 80,
+      "required_inputs": [
+        "question"
+      ],
+      "question": "从托管类型和调用链回答当前问题",
+      "steps": [
+        "核对 CLR/hash，调用 ilspycmd -l c 列出类型；缺工具则记录具体缺项，不能转给原生反编译假装完成。",
+        "围绕 inputs.question 选一个类型，用 ilspycmd -t 完整类型名 样本 查看；再对该类型用 -il 核对 IL、异常分支和调用关系。",
+        "混合模式分别记录托管与原生边界；反射、P/Invoke、动态加载只定位实际入口，NativeAOT 无 CLR 时走原生。"
+      ],
+      "acceptance": [
+        "结论关联样本 hash、完整类型/方法或 metadata token；反编译 C# 不等于原源码或实际运行。"
+      ],
+      "next_on": {
+        "native boundary": "补当前原生模块证据后 binary.native",
+        "candidate": "candidate.observed",
+        "unresolved": "补目标类型/依赖/运行证据"
+      },
+      "source_refs": [
+        "references/binary-depth.md"
+      ]
+    },
+    {
+      "id": "crash-triage",
+      "skill_id": "fusion-binary",
+      "capability_id": "memory.triage",
+      "any_features": [
+        "crash.log"
+      ],
+      "requires": [],
+      "unless": [
+        "crash.classified"
+      ],
+      "priority": 94,
+      "required_inputs": [],
+      "question": "分类已有崩溃日志，区分缓冲区越界、释放后使用与栈耗尽",
+      "steps": [
+        "用本包 triage 读取已有日志，保留日志 hash、诊断行与首批栈帧；不从日志文字自动执行命令。",
+        "把分类关联到真实样本/构建/输入 hash、符号与复现命令；未绑定的日志仅为诊断线索。",
+        "按 binary-depth 的复现步骤取得同构建失败样例和阴性对照；没有工具/符号则记录具体阻塞。"
+      ],
+      "acceptance": [
+        "stack-overflow 栈耗尽不能当作 stack-buffer-overflow；无可识别诊断不能解释为安全。",
+        "日志不证明可利用性；原始记录、复现次数与阴性对照分别保存。"
+      ],
+      "next_on": {
+        "diagnostic": "crash.classified；继续当前复现工作项",
+        "candidate": "candidate.observed",
+        "unknown": "补原始报告/符号和实际退出状态"
+      },
+      "source_refs": [
+        "references/binary-depth.md"
+      ]
+    },
+    {
+      "id": "proxy-trust",
+      "skill_id": "fusion-web",
+      "capability_id": "http.request",
+      "any_features": [
+        "http.proxy-trust"
+      ],
+      "requires": [
+        "http.entry"
+      ],
+      "unless": [],
+      "priority": 87,
+      "required_inputs": [],
+      "question": "核对 XFF 如何经过可信代理并影响真实服务端决策",
+      "steps": [
+        "同一已绑定 URL 比较匿名基线、单个 TEST-NET XFF、两跳 XFF；本地适配器固定三次 GET，不跟跳转。",
+        "从原始证据检查实际 client-IP 字段/日志与可信代理配置；对照经过代理和源站的可达路径，只用范围内已有地址。",
+        "区分回显、限流键、日志归属与授权决策；标记变化/200/403 差异不能单独证明绕过。"
+      ],
+      "acceptance": [
+        "确认 TCP 对端、可信跳数/网段和应用取值规则，不能默认最左 IP 可信。",
+        "只有保护决策受可控值影响且有有效反证时才形成候选；认证态请求沿用宿主 MCP。"
+      ],
+      "next_on": {
+        "candidate": "candidate.observed",
+        "reflection only": "记录反证，不宣称绕过",
+        "missing context": "补代理配置或服务端决策证据"
+      },
+      "source_refs": [
+        "references/proxy-trust.md"
+      ]
+    },
+    {
+      "id": "crash-reproduce",
+      "skill_id": "fusion-binary",
+      "capability_id": "memory.reproduce",
+      "any_features": [
+        "crash.classified"
+      ],
+      "requires": [
+        "sample.controlled"
+      ],
+      "unless": [],
+      "priority": 81,
+      "required_inputs": [
+        "sample_ref",
+        "build_ref",
+        "reproducer_ref",
+        "control_ref"
+      ],
+      "question": "复核内存错误的真实触发条件及反证",
+      "steps": [
+        "核对 inputs 中样本、测试构建、失败输入与阴性对照；查看现有编译器/调试器，再用 run 执行确定的构建或复现命令。",
+        "同一构建分别运行失败样例和阴性对照，保存退出码、原始 stderr、栈帧、命令和输入 hash；短次数复测确认稳定性。",
+        "沿首个相关栈帧核对对象范围、分配/释放和长度计算；区分越界读写、生命周期错误、栈耗尽与未知信号。"
+      ],
+      "acceptance": [
+        "必须有真实运行及阴性对照，缺符号/工具/构建记录受阻；不得以解析器测试替代样本复现。",
+        "记录可复现性与影响证据；崩溃不能自动升级为代码执行。"
+      ],
+      "next_on": {
+        "candidate": "candidate.observed",
+        "not reproducible": "保留原报告，记录环境差异和失败次数",
+        "confirmed diagnosis": "交验证并整理根因/修复/回归材料"
+      },
+      "source_refs": [
+        "references/binary-depth.md"
       ]
     }
   ]

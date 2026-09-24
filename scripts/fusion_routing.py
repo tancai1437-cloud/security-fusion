@@ -7,6 +7,7 @@ import shutil
 from urllib.parse import urlsplit
 
 from fusion_store import ACTIVE, encode, manifest, reject_credentials, require, text_field, validate_spec
+from fusion_specialist_bindings import specialist_binding
 
 
 def procedures():
@@ -77,8 +78,21 @@ def initial_http_spec(target):
     return build_spec(data, procedure, None), tool_binding(data, procedure)
 
 
-def local_binding(data, procedure):
+def initial_binary_spec(target):
+    from fusion_binary_profile import sample_digest
+    path = Path(target).resolve(strict=True)
+    require(path.is_file() and str(path) == target, "Binary entry requires a canonical absolute file path")
+    procedure = next(p for p in procedures() if p["id"] == "binary-profile")
+    data = {"target": target, "resource": target, "target_version": "sha256:" + sample_digest(path),
+            "identity_ref": "local-read-only"}
+    return build_spec(data, procedure, None), tool_binding(data, procedure)
+
+
+def local_binding(data, procedure, evidence_paths=None):
     resource = data["resource"]
+    specialized = specialist_binding(data, procedure, evidence_paths)
+    if specialized:
+        return specialized
     # This adapter only reads the exact bound entry. It does not follow redirects,
     # expand host scope, carry credentials, or execute generated shell text.
     if procedure["id"] == "entry-baseline" and resource == data["target"]:
@@ -101,11 +115,11 @@ def local_binding(data, procedure):
     return None
 
 
-def tool_binding(data, procedure, environment=None, instance=None, mcp_profile=None):
+def tool_binding(data, procedure, environment=None, instance=None, mcp_profile=None, evidence_paths=None):
     if procedure["id"] == "candidate-review":
         return {"status": "evidence_review_required", "provider": "host", "evidence_ids": data["evidence_ids"],
                 "next": "Inspect the captured evidence and its controls; this does not imply a new target call"}
-    local = local_binding(data, procedure)
+    local = local_binding(data, procedure, evidence_paths)
     if local:
         return local
     if environment is not None:
@@ -166,12 +180,12 @@ def classify_procedures(case, data, source):
     return decisions, candidates
 
 
-def select_executable(data, candidates, environment, instance, mcp_profile=None):
+def select_executable(data, candidates, environment, instance, mcp_profile=None, evidence_paths=None):
     # A working independent route may proceed while a higher-priority route lacks
     # a prerequisite/tool. Never silently substitute a tool with different semantics.
     fallback = None
     for item, spec, decision, existing in candidates:
-        binding = tool_binding(data, item, environment, instance, mcp_profile)
+        binding = tool_binding(data, item, environment, instance, mcp_profile, evidence_paths)
         candidate = (item, spec, decision, existing, binding)
         if fallback is None:
             fallback = candidate
@@ -183,7 +197,9 @@ def select_executable(data, candidates, environment, instance, mcp_profile=None)
 def route_observation(case, data, environment=None, instance=None, maximum=6000, mcp_profile=None):
     source = validate_observation(case, data)
     decisions, candidates = classify_procedures(case, data, source)
-    selected = select_executable(data, candidates, environment, instance, mcp_profile)
+    evidence_paths = {"evidence:" + item["id"]: (case.root / item["path"]).resolve()
+                      for item in case.artifacts(source["latest_attempt"]) if item["id"] in data["evidence_ids"]}
+    selected = select_executable(data, candidates, environment, instance, mcp_profile, evidence_paths)
     result = {"status": "no_new_executable_check" if decisions else "no_matching_method",
               "target": data["target"], "resource": data["resource"],
               "decisions": decisions, "coverage": "Only matched procedures; not a claim of complete assessment"}

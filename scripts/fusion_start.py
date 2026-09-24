@@ -5,7 +5,7 @@ from pathlib import Path
 from fusion_store import Case, PACK, read_json, reject_credentials, require, text_field, validate_spec
 from fusion_workspace import Workspace, file_lock
 from fusion_methods import check_guidance
-from fusion_routing import initial_http_spec
+from fusion_routing import initial_binary_spec, initial_http_spec
 
 
 def add_start_command(commands):
@@ -15,7 +15,7 @@ def add_start_command(commands):
     command.add_argument("--expect-case", help="Required to reopen an existing case; never takes over another session")
     command.add_argument("--timeout", type=float, default=300)
     command.add_argument("--cwd", help="Defaults to the case directory")
-    command.add_argument("--execute-local", action="store_true", help="Execute the built-in read-only HTTP entry adapter")
+    command.add_argument("--execute-local", action="store_true", help="Execute a built-in HTTP baseline or binary metadata adapter")
     command.add_argument("argv", nargs=argparse.REMAINDER)
 
 
@@ -31,9 +31,15 @@ def start_input(args):
         text_field(target, "target", 1000)
     require(not (task.get("entry") and task.get("check")), "Use entry or check, not both")
     if task.get("entry"):
-        require(task["config"].get("mission_id") in {"pentest", "src", "redteam", "ai-assessment"},
-                "HTTP entry discovery is not the starting method for this mission")
-        task["check"], task["entry_binding"] = initial_http_spec(task["entry"])
+        mission = task["config"].get("mission_id")
+        text_field(task["entry"], "entry", 1000)
+        if task["entry"].lower().startswith(("http://", "https://")):
+            require(mission in {"pentest", "src", "redteam", "ai-assessment"},
+                    "HTTP entry discovery is not the starting method for this mission")
+            task["check"], task["entry_binding"] = initial_http_spec(task["entry"])
+        else:
+            require(mission in {"reverse", "pentest", "redteam"}, "Binary entry is not allowed in this mission")
+            task["check"], task["entry_binding"] = initial_binary_spec(task["entry"])
     require(not args.execute_local or task.get("entry"), "Automatic local execution requires entry mode")
     require(not (args.execute_local and args.argv), "Choose built-in entry execution or an explicit command")
     check = task.get("check")

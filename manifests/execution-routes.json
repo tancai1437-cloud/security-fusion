@@ -525,6 +525,80 @@
           "evidence_level": "local_design"
         }
       ]
+    },
+    {
+      "id": "binary.profile",
+      "required_input": [
+        "sample_ref"
+      ],
+      "expected_output": "hash、PE/ELF 架构、CLR 分类及识别缺口",
+      "choices": [
+        {
+          "provider": "host",
+          "tool_candidates": [
+            "fusion_binary_profile.py"
+          ],
+          "notes": "包内只读脚本，经当前 Python 调用；不加载或运行样本",
+          "evidence_level": "local_design"
+        }
+      ]
+    },
+    {
+      "id": "binary.dotnet",
+      "required_input": [
+        "sample_ref",
+        "question"
+      ],
+      "expected_output": "托管类型/IL 与问题相关的调用链",
+      "choices": [
+        {
+          "provider": "host",
+          "tool_candidates": [
+            "ilspycmd"
+          ],
+          "notes": "仅探测到本机 ilspycmd 时绑定；CLI 不是 MCP 工具名",
+          "evidence_level": "local_design"
+        }
+      ]
+    },
+    {
+      "id": "memory.triage",
+      "required_input": [
+        "log_ref"
+      ],
+      "expected_output": "诊断分类、日志行号、栈帧和复现缺口",
+      "choices": [
+        {
+          "provider": "host",
+          "tool_candidates": [
+            "fusion_crash_triage.py"
+          ],
+          "notes": "包内只读脚本；分类不是利用性结论",
+          "evidence_level": "local_design"
+        }
+      ]
+    },
+    {
+      "id": "memory.reproduce",
+      "required_input": [
+        "sample_ref",
+        "build_ref",
+        "reproducer_ref",
+        "control_ref"
+      ],
+      "expected_output": "真实退出状态、诊断、复现与阴性对照证据",
+      "choices": [
+        {
+          "provider": "host",
+          "tool_candidates": [
+            "clang",
+            "gdb",
+            "lldb"
+          ],
+          "notes": "候选 CLI 不代表已安装；按已知构建/复现命令经 run 执行，不自动运行未知样本",
+          "evidence_level": "local_design"
+        }
+      ]
     }
   ]
 }

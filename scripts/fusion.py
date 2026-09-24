@@ -110,8 +110,20 @@ def local_run(case, args):
     require(0 < args.timeout <= 86400, "timeout must be between 0 and 86400 seconds")
     cwd = Path(args.cwd).resolve() if args.cwd else case.root
     require(cwd.is_dir(), "Working directory does not exist")
-    command_digest = hashlib.sha256(encode({"argv": argv, "cwd": str(cwd)}).encode("utf-8")).hexdigest()
-    route = execution_route(json.loads(case.check(args.check)["spec"]), "host", Path(argv[0]).name)
+    spec = json.loads(case.check(args.check)["spec"])
+    parameters = spec["inputs"].get("parameters", spec["inputs"])
+    expected = parameters.get("expected_exit_codes", [0]) if isinstance(parameters, dict) else [0]
+    require(isinstance(expected, list) and 1 <= len(expected) <= 4
+            and all(type(code) is int and -(2 ** 31) <= code < 2 ** 32 for code in expected),
+            "expected_exit_codes requires 1-4 integer process exit codes")
+    expected = sorted(set(expected))
+    require(expected == [0] or spec["capability_id"] == "memory.reproduce",
+            "Nonzero expected exits are only supported for explicit memory.reproduce checks")
+    invocation = {"argv": argv, "cwd": str(cwd)}
+    if expected != [0]:
+        invocation["expected_exit_codes"] = expected
+    command_digest = hashlib.sha256(encode(invocation).encode("utf-8")).hexdigest()
+    route = execution_route(spec, "host", Path(argv[0]).name)
     receipt = case.begin(args.check, "host", route["tool"], args.retest_reason, command_digest)
     if receipt["decision"] != "execute":
         return dict(receipt, route=route)
@@ -130,7 +142,7 @@ def local_run(case, args):
             process = subprocess.Popen(argv, cwd=cwd, stdout=out, stderr=err, shell=False)
             try:
                 code = process.wait(timeout=args.timeout)
-                state = "review" if code == 0 else "failed"
+                state = "review" if code in expected else "failed"
                 detail = f"Local process exited {code}; inspect captured output before accepting completion"
             except subprocess.TimeoutExpired:
                 process.kill()
@@ -144,6 +156,7 @@ def local_run(case, args):
             os.fsync(out.fileno())
             os.fsync(err.fileno())
     execution = {"attempt_id": attempt, "route": route, "command_sha256": command_digest, "returncode": code,
+                 "expected_exit_codes": expected,
                  "status": state, "started": started, "finished": time.time(), "summary": detail}
     write_view(case, f"captures/{attempt}/receipt.json", encode(execution) + "\n")
     recorded = case.record(attempt, state, detail, [stdout, stderr, capture / "receipt.json"])

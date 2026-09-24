@@ -10,12 +10,12 @@ description: 对获准目标执行渗透、SRC、逆向、源码审计或 AI 安
 | 当前任务或已有材料 | 立即进入 | 起手证据 |
 |---|---|---|
 | 渗透 / SRC 新目标，已有 URL | [recon](specialists/fusion-recon/SKILL.md) | 入口的实际响应、业务入口与跳转 |
-| 已知 Web 输入、上传下载或浏览器边界 | [web](specialists/fusion-web/SKILL.md) | 正常请求与对应输出 |
+| 已知 Web 输入、XFF/代理信任、上传下载或浏览器边界 | [web](specialists/fusion-web/SKILL.md) | 正常请求与对应输出 |
 | API、登录/密码重置、对象 ID、角色或租户关系 | [api](specialists/fusion-api/SKILL.md) | 正常请求、身份或恢复凭证的归属 |
 | 订单、额度、多阶段交易、一次性操作 | [business](specialists/fusion-business/SKILL.md) | 当前流程与服务端状态 |
 | JS、签名、请求构造 | [js](specialists/fusion-js/SKILL.md) | 请求发起位置与相关源码 |
 | 源码审计 | [code](specialists/fusion-code/SKILL.md) | 输入入口、调用方与控制检查 |
-| APK / 移动应用；原生二进制 | [mobile](specialists/fusion-mobile/SKILL.md) / [binary](specialists/fusion-binary/SKILL.md) | 样本标识、格式与当前分析工程 |
+| APK / 移动应用；DLL、PE/ELF、.NET、崩溃日志 | [mobile](specialists/fusion-mobile/SKILL.md) / [binary](specialists/fusion-binary/SKILL.md) | 样本标识、格式与当前分析工程 |
 | 云 / 容器；网络服务 / 身份基础设施 | [cloud](specialists/fusion-cloud/SKILL.md) / [infra](specialists/fusion-infra/SKILL.md) | 指定资源的配置与实际状态 |
 | AI 应用 / Agent 边界 | [ai](specialists/fusion-ai/SKILL.md) | 输入、检索、工具参数与实际结果 |
 
@@ -23,7 +23,7 @@ description: 对获准目标执行渗透、SRC、逆向、源码审计或 AI 安
 
 ## 从方法走到调用
 
-1. **新任务**读 [快速执行](references/first-action.md)。HTTP 入口用 `start --execute-local` 合并建案、会话绑定和第一次读取；已有材料直接登记对应检查。Agent 维护案件与参数，用户不用逐步填表。
+1. **新任务**读 [快速执行](references/first-action.md)。HTTP 入口或本地二进制用 `start --execute-local` 合并建案、会话绑定和第一次读取；已有材料直接登记对应检查。Agent 维护案件与参数，用户不用逐步填表。
 2. **选工具**：现成本地命令走 `run`；已建立显式目标 stdio 配置的 MCP 走 [mcp-run](references/mcp-execution.md)，程序完成连接、实际工具查询、调用及证据落盘。依赖当前浏览器/工程的 MCP 用宿主已连接工具，按 [执行路由](references/execution-router.md) 核对上下文。只查当前能力，缺项才 [补齐环境](references/environment-bootstrap.md)。
 3. **读结果并推进**：取得输出后先判断实际响应；用 [advance](references/observation-routing.md#简化入口advance) 一次提交上一项复核结论与新事实，程序补齐来源和证据引用，返回下一具体方法。继续调用该方法所需工具。未匹配的问题按当前专项生成具体检查，不强凑标签。
 

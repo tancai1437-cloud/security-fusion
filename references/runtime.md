@@ -44,7 +44,7 @@ python3 "$FUSION" run --workspace "$WORKSPACE" --session "$SESSION" --case "$CAS
 
 只接受参数数组，shell=False；不会按 shell 展开管道或通配符。需要脚本时先保存脚本再调用解释器。默认工作目录是案件目录，可显式 --cwd。命令和目录摘要用于防止同一检查下换命令误复用，实际参数不写入摘要；通过安全环境变量传凭证。脚本文件内容或工具版本变化仍需更新方法版本。
 
-返回短回执和 route（专项、能力、实际程序及所需证据）；stdout、stderr、receipt 保存在 captures/CALL-id/，同时复制到不可覆盖的证据索引。MCP begin 同样返回所登记提供者与工具的 route，这不替代真实调用或接通验收。本地程序为 Python/shell 包装时，仅登记该实际程序，不猜测其内部调用。大量输出不回灌给模型。退出码 0 进入 review；非零进入 failed；超时进入 unknown。启动失败进入 blocked。超时只停止启动的父进程，不代表子进程或远端动作已撤销。
+返回短回执和 route（专项、能力、实际程序及所需证据）；stdout、stderr、receipt 保存在 captures/CALL-id/，同时复制到不可覆盖的证据索引。MCP begin 同样返回所登记提供者与工具的 route，这不替代真实调用或接通验收。本地程序为 Python/shell 包装时，仅登记该实际程序，不猜测其内部调用。大量输出不回灌给模型。默认退出码 0 进入 review，非零进入 failed。只有 memory.reproduce 可在登记检查时声明有限的 expected_exit_codes（见 [崩溃复现](binary-depth.md)）；保留实际退出码，仍须语义复核。超时进入 unknown。启动失败进入 blocked。超时只停止启动的父进程，不代表子进程或远端动作已撤销。
 
 显式目标 stdio MCP 使用 [mcp-run](mcp-execution.md)，把开始登记、实际调用和结果捕获合并。已经存在的原生宿主 MCP 连接无法被本程序接管，尤其是当前页面/工程；这些连接按以下协议使用：
 

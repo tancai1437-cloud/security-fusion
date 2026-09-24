@@ -1,0 +1,55 @@
+{
+  "date": "2026-09-25",
+  "baseline_commit": "7db9b77ed996517d0fb224495bf5f227ce22b9b9",
+  "validation_kind": "specialist_helpers_and_explicit_fact_routing",
+  "new_procedures": [
+    "binary-profile",
+    "managed-context",
+    "crash-triage",
+    "crash-reproduce",
+    "proxy-trust"
+  ],
+  "refined_procedures": [
+    "binary-context"
+  ],
+  "total_procedures": 27,
+  "execution_capabilities": 22,
+  "local_windows_tests": {
+    "total": 124,
+    "passed": 122,
+    "skipped": 2,
+    "failed": 0
+  },
+  "skip_reasons": [
+    "Host does not permit symlinks",
+    "Real ASan regression requires Linux and an existing clang"
+  ],
+  "focused_tests_after_pe_parser_refactor": {
+    "total": 15,
+    "passed": 14,
+    "skipped": 1,
+    "failed": 0
+  },
+  "verified": [
+    "Binary start executes a read-only profile, records evidence, and preserves hold/reuse across process restarts",
+    "Synthetic PE32/PE32+/CLR/mixed/malformed headers and endian-aware ELF classification; fixtures are not loadable programs",
+    "Real local Python executable, native coreclr.dll and CLR-bearing System.Console.dll header classification without sample execution",
+    "Managed and native methods split after profile; missing question or ilspycmd remains a specific gap",
+    "Three exact-URL XFF requests reach loopback services, preserve controls, do not follow redirects and mark truncated capture",
+    "Proxy request capture is observations_only, never an automatic bypass verdict; repeat routing does not send extra requests",
+    "Saved sanitizer diagnostics distinguish stack buffer overflow, stack exhaustion, lifetime errors and unknown evidence",
+    "Explicit expected exits only for memory.reproduce remain reviewable with actual returncode preserved",
+    "Crash triage can read a hash-checked artifact of the current source; foreign evidence reference is not locally callable",
+    "Current specialist card remains below 3000 characters; resume below 6000 characters in integration tests"
+  ],
+  "real_sanitizer_test": "Linux GitHub Actions requires preinstalled clang and compiles/runs a controlled C fixture plus negative control; not run on this Windows host",
+  "real_ilspy_decompilation": "NOT_RUN; local tool unavailable",
+  "ida_ghidra_live_mcp_integration": "NOT_RUN",
+  "kali_dsh_model_routing_effectiveness": "NOT_MEASURED",
+  "pack_references": "PASS",
+  "skill_format": "PASS",
+  "python_39_syntax": "PASS",
+  "sentrux_gate": "PASS after splitting PE/CLR parser; quality 5685 -> 5765; complex-function count unchanged",
+  "sentrux_check": "No rules.toml configured; no custom architectural rules evaluated",
+  "rollback": "Revert this change to baseline; no database migration, production dependencies, or host skill installation"
+}

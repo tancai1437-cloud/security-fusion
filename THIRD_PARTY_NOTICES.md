@@ -42,3 +42,7 @@ L01：`src-6k-skill.zip`（包根 `clown-src-6k-skill/`）。用户提供该档�
 参考 [探微安全实验室 / tanweai/wooyun-legacy](https://github.com/tanweai/wooyun-legacy/tree/d6a69e1779ccfe27981a4eb314b1f40f17052068) 的业务关系与分层查阅思路，具体取舍见 [融合记录](references/upstream-decisions.md#wooyun-methods)。上游标注 [CC BY-NC-SA 4.0](https://github.com/tanweai/wooyun-legacy/blob/d6a69e1779ccfe27981a4eb314b1f40f17052068/LICENSE)，包含署名、非商业和相同方式共享条件。
 
 本次针对已有路由协议编写通用的角色、恢复绑定、状态转换和一次性效果检查，没有复制其案例正文、统计表、payload 库、图表、示例脚本或插件文件。不把上游资料附带分发，也不将其标注为 MIT。今后如引入其具体材料，须明确适用许可与分发边界。
+
+## 专精方法设计参考
+
+2026-09-25 参考 zhaoxuya520/reverse-skill 固定版本的原生/托管分流思路；新增辅助脚本和方法独立实现，不附带上游 Skill、MCP 或工具实现。格式/命令含义依据 Microsoft、ILSpy、Clang 和 MDN 官方资料，来源和取舍见 [专精融合记录](references/upstream-decisions.md#binary-depth)。相关链接仅为来源与接口参考，不将外部材料的许可改为本包许可，也不表示已经验证外部工具的所有运行环境。

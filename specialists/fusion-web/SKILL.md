@@ -14,6 +14,7 @@ description: 评估已识别Web入口的输入、文件、客户端策略及服�
 | 现场特征 | 具体方法与首个工具动作 |
 |---|---|
 | 文本进入实际业务响应 | `input-context`：HTTP 正常请求后用无害标记定位输出位置；保留 request_ref、parameter，确认 `response.business` |
+| XFF / 代理信任 | `proxy-trust`：固定三次匿名 GET 对照，再核对可信跳与服务端决策；按需读 [方法](../../references/proxy-trust.md) |
 | 上传、下载、分享 | `file-boundary`：用受控文件和已验证身份比较归属/访问结果，记录 identity_refs、object_refs、operation |
 | URL 字段或 Webhook | `url-origin`：先查询真实流量区分浏览器跳转、服务器获取与异步处理；有受控回调证据再下结论 |
 | 浏览器跨源或缓存 | `browser-boundary`：用当前浏览器和实际身份核对脚本是否读到内容；HTTP 头不能代替浏览器行为 |

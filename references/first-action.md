@@ -32,7 +32,9 @@
 python3 "$FUSION_ROOT/scripts/fusion.py" start --workspace "$WORKSPACE" --session "$SESSION" --case "$CASE" --input task.json --execute-local
 ```
 
-程序选择 fusion-recon → web.crawl → 当前 curl，执行一次精确入口的匿名读取，不跟随跳转；有凭据的请求和其他检查仍按实际工具处理。没有 curl 时返回候选和 planned_not_executed，不伪造调用。HTTP 错误响应仍需语义复核，成功退出不等于完成。`entry` 和下面的显式 `check` 二选一。首份证据 review 后，优先用 [事实路由](observation-routing.md) 生成下一项；目标不是 HTTP 或已有明确检查时沿用下面的格式。
+程序选择 fusion-recon → web.crawl → 当前 curl，执行一次精确入口的匿名读取，不跟随跳转；有凭据的请求和其他检查仍按实际工具处理。没有 curl 时返回候选和 planned_not_executed，不伪造调用。HTTP 错误响应仍需语义复核，成功退出不等于完成。`entry` 和下面的显式 `check` 二选一。首份证据 review 后，优先用 [事实路由](observation-routing.md) 生成下一项。
+
+**二进制起手**也可用同一 entry 命令：将 targets/entry 改为同一规范绝对文件路径，mission_id 用 reverse（或含该样本的 pentest/redteam）。程序绑定样本 SHA-256，运行本包只读 PE/ELF/CLR profile；不会执行样本。后续按 [二进制专精](binary-depth.md) 分流原生、托管和 unknown。其他材料或已有明确检查时沿用下面的格式。
 
 使用已安装的实际脚本路径，生成一个 task.json，放在案件目录之外。下列结构仅示例，目标、输入、版本与完成条件由当前任务事实替换：
 

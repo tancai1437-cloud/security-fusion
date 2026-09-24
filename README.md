@@ -2,7 +2,7 @@
 
 将安全任务组织成三层：**主路由 → 专项 Skill 路由 → 执行路由（MCP / 本地工具）**。
 
-一个主入口包含 6 类任务、13 个专项和 18 类执行能力映射。Agent 根据任务材料安排适用检查，保存证据、覆盖记录、报告和续跑信息。
+一个主入口包含 6 类任务、13 个专项和 22 类执行能力映射。Agent 根据任务材料安排适用检查，保存证据、覆盖记录、报告和续跑信息。
 
 当前入口按现场材料直接进入一个专项，recon / Web / API / JS 给出具体动作与工具选择。`advance` 合并证据复核与下一方法选择，自动带入当前检查的目标、版本和证据引用；显式目标 stdio MCP 可用 `mcp-run` 真正连接并调用工具，一次完成登记和结果落盘。详见 [下一步](references/observation-routing.md#简化入口advance) 与 [MCP 执行](references/mcp-execution.md)。
 
@@ -80,7 +80,9 @@ npx --yes skills@1.7.0 add tancai1437-cloud/security-fusion --list
 
 ## 三层如何衔接
 
-HTTP 新任务支持 `entry` 起手：自动选择侦察方法、能力和现有 curl，只读获取第一份响应。复核后使用 [事实路由](references/observation-routing.md)，由已观察特征与前提选择具体检查，直接登记并匹配工具；当前提供 22 个方法分支。缺身份、统一登录壳、受控对象不足、已测/未决检查分别处理，不要求 Agent 逐层猜 ID。这里的自动路由基于 Agent 提取的结构化事实，并非独立理解网页或保证全部攻击面覆盖。
+HTTP 新任务支持 `entry` 起手：自动选择侦察方法、能力和现有 curl，只读获取第一份响应。复核后使用 [事实路由](references/observation-routing.md)，由已观察特征与前提选择具体检查，直接登记并匹配工具；当前提供 27 个方法分支。缺身份、统一登录壳、受控对象不足、已测/未决检查分别处理，不要求 Agent 逐层猜 ID。这里的自动路由基于 Agent 提取的结构化事实，并非独立理解网页或保证全部攻击面覆盖。
+
+本地二进制也支持绝对文件 `entry`：自动计算样本版本并执行只读 PE/ELF/CLR 分流；新增 XFF 三组请求、.NET 类型定位、崩溃分类和复现方法。用法与边界见 [二进制专精](references/binary-depth.md) / [代理信任](references/proxy-trust.md)。
 
 `catalog --skill`、`start`、`plan`、`resume` 会直接返回当前专项的实际方法、完成条件与产物路径；方法从专项原文生成，只加载当前一项。持续执行的 `run/begin` 返回专项→能力→实际工具回执，避免每步重新阅读整套文档。压缩恢复优先处理原有未决/待复核结果，不先跳到新待办。
 
@@ -165,6 +167,8 @@ MCP 执行链回归见 [test_execution_flow.py](tests/test_execution_flow.py)：
 2026-09-24 执行改造的验证范围和回退点见 [execution-validation.json](execution-validation.json)。旧版记录文件保留各自当时的验证范围。
 
 2026-09-25 业务方法融合见 [business-validation.json](business-validation.json)：四个新增分支通过测试专用 MCP 实际访问有状态的回环服务，验证对照、证据、恢复预算与去重。测试显式提供业务特征，不代表已验证模型能自主识别这些特征或真实 Kali MCP 已接通。
+
+2026-09-25 专精增强与验证范围见 [specialist-validation.json](specialist-validation.json)：原生/托管样本分流、XFF 请求对照、崩溃分类与预期退出码处理。Linux CI 还会真实编译并运行 ASan 正反例；这不代表 DSH 模型或真实 IDA/Ghidra/ILSpy 已完成联调。
 
 本次环境初始化与索引回归结果见 [bootstrap-validation.json](bootstrap-validation.json)。测试使用明确标注的离线收据与临时目录，不将测试替身列为可用 MCP，也未在开发机安装外部安全工具。
 

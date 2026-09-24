@@ -62,6 +62,14 @@ L01 是用户提供的 `src-6k-skill.zip`，包根为 `clown-src-6k-skill/`。�
 
 验证见 [业务路由回归](../tests/test_business_routing.py)：使用明确标注的测试专用 MCP 和可变状态回环 HTTP 服务，验证四项实际调用、正反对照捕获、前提阻塞、压缩恢复包预算和进程重启后去重。结构化事实由测试显式提供，不是模型自动识别；不声称已测量 Kali/DSH 的现场表现。
 
+## binary-depth
+
+**2026-09-25 专精增强。** 继续参考 reverse-skill 固定版本 `cab634bd855fc287f6e420c1f36fd1a6b9245960` 中的原生/托管分流和“围绕当前问题读取函数/类型”的组织思路，独立编写 [二进制方法](binary-depth.md) 与三个标准库辅助脚本：文件头 profile、日志 triage、XFF 请求对照。未复制其代码、长教程、脱壳/利用链或代理配置，不增加子代理和常驻服务。
+
+新增 binary-profile、managed-context、crash-triage、crash-reproduce、proxy-trust 五个方法，细化已有 binary-context。格式、选项和诊断含义分别以 Microsoft PE、ILSpyCmd、Clang ASan、MDN 的官方材料核对。明确区分 .dll 与 CLR、NativeAOT 与托管 IL、栈耗尽与栈缓冲区越界、回显与保护决策；不采用“有崩溃就可利用”“所有 .NET 均可恢复源码”等泛化结论。
+
+验证范围为本包程序、回环服务和受控样例，见 [工具测试](../tests/test_specialist_tools.py) / [路由测试](../tests/test_specialist_routing.py)。合成 PE 头不能替代真实 ILSpy 反编译验收；Linux 上已有 Clang 时真实编译/运行 ASan 正反例，Windows 本地明确跳过。DSH 模型是否主动选中本包、真实 IDA/Ghidra/ILSpy 联调和未知漏洞发现能力均需另行实测。
+
 **源文件索引。**
 
 **2026-09-24 路由与执行调整。** 对照 zhaoxuya520/reverse-skill 的 `cab634bd855fc287f6e420c1f36fd1a6b9245960` 和 Prohao42/aimy-skill 的 `b508f38681c3262be8efbe87926780b49bf80334`：
