@@ -282,6 +282,94 @@
       ]
     },
     {
+      "id": "function-boundary",
+      "skill_id": "fusion-api",
+      "capability_id": "http.request",
+      "any_features": ["api.role-operation"],
+      "requires": ["identity.verified", "roles.controlled", "operation.permitted"],
+      "unless": ["http.login-shell"],
+      "priority": 82,
+      "question": "同一实际操作是否在服务端区分允许和受限角色",
+      "steps": [
+        "读取 request_ref 与 rule_ref，确认两个受控角色的正常身份和该操作的预期权限；只选本次范围内的一项操作。",
+        "从允许角色的有效请求建立对照，保持对象和输入不变，仅切换受限角色的安全身份引用；缺少可控副作用条件就停止写操作。",
+        "核对实际业务数据或状态；隐藏菜单、不同状态码、空结果均不能单独证明权限边界。"
+      ],
+      "acceptance": [
+        "结论只覆盖这两个角色、该操作及记录的对象条件；不继承其他操作的结果。",
+        "正常对照失败或身份过期时记受阻，不能把受限请求的拒绝判为安全。"
+      ],
+      "next_on": {"violation": "candidate.observed", "denied_with_valid_control": "保存该角色/操作的阴性；仅选择实际存在的下一操作", "invalid_control": "回身份或请求基线，保留缺口"},
+      "required_inputs": ["identity_refs", "request_ref", "operation", "rule_ref", "scope_ref"],
+      "source_refs": ["specialists/fusion-api/SKILL.md", "references/business-checks.md"]
+    },
+    {
+      "id": "reset-binding",
+      "skill_id": "fusion-api",
+      "capability_id": "http.request",
+      "any_features": ["auth.password-reset"],
+      "requires": ["accounts.controlled", "operation.permitted"],
+      "unless": ["http.login-shell"],
+      "priority": 82,
+      "question": "恢复凭证是否绑定正确账号、用途和流程阶段",
+      "steps": [
+        "用两个自有测试账号及 request_ref 核对一次正常恢复流程；记录 challenge_ref、账号归属和前后状态引用，凭证值留在私有材料。",
+        "根据 operation 只选账号绑定、阶段约束或已用凭证失效中的一项；用受控对照检查服务端是否拒绝不满足该条件的请求。",
+        "读取最终账号状态核对实际影响，出现异常就收口；没有可恢复测试账号或正常对照时停止该项，不枚举未知账号或猜测验证码。"
+      ],
+      "acceptance": [
+        "此流程可在未登录状态执行，不把 identity.verified 当作前提；必须有账号控制权和本次操作范围。",
+        "页面前进或响应 success 不证明账号已改变；拒绝结果也须有正常流程对照。"
+      ],
+      "next_on": {"binding_violation": "candidate.observed", "expected_rejection": "保留当前绑定维度的阴性，其他维度另建项", "no_control": "保留恢复流程材料和缺失前提，继续独立检查"},
+      "required_inputs": ["identity_refs", "request_ref", "challenge_ref", "state_ref", "operation", "scope_ref"],
+      "source_refs": ["specialists/fusion-api/SKILL.md", "references/business-checks.md"]
+    },
+    {
+      "id": "order-transition",
+      "skill_id": "fusion-business",
+      "capability_id": "http.request",
+      "any_features": ["business.transition"],
+      "requires": ["identity.verified", "business.fixture", "operation.permitted"],
+      "unless": ["http.login-shell"],
+      "priority": 78,
+      "question": "服务端是否在前置条件不满足时阻止该状态转换",
+      "steps": [
+        "读取 state_ref 与 rule_ref，只描述当前受控对象的一条转换及前置条件；用 fixture_ref 指向可恢复测试数据，不要求完整状态图。",
+        "先核对正常转换，再用等价、独立的受控对象核对缺少该前置条件的同一操作；保留两次请求与服务端状态。",
+        "比较最终状态及实际副作用；异步流程先查询状态，未确定前不重发。涉及支付只使用本次获准的测试流程。"
+      ],
+      "acceptance": [
+        "前后状态、对象起始条件和正常对照共同支持结论；接受请求不等于转换成功。",
+        "发现未预期副作用或无法恢复时停止该对象操作，保留未决状态。"
+      ],
+      "next_on": {"state_violation": "candidate.observed", "expected_rejection": "记录这一转换的阴性；按实际规则选择其他转换", "pending_effect": "先查服务端状态，不重复提交"},
+      "required_inputs": ["request_ref", "state_ref", "fixture_ref", "rule_ref", "operation", "scope_ref"],
+      "source_refs": ["specialists/fusion-business/SKILL.md", "references/business-checks.md"]
+    },
+    {
+      "id": "single-use-effect",
+      "skill_id": "fusion-business",
+      "capability_id": "http.request",
+      "any_features": ["business.single-use"],
+      "requires": ["identity.verified", "business.fixture", "operation.permitted"],
+      "unless": ["http.login-shell"],
+      "priority": 78,
+      "question": "同一逻辑操作的再次提交是否只产生一次业务效果",
+      "steps": [
+        "按 rule_ref 确认幂等边界，以 fixture_ref 标识受控操作与起始状态；先核对一次正常提交的实际效果。",
+        "只在前一次状态明确且本次范围允许时，保持逻辑操作标识不变顺序重放一次；请求、操作标识和对照引用进入 inputs。",
+        "读取最终资源、次数或流水，比较是否只有一次效果；重复返回成功但没有新增效果可为正常幂等。超时先查状态，不追加重试或自动升级并发。"
+      ],
+      "acceptance": [
+        "以服务端实际效果计数判断，不能仅数成功响应；新操作标识对应另一合法操作，不是幂等反例。",
+        "顺序重放结果不覆盖并发竞态；结论限于本次身份、对象、操作与观察窗口。"
+      ],
+      "next_on": {"duplicate_effect": "candidate.observed", "one_effect": "保存幂等性阴性及未覆盖并发条件", "unknown_effect": "核对服务端状态并保留未决，不重发"},
+      "required_inputs": ["request_ref", "state_ref", "fixture_ref", "rule_ref", "operation", "scope_ref"],
+      "source_refs": ["specialists/fusion-business/SKILL.md", "references/business-checks.md"]
+    },
+    {
       "id": "business-transition",
       "skill_id": "fusion-business",
       "capability_id": "http.request",
@@ -294,7 +382,9 @@
         "identity.verified"
       ],
       "unless": [
-        "http.login-shell"
+        "http.login-shell",
+        "business.transition",
+        "business.single-use"
       ],
       "priority": 75,
       "question": "核对实际业务状态转换及一次性约束",

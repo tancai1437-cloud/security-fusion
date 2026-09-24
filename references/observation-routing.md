@@ -66,10 +66,12 @@ python3 "$FUSION_ROOT/scripts/fusion.py" route --workspace "$WORKSPACE" --sessio
 | 统一登录壳、认证拒绝 | `http.login-shell` / `http.auth-required` | 真实请求定位 / 身份前提 |
 | 实际接口、GraphQL 操作、WS 消息 | `api.operation` / `api.graphql` / `api.websocket` | 请求与操作边界梳理 |
 | 带对象归属的接口 | `api.object` | 有效身份和受控对象齐全后核对对象边界 |
+| 实际角色受限操作、密码恢复请求 | `api.role-operation` / `auth.password-reset` | 角色边界 / 恢复凭证绑定，前提与输入见 [业务检查](business-checks.md) |
 | 文件上传、下载或分享 | `file.upload` / `file.download` / `file.share` | 文件归属与实际处理 |
 | 文本、搜索、模板输入 | `input.text` / `input.search` / `input.template` | 进入业务响应后确认处理/输出上下文 |
 | URL 输入、Webhook | `input.url` / `integration.webhook` | 浏览器/服务端/异步来源判定 |
 | 订单、额度、多阶段流程 | `business.order` / `business.quota` / `business.workflow` | 服务端状态和业务不变量 |
+| 已确定的转换、一次性操作规则 | `business.transition` / `business.single-use` | 具体转换 / 幂等效果；不再重复安排泛化业务检查 |
 | 脚本、请求构造函数 | `js.bundle` / `js.request-builder` | 请求链路提取 |
 | 浏览器跨源、缓存 | `browser.cross-origin` / `browser.cache` | 真实浏览器边界 |
 | 源码、APK、原生样本 | `code.source` / `sample.apk` / `sample.binary` | 对应材料专项 |
@@ -79,6 +81,8 @@ python3 "$FUSION_ROOT/scripts/fusion.py" route --workspace "$WORKSPACE" --sessio
 | 有原始依据的候选问题 | `candidate.observed` | 优先复核候选 |
 
 前提特征：`identity.available` 表示已提供测试身份，`identity.verified` 表示当前身份已验证有效，`objects.controlled` 表示有受控对象对照，`response.business` 表示响应已进入真实业务处理。存在登录壳时，不能仅添加后者强行绕过判定。
+
+业务分支另使用 `roles.controlled`、`accounts.controlled`、`business.fixture`、`operation.permitted`，分别要求受控角色、受控恢复账号、可恢复测试数据和已有任务范围内的操作。它们是 Agent 对现有前提的声明，不是程序自动授予权限；具体引用见 [业务检查](business-checks.md)。正常恢复页面不应因未登录被误标为统一登录壳。
 
 对象/文件检查的 inputs 需含 `identity_refs`、`object_refs`（各 2–8 个不同安全引用）和 `operation`；输入检查需 `request_ref`、`parameter`；业务流程需 `state_ref`、`operation`。其他会改变测试条件的字段、参数、方法和身份同样放 inputs；不要省略后让不同检查碰撞。不得写入凭据值。
 

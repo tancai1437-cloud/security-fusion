@@ -43,6 +43,25 @@ L01 是用户提供的 `src-6k-skill.zip`，包根为 `clown-src-6k-skill/`。�
 
 方法提炼是写入本包的中文决策规则；运行软件保留外部实现，执行路由绑定其接口。后续吸收新项目时，必须指出新增了哪个决策或执行能力，与哪条规则重复，以及哪个样本证明它有用。
 
+## wooyun-methods
+
+2026-09-25 参考 [tanweai/wooyun-legacy](https://github.com/tanweai/wooyun-legacy/tree/d6a69e1779ccfe27981a4eb314b1f40f17052068)，固定版本 `d6a69e1779ccfe27981a4eb314b1f40f17052068`。该项目已在 README 宣布不再维护。学习其围绕业务关系形成检查、由领域方法逐步深入的组织思路；按本包当前事实路由与执行协议重新编写，不并入其插件入口。
+
+| 参考材料 | 本包采用的思路 | 实际接入 |
+|---|---|---|
+| [authorization-domain](https://github.com/tanweai/wooyun-legacy/blob/d6a69e1779ccfe27981a4eb314b1f40f17052068/plugins/wooyun-legacy/skills/wooyun-legacy/references/authorization-domain.md) | 区分对象归属与角色操作权限 | 复用 object-boundary，新增 function-boundary |
+| [authentication-domain](https://github.com/tanweai/wooyun-legacy/blob/d6a69e1779ccfe27981a4eb314b1f40f17052068/plugins/wooyun-legacy/skills/wooyun-legacy/references/authentication-domain.md) | 把账号恢复看作有绑定关系和阶段条件的流程 | reset-binding；允许匿名恢复但要求受控账号 |
+| [financial-domain](https://github.com/tanweai/wooyun-legacy/blob/d6a69e1779ccfe27981a4eb314b1f40f17052068/plugins/wooyun-legacy/skills/wooyun-legacy/references/financial-domain.md) | 用业务状态验证规则是否真正生效 | order-transition；只检查已观察的一条转换 |
+| [logic-flow-domain](https://github.com/tanweai/wooyun-legacy/blob/d6a69e1779ccfe27981a4eb314b1f40f17052068/plugins/wooyun-legacy/skills/wooyun-legacy/references/logic-flow-domain.md) | 区分一次性业务效果与请求次数 | single-use-effect；顺序重放结果不代表并发覆盖 |
+
+四项均进入 procedures.json → 专项执行卡 → http.request → 当前宿主 MCP / mcp-run，并沿用证据、快照、查重和会话隔离；不新增 Agent、MCP 服务、向量依赖或全局记忆。方法按当前证据选择，原始案例和既往目标事实不进入新案件。
+
+未采用上游宽泛触发、每项先画完整流程/凑至少五个假设、弱口令必先测、历史高危率决定当前命中率、仅凭页面/响应变化判定业务影响等规则。上游个别统计与案例分类口径不一致，本包不引入其统计、案例正文、payload 表或示例脚本。这里新增的是独立组织的一般方法与运行规则，没有把参考材料作为可无限制再分发的素材。
+
+上游 [LICENSE](https://github.com/tanweai/wooyun-legacy/blob/d6a69e1779ccfe27981a4eb314b1f40f17052068/LICENSE) 标注 CC BY-NC-SA 4.0；后续若复制或改编其具体材料，须单独处理相应许可条件。本次参考记录不修改原有 33 个文件指纹快照。
+
+验证见 [业务路由回归](../tests/test_business_routing.py)：使用明确标注的测试专用 MCP 和可变状态回环 HTTP 服务，验证四项实际调用、正反对照捕获、前提阻塞、压缩恢复包预算和进程重启后去重。结构化事实由测试显式提供，不是模型自动识别；不声称已测量 Kali/DSH 的现场表现。
+
 **源文件索引。**
 
 **2026-09-24 路由与执行调整。** 对照 zhaoxuya520/reverse-skill 的 `cab634bd855fc287f6e420c1f36fd1a6b9245960` 和 Prohao42/aimy-skill 的 `b508f38681c3262be8efbe87926780b49bf80334`：

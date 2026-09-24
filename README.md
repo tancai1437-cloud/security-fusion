@@ -14,6 +14,8 @@
 
 Web/SRC 方法进一步吸收了用户提供工作流包的思路：按业务特征选择专项、优先完成当前业务面的检查、从响应提取线索、用对照识别假阳性，并只沉淀有新增价值的经验。关键决策直接融入对应专项，[现场方法](references/field-methods.md) 仅按需补读；来源和取舍见 [融合记录](references/upstream-decisions.md#src-field-methods)。
 
+业务方法现增加角色权限、密码恢复绑定、订单转换和一次性效果四个事实分支，接到现有工具执行链；已有对象权限方法继续复用。参考 WooYun Legacy 的业务组织思路，按本包协议编写短执行卡，没有打包历史案例库或增加全量加载。前提与输入见 [业务检查](references/business-checks.md)，来源和许可取舍见 [融合记录](references/upstream-decisions.md#wooyun-methods)。
+
 ## 在 Kali / Linux 上一条命令安装
 
 安装需要 Node.js >= 22.20.0、npm 和 GitHub 网络；执行运行辅助程序需要 Python >= 3.9。在目标 Kali / Linux 的终端运行（已安装时同一命令可更新）：
@@ -78,7 +80,7 @@ npx --yes skills@1.7.0 add tancai1437-cloud/security-fusion --list
 
 ## 三层如何衔接
 
-HTTP 新任务支持 `entry` 起手：自动选择侦察方法、能力和现有 curl，只读获取第一份响应。复核后使用 [事实路由](references/observation-routing.md)，由已观察特征与前提选择具体检查，直接登记并匹配工具；当前提供 18 个方法分支。缺身份、统一登录壳、受控对象不足、已测/未决检查分别处理，不要求 Agent 逐层猜 ID。这里的自动路由基于 Agent 提取的结构化事实，并非独立理解网页或保证全部攻击面覆盖。
+HTTP 新任务支持 `entry` 起手：自动选择侦察方法、能力和现有 curl，只读获取第一份响应。复核后使用 [事实路由](references/observation-routing.md)，由已观察特征与前提选择具体检查，直接登记并匹配工具；当前提供 22 个方法分支。缺身份、统一登录壳、受控对象不足、已测/未决检查分别处理，不要求 Agent 逐层猜 ID。这里的自动路由基于 Agent 提取的结构化事实，并非独立理解网页或保证全部攻击面覆盖。
 
 `catalog --skill`、`start`、`plan`、`resume` 会直接返回当前专项的实际方法、完成条件与产物路径；方法从专项原文生成，只加载当前一项。持续执行的 `run/begin` 返回专项→能力→实际工具回执，避免每步重新阅读整套文档。压缩恢复优先处理原有未决/待复核结果，不先跳到新待办。
 
@@ -161,6 +163,8 @@ python3 -m unittest discover -s tests -v
 MCP 执行链回归见 [test_execution_flow.py](tests/test_execution_flow.py)：测试专用 stdio 服务经过真实协议交换读取回环 HTTP，验证自动落盘、advance 分流、进程重启后的查重，以及分页、错目标、错会话、工具错误和超时。该服务明确是测试替身，不能作为 Burp/HexStrike 等真实服务已接通的证据；真实 Kali Agent 的方法选择与调用效果仍需现场轨迹验证。
 
 2026-09-24 执行改造的验证范围和回退点见 [execution-validation.json](execution-validation.json)。旧版记录文件保留各自当时的验证范围。
+
+2026-09-25 业务方法融合见 [business-validation.json](business-validation.json)：四个新增分支通过测试专用 MCP 实际访问有状态的回环服务，验证对照、证据、恢复预算与去重。测试显式提供业务特征，不代表已验证模型能自主识别这些特征或真实 Kali MCP 已接通。
 
 本次环境初始化与索引回归结果见 [bootstrap-validation.json](bootstrap-validation.json)。测试使用明确标注的离线收据与临时目录，不将测试替身列为可用 MCP，也未在开发机安装外部安全工具。
 

@@ -11,8 +11,8 @@ description: 对获准目标执行渗透、SRC、逆向、源码审计或 AI 安
 |---|---|---|
 | 渗透 / SRC 新目标，已有 URL | [recon](specialists/fusion-recon/SKILL.md) | 入口的实际响应、业务入口与跳转 |
 | 已知 Web 输入、上传下载或浏览器边界 | [web](specialists/fusion-web/SKILL.md) | 正常请求与对应输出 |
-| API、登录、对象 ID、角色或租户关系 | [api](specialists/fusion-api/SKILL.md) | 有效身份下的真实请求与对象归属 |
-| 订单、额度、多阶段交易 | [business](specialists/fusion-business/SKILL.md) | 当前流程与服务端状态 |
+| API、登录/密码重置、对象 ID、角色或租户关系 | [api](specialists/fusion-api/SKILL.md) | 正常请求、身份或恢复凭证的归属 |
+| 订单、额度、多阶段交易、一次性操作 | [business](specialists/fusion-business/SKILL.md) | 当前流程与服务端状态 |
 | JS、签名、请求构造 | [js](specialists/fusion-js/SKILL.md) | 请求发起位置与相关源码 |
 | 源码审计 | [code](specialists/fusion-code/SKILL.md) | 输入入口、调用方与控制检查 |
 | APK / 移动应用；原生二进制 | [mobile](specialists/fusion-mobile/SKILL.md) / [binary](specialists/fusion-binary/SKILL.md) | 样本标识、格式与当前分析工程 |

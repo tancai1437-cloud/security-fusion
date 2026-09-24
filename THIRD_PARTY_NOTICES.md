@@ -36,3 +36,9 @@
 L01：`src-6k-skill.zip`（包根 `clown-src-6k-skill/`）。用户提供该档案用于分析和学习工作方法；包内未见覆盖整个档案的许可声明，作者归属及再分发条款未核实。这里记录来源，不将其宣称为具有某种开源许可。
 
 本次仅学习业务特征分流、现场推进、反证条件和经验筛选等一般思路，并针对现有协议重新编写指导。没有复制、发布原档案、原始知识库正文、脚本、配置、凭据或目标材料。档案指纹和具体取舍见 [来源锁定](sources.lock.json) 与 [融合记录](references/upstream-decisions.md#src-field-methods)。
+
+## WooYun Legacy 设计参考
+
+参考 [探微安全实验室 / tanweai/wooyun-legacy](https://github.com/tanweai/wooyun-legacy/tree/d6a69e1779ccfe27981a4eb314b1f40f17052068) 的业务关系与分层查阅思路，具体取舍见 [融合记录](references/upstream-decisions.md#wooyun-methods)。上游标注 [CC BY-NC-SA 4.0](https://github.com/tanweai/wooyun-legacy/blob/d6a69e1779ccfe27981a4eb314b1f40f17052068/LICENSE)，包含署名、非商业和相同方式共享条件。
+
+本次针对已有路由协议编写通用的角色、恢复绑定、状态转换和一次性效果检查，没有复制其案例正文、统计表、payload 库、图表、示例脚本或插件文件。不把上游资料附带分发，也不将其标注为 MIT。今后如引入其具体材料，须明确适用许可与分发边界。
