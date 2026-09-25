@@ -102,13 +102,14 @@ def resume_notes(case, current_id):
     return required_notes, optional_notes
 
 
-def append_with_budget(packet, name, candidates, omitted, maximum):
+def append_with_budget(packet, name, candidates, omitted, maximum, container=None):
+    destination = packet if container is None else container
     for item in candidates:
-        packet[name].append(item)
-        packet[omitted] -= 1
+        destination[name].append(item)
+        destination[omitted] -= 1
         if len(encode(packet)) > maximum:
-            packet[name].pop()
-            packet[omitted] += 1
+            destination[name].pop()
+            destination[omitted] += 1
             break
 
 
@@ -156,6 +157,7 @@ def resume(case, identity=None, maximum=6000, binding=None, experiences=None, fa
             packet["guidance"] = {"specialist": specialist_card(fallback_skill)}
     if binding:
         packet["binding"] = binding
+    route_candidates = []
     last_route = case.db.execute("SELECT seq,payload FROM events WHERE kind='observation_routed' ORDER BY seq DESC LIMIT 1").fetchone()
     if last_route:
         routed = json.loads(last_route["payload"])
@@ -163,9 +165,10 @@ def resume(case, identity=None, maximum=6000, binding=None, experiences=None, fa
         if current is None or current["target"] == observation["target"]:
             packet["routing"] = {"event_seq": last_route["seq"], "target": observation["target"],
                                  "decisions_are_historical": True,
-                                 "resource": observation["resource"], "decisions": routed["decisions"][:6],
-                                 "omitted_decisions": max(0, len(routed["decisions"]) - 6),
+                                 "resource": observation["resource"], "decisions": [],
+                                 "omitted_decisions": len(routed["decisions"]),
                                  "details": {"kind": "events", "offset": last_route["seq"] - 1, "limit": 1}}
+            route_candidates = routed["decisions"][:6]
             if current_id == routed.get("selected") and routed.get("adapter_hint"):
                 packet["routing"]["adapter_hint"] = routed["adapter_hint"]
     if experiences is not None:
@@ -177,6 +180,8 @@ def resume(case, identity=None, maximum=6000, binding=None, experiences=None, fa
     append_with_budget(packet, "results", results, "omitted_results", maximum)
     append_with_budget(packet, "queue", queue, "omitted_queue", maximum)
     append_with_budget(packet, "in_flight", inflight[1:6], "omitted_in_flight", maximum)
+    if route_candidates:
+        append_with_budget(packet, "decisions", route_candidates, "omitted_decisions", maximum, packet["routing"])
     if experiences is not None:
         append_with_budget(packet, "experience_hints", experiences["items"], "omitted_experiences", maximum)
     append_with_budget(packet, "recent_global_notes", optional_notes, "omitted_notes", maximum)

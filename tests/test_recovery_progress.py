@@ -106,3 +106,21 @@ class RecoveryProgressTests(unittest.TestCase):
         self.assertIsNone(recovered["current"])
         self.assertEqual(recovered["results"][0]["attempt_id"], observed)
         self.assertEqual(recovered["guidance"]["specialist"]["skill_id"], "fusion-web")
+
+    def test_large_historical_routing_is_optional_but_current_adapter_is_preserved(self):
+        self.case.plan([spec("active")])
+        key = self.case.check("active")["id"]
+        adapter = {"status": "mcp_preflight_required", "profile": "long/private/profile/" * 12}
+        with self.case.transaction():
+            self.case.event("observation_routed", key, {
+                "observation": {"target": "local-fixture", "resource": "/fixture"},
+                "selected": key, "adapter_hint": adapter,
+                "decisions": [{"id": f"historical-{n}", "reason": "x" * 900} for n in range(6)]})
+        recovered = resume(self.case, maximum=6000)
+        self.assertLessEqual(len(encode(recovered)), 6000)
+        self.assertEqual(recovered["routing"]["adapter_hint"], adapter)
+        self.assertGreater(recovered["routing"]["omitted_decisions"], 0)
+        self.assertEqual(recovered["routing"]["omitted_decisions"] + len(recovered["routing"]["decisions"]), 6)
+        self.assertEqual(recovered["routing"]["details"]["kind"], "events")
+        self.assertEqual(recovered["config"]["constraints"], CONFIG["constraints"])
+        self.assertIn("guidance", recovered)
