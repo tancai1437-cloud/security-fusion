@@ -173,6 +173,56 @@ class RuntimeTests(unittest.TestCase):
         with patch("fusion_store.time.time", return_value=time.time() + 120):
             self.assertEqual(self.case.begin("one", "host", "fixture")["status"], "stale")
 
+    def test_review_after_dependency_ttl_preserves_history_without_renewing_reuse(self):
+        import time
+        self.plan(spec(target_version="unversioned"), spec("two", inputs={"n": 2}, depends_on=["one"]))
+        first = self.case.begin("one", "host", "fixture")["attempt_id"]
+        self.case.record(first, "review", "Observed baseline", [self.raw])
+        self.case.review(first, "done", "Baseline checked", valid_for=60)
+        second = self.case.begin("two", "host", "fixture")["attempt_id"]
+        self.case.record(second, "review", "Observed while baseline valid", [self.raw])
+        with patch("fusion_store.time.time", return_value=time.time() + 120):
+            self.case.review(second, "done", "Historical observation checked")
+            self.assertEqual(self.case.attempt(second)["status"], "done")
+            self.assertEqual(self.case.begin("two", "host", "fixture")["decision"], "hold")
+            self.assertEqual(self.case.begin("one", "host", "fixture")["status"], "stale")
+
+    def test_replayed_review_does_not_refresh_expiry_or_rewrite_conclusion(self):
+        import time
+        self.plan(spec(target_version="unversioned"))
+        attempt = self.case.begin("one", "host", "fixture")["attempt_id"]
+        self.case.record(attempt, "review", "Captured", [self.raw])
+        self.case.review(attempt, "done", "Original observed conclusion", valid_for=60)
+        expiry = self.case.check("one")["expires"]
+        with patch("fusion_store.time.time", return_value=time.time() + 120):
+            replay = self.case.review(attempt, "done", "Different wording", valid_for=86400)
+            self.assertEqual(replay["decision"], "already_reviewed")
+            self.assertFalse(replay["freshness_renewed"])
+            self.assertEqual(self.case.check("one")["expires"], expiry)
+            self.assertEqual(self.case.check("one")["summary"], "Original observed conclusion")
+            self.assertEqual(self.case.begin("one", "host", "fixture")["status"], "stale")
+
+    def test_expired_dependency_with_tampered_evidence_still_blocks_review(self):
+        self.plan(spec(), spec("two", inputs={"n": 2}, depends_on=["one"]))
+        first = self.complete()
+        second = self.case.begin("two", "host", "fixture")["attempt_id"]
+        self.case.record(second, "review", "Captured", [self.raw])
+        artifact = self.case.root / self.case.artifacts(first)[0]["path"]
+        artifact.write_text("changed", encoding="utf-8")
+        with self.assertRaisesRegex(FusionError, "Dependency changed"):
+            self.case.review(second, "done", "Must reject tampered prerequisite")
+
+    def test_transitive_dependency_change_still_blocks_historical_review(self):
+        self.plan(spec(), spec("two", inputs={"n": 2}, depends_on=["one"]),
+                  spec("three", inputs={"n": 3}, depends_on=["two"]))
+        self.complete()
+        self.complete("two")
+        third = self.case.begin("three", "host", "fixture")["attempt_id"]
+        self.case.record(third, "review", "Captured third observation", [self.raw])
+        self.complete(retest_reason="Actual prerequisite refresh")
+        with self.assertRaisesRegex(FusionError, "Dependency changed"):
+            self.case.review(third, "done", "Transitive version changed")
+
     def test_refutations_survive_and_supersession_is_auditable(self):
         self.plan()
         first = self.case.note("hypothesis", "Possible fixture issue", "one")["note_id"]

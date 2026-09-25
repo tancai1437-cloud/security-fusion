@@ -272,6 +272,17 @@ class Case:
                 return False
         return True
 
+    def historical_valid(self, check):
+        """Verify immutable evidence and dependency versions, independent of reuse TTL."""
+        if check["status"] != "done" or not self.evidence_valid(check["latest_attempt"]):
+            return False
+        snapshot = json.loads(self.attempt(check["latest_attempt"])["dependency_snapshot"])
+        for identity in json.loads(check["deps"]):
+            dependency = self.check(identity)
+            if snapshot.get(identity) != dependency["latest_attempt"] or not self.historical_valid(dependency):
+                return False
+        return True
+
     def effective_status(self, check):
         if check["status"] != "done":
             return check["status"]
@@ -369,25 +380,35 @@ class Case:
         require(math.isfinite(valid_for) and valid_for >= 0, "valid_for must be finite and nonnegative")
         with self.transaction():
             attempt = self.attempt(attempt_id)
+            if attempt["status"] == verdict:
+                if verdict == "done":
+                    require(self.evidence_valid(attempt_id), "Missing or changed evidence")
+                # A replay after compaction acknowledges the original review;
+                # it must not renew freshness or silently rewrite its conclusion.
+                return {"status": verdict, "attempt_id": attempt_id, "decision": "already_reviewed",
+                        "summary": attempt["summary"], "freshness_renewed": False}
             require(attempt["status"] == "review", "Only captured results can be reviewed")
             if verdict == "done":
-                require(self.evidence_valid(attempt_id), "Missing or changed evidence")
-                check = self.check(attempt["check_id"])
-                spec = json.loads(check["spec"])
-                snapshot = json.loads(attempt["dependency_snapshot"])
-                for dependency in json.loads(check["deps"]):
-                    row = self.check(dependency)
-                    require(self.effective_status(row) == "done" and
-                            snapshot.get(dependency) == row["latest_attempt"],
-                            "Dependency changed during this attempt; record a failed/blocked review")
-                require(spec["target_version"] != "unversioned" or valid_for > 0,
-                        "Unversioned targets require an explicit validity period")
+                self.validate_review_evidence(attempt, valid_for)
             expires = time.time() + valid_for if valid_for else None
             self.db.execute("UPDATE attempts SET status=?,summary=? WHERE id=?", (verdict, summary, attempt_id))
             self.db.execute("UPDATE checks SET status=?,summary=?,expires=? WHERE latest_attempt=?",
                             (verdict, summary, expires, attempt_id))
             self.event("result_reviewed", attempt_id, {"verdict": verdict, "summary": summary, "expires": expires})
         return {"status": verdict, "attempt_id": attempt_id}
+
+    def validate_review_evidence(self, attempt, valid_for):
+        require(self.evidence_valid(attempt["id"]), "Missing or changed evidence")
+        check = self.check(attempt["check_id"])
+        snapshot = json.loads(attempt["dependency_snapshot"])
+        for dependency in json.loads(check["deps"]):
+            row = self.check(dependency)
+            # Historical observations survive reuse TTL expiry. Changed versions
+            # and altered evidence still reject acceptance, including ancestors.
+            require(self.historical_valid(row) and snapshot.get(dependency) == row["latest_attempt"],
+                    "Dependency changed during this attempt; record a failed/blocked review")
+        require(json.loads(check["spec"])["target_version"] != "unversioned" or valid_for > 0,
+                "Unversioned targets require an explicit validity period")
 
     def reconcile(self, attempt_id, outcome, summary, paths):
         require(outcome in {"observed", "not_executed"}, "Invalid reconciliation outcome")

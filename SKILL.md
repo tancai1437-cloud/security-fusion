@@ -23,7 +23,24 @@ description: 对获准目标执行渗透、SRC、逆向、源码审计或 AI 安
 
 ## 从方法走到调用
 
-宿主提供原生 `fusion` 工具时，优先通过它执行下列命令；案件与会话参数由宿主维护。新任务可调用 `fusion(action="start", args=["--input","task.json","--execute-local"])`，也可通过 `input_json` 提交任务配置。返回的 guidance 和证据预览足够时立即判断并推进，不重复查找脚本路径。仅安装 Skill 不会注册此工具；DSH 接入见 [宿主适配](references/host-adapter.md)。
+**宿主有 `fusion` 时，直接用 `execute` 调当前真实工具。** 不先写 task.json、清点全部 MCP、查 CLI 帮助或初始化账本。读过当前专项就发第一项有用调用：
+
+```text
+fusion(action="execute", request={
+  "objective":"用户要回答的问题", "scope":"用户约定范围和限制", "target":"规范目标",
+  "skill":"当前专项 ID", "capability":"该专项对应的能力 ID",
+  "purpose":"这一步要取得什么证据", "tool":"当前宿主的实际工具名", "arguments":{实际参数},
+  "deliverables":["用户要求的交付文件"]
+})
+```
+
+后续 shell、搜索、MCP、读写文件都继续走 execute，省略不变的 objective/scope/target；可同时传 `review:{attempt:上一回执的attempt_id,summary:实际结论,verdict:"done"}`。证据、参数、调用 ID 自动绑定落盘，模型不补写原始回执。失败先看返回原因，不能判 done。当前专项的 guidance 已返回时不重读文件。每次调用都要推进具体问题，不能用大量“准备”替代执行。
+
+capability 使用当前专项列出的 ID；联网查资料、保存报告等通用取证操作用 `evidence.persist`，不要臆造 web.search 等能力。单独复核旧回执可只传 `execute(request={review:{attempt,summary,verdict}})`，不必再读文件或重复目标调用；finish 返回未决 ID 时按该 ID 处理。
+
+用户要求暂停或实际受阻：`checkpoint` 的 request 填 summary 与下一未完成动作 next；交付时 `finish` 填 report 文件、summary 和最后的 review，程序核对账本和文件；仅分析或用户切换任务用 `suspend(reason)`，不把暂停标成完成。压缩后 `resume`，沿 checkpoint/current/guidance 继续；不要重复基线。宿主会阻止裸工具绕过并在未交付就结束时有限纠正。文件存在不代表结论正确，仍要做任务对应的实测对照。
+
+**没有 `fusion` 工具才使用以下 CLI 流程。** 普通安装只复制 Skill；DSH 初次接入/升级宿主组件见 [宿主适配](references/host-adapter.md)。纯文本 Skill 没有拦截能力，不能声称已经启用执行约束。
 
 1. **新任务**读 [快速执行](references/first-action.md)。HTTP 入口或本地二进制用 `start --execute-local` 合并建案、会话绑定和第一次读取；已有材料直接登记对应检查。Agent 维护案件与参数，用户不用逐步填表。
 2. **选工具**：现成本地命令走 `run`；已建立显式目标 stdio 配置的 MCP 走 [mcp-run](references/mcp-execution.md)，程序完成连接、实际工具查询、调用及证据落盘。依赖当前浏览器/工程的 MCP 用宿主已连接工具，按 [执行路由](references/execution-router.md) 核对上下文。只查当前能力，缺项才 [补齐环境](references/environment-bootstrap.md)。
@@ -37,4 +54,4 @@ description: 对获准目标执行渗透、SRC、逆向、源码审计或 AI 安
 
 原始输出自动保存，阶段结束再整理专项产物，经 [validate](specialists/fusion-validate/SKILL.md) 核对并由 [report](specialists/fusion-report/SKILL.md) 交付已测、未测、受阻与依据。账本完成不代表整个评估完成。经验按需检索，阶段结束再审核沉淀；恢复默认最多 6,000 字符。详细命令按需查 [运行协议](references/runtime.md)。
 
-Python >= 3.9，辅助程序只用标准库。Skill 文本不拦截绕过适配器的宿主调用；原生 MCP 与直接 stdio 连接的上下文不能互认。方法与许可取舍见 [融合记录](references/upstream-decisions.md)。
+Python >= 3.9，辅助程序只用标准库。执行约束需已验证的宿主组件；原生 MCP 与直接 stdio 连接的上下文不能互认。方法与许可取舍见 [融合记录](references/upstream-decisions.md)。

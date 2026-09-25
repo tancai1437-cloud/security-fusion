@@ -14,7 +14,7 @@ description: 评估已识别Web入口的输入、文件、客户端策略及服�
 | 现场特征 | 具体方法与首个工具动作 |
 |---|---|
 | 文本进入实际业务响应 | `input-context`：HTTP 正常请求后用无害标记定位输出位置；保留 request_ref、parameter，确认 `response.business` |
-| XFF / 代理信任 | `proxy-trust`：固定三次匿名 GET 对照，再核对可信跳与服务端决策；按需读 [方法](../../references/proxy-trust.md) |
+| XFF / 代理信任 | `proxy-trust`：复用已有基线，选 MCP 或脚本补齐三组匿名 GET 对照，再核对可信跳与服务端决策；按需读 [方法](../../references/proxy-trust.md) |
 | 上传、下载、分享 | `file-boundary`：用受控文件和已验证身份比较归属/访问结果，记录 identity_refs、object_refs、operation |
 | URL 字段或 Webhook | `url-origin`：先查询真实流量区分浏览器跳转、服务器获取与异步处理；有受控回调证据再下结论 |
 | 浏览器跨源或缓存 | `browser-boundary`：用当前浏览器和实际身份核对脚本是否读到内容；HTTP 头不能代替浏览器行为 |
@@ -33,7 +33,7 @@ description: 评估已识别Web入口的输入、文件、客户端策略及服�
 
 完成条件：所有约定适用检查有完成或受阻依据，候选问题已交统一验证。
 
-读取结果后，按 [advance](../../references/observation-routing.md#简化入口advance) 提交复核结论与新事实，继续所选方法；没有新事实就处理当前证据缺口。保存阴性、反证和阻塞，阶段结束再整理上述产物，无需用户逐阶段选择。
+宿主有 fusion 时继续 execute，以 review 提交上一回执的实际结论；阶段暂停用 checkpoint，交付用 finish。没有宿主组件才用 [advance](../../references/observation-routing.md#简化入口advance)。保存阴性、反证和阻塞；只在阶段结束整理产物，不等用户逐阶段选择。
 
 **方法来源。**
 

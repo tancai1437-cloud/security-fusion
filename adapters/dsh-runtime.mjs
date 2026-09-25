@@ -13,7 +13,8 @@ function execute(command, args, options) {
   }));
 }
 export const actions = new Set(['start', 'catalog', 'plan', 'advance', 'route', 'run', 'mcp-run',
-  'begin', 'record', 'review', 'reconcile', 'note', 'resume', 'query', 'report', 'context-set', 'context-release']);
+  'begin', 'record', 'review', 'reconcile', 'note', 'resume', 'query', 'report', 'context-set', 'context-release',
+  'execute', 'checkpoint', 'finish', 'suspend']);
 const ownedOptions = ['--workspace', '--case', '--session'];
 
 export function digest(value) {
@@ -34,7 +35,7 @@ export function validateArgs(action, args) {
   }
 }
 
-function writeJson(file, value) {
+export function writeJson(file, value) {
   const tmp = file + '.' + randomUUID() + '.tmp';
   writeFileSync(tmp, JSON.stringify(value), { encoding: 'utf8', mode: 0o600, flag: 'wx' });
   renameSync(tmp, file);
@@ -64,7 +65,12 @@ export class FusionSession {
   activate() {
     if (this.state()) return;
     mkdirSync(this.root, { recursive: true, mode: 0o700 });
-    writeJson(this.stateFile, { owner: this.owner, cwd: this.cwd, active: true });
+    writeJson(this.stateFile, { owner: this.owner, cwd: this.cwd, active: true, mode: 'ready' });
+  }
+
+  update(fields) {
+    this.activate();
+    writeJson(this.stateFile, { ...this.state(), ...fields });
   }
 
   observe(tool, result) {
@@ -113,6 +119,7 @@ export class FusionSession {
       args.push(action === 'advance' ? '--inputs' : action === 'mcp-run' ? '--arguments' : '--input', inputFile);
     }
     const value = await this.cli(action, args, signal);
+    if (action === 'resume' && this.state()?.mode === 'paused') this.update({ mode: 'executing' });
     return { ...value, host_binding: { session: this.session, case: this.casePath, cwd: this.cwd },
       ...this.preview(value) };
   }
@@ -142,9 +149,12 @@ export class FusionSession {
     if (!state?.active) return null;
     const header = { host_session: this.owner, cwd: this.cwd, skill_root: this.config.skillRoot,
       case_path: this.casePath, runtime_session: this.session,
+      mode: state.mode || 'ready', task: state.task, current_skill: state.last_skill, checkpoint: state.checkpoint,
+      last_execution: state.last_execution, closure: state.closure,
+      last_turn: state.last_turn, adherence: state.adherence,
       tool_errors: state.tool_errors || {} };
     if (!existsSync(path.join(this.casePath, 'case.sqlite3'))) {
-      return { ...header, state: 'not_started', next: 'Only start a case for an execution request; analysis/comparison requests remain analysis. Use fusion action=start with args=["--input","task.json","--execute-local"] when task.json has the authorized task. Otherwise compose its input_json from the user request. No path search or installation is needed.' };
+      return { ...header, state: 'not_started', next: 'For an execution request use fusion action=execute, request={objective,scope,target,skill,capability,purpose,tool,arguments}; this binds, calls the actual host tool and captures its receipt. No task.json, registry preparation or source inspection is needed. For analysis only use suspend with a reason. Read the current specialist once, then execute.' };
     }
     // Read from disk at every restoration, never from a model summary or a process cache.
     return { ...header, state: await this.cli('resume', ['--max-chars', '6000'], signal) };
@@ -154,7 +164,7 @@ export class FusionSession {
     const state = this.state();
     if (!state?.active) return null;
     return digest(JSON.stringify({ owner: this.owner, turn, tool_errors: state.tool_errors || {},
-      started: existsSync(path.join(this.casePath, 'case.sqlite3')) }));
+      mode: state.mode, started: existsSync(path.join(this.casePath, 'case.sqlite3')) }));
   }
 }
 

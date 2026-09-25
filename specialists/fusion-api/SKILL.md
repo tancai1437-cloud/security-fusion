@@ -34,7 +34,7 @@ description: 评估REST、GraphQL等接口的身份、会话、对象/功能/租
 
 完成条件：已选身份和接口边界有可追溯对照，未验证结论保留明确缺口。
 
-读取结果后，按 [advance](../../references/observation-routing.md#简化入口advance) 提交复核结论与新事实，继续所选方法；没有新事实就处理当前证据缺口。保存阴性、反证和阻塞，阶段结束再整理上述产物，无需用户逐阶段选择。
+宿主有 fusion 时继续 execute，以 review 提交上一回执的实际结论；阶段暂停用 checkpoint，交付用 finish。没有宿主组件才用 [advance](../../references/observation-routing.md#简化入口advance)。保存阴性、反证和阻塞；只在阶段结束整理产物，不等用户逐阶段选择。
 
 **方法来源。**
 

@@ -10,6 +10,7 @@ sys.path.insert(0, str(SCRIPTS))
 from fusion_store import Case, encode, manifest
 from fusion_methods import specialist_card
 from fusion_views import catalog, report, resume
+from fusion_delivery import inspect_output
 from test_runtime import CONFIG, spec
 
 
@@ -95,6 +96,31 @@ class GuidanceDeliveryTests(unittest.TestCase):
         result = report(self.case)
         self.assertIn({"path": output.relative_to(self.case.root).as_posix(), "status": "outside_case"},
                       result["delivery_gaps"])
+
+    def test_export_directory_requires_nonempty_in_case_file(self):
+        relative = "specialists/fusion-js/exported-artifacts/"
+        directory = self.case.root / relative
+        self.assertEqual(inspect_output(self.case, relative)["status"], "missing")
+        directory.mkdir(parents=True)
+        self.assertEqual(inspect_output(self.case, relative)["status"], "empty")
+        (directory / "empty.txt").write_text("")
+        self.assertEqual(inspect_output(self.case, relative)["status"], "empty")
+        (directory / "replica.py").write_text("print('fixture')")
+        result = inspect_output(self.case, relative)
+        self.assertEqual(result["status"], "present_unreviewed")
+        self.assertEqual(result["nonempty_files"], 1)
+
+    def test_export_directory_rejects_foreign_symlink(self):
+        relative = "specialists/fusion-js/exported-artifacts/"
+        directory = self.case.root / relative
+        directory.mkdir(parents=True)
+        external = self.root / "outside.py"
+        external.write_text("print('foreign')")
+        try:
+            (directory / "foreign.py").symlink_to(external)
+        except OSError:
+            self.skipTest("Symlinks unavailable on this host")
+        self.assertEqual(inspect_output(self.case, relative)["status"], "outside_case")
 
 
 if __name__ == "__main__":

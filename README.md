@@ -34,7 +34,9 @@ npx --yes skills@1.7.0 add tancai1437-cloud/security-fusion --list
 
 ## Agent 接入
 
-DSH 可选用 [宿主适配器](references/host-adapter.md)：注册原生 `fusion` 工具，由宿主维护会话绑定，并在压缩移除恢复信息后从磁盘重新加载当前状态。它与普通 Skill 文件安装是两个步骤；不会自动修改日常 profile。`AGENTS.md` 只需保留入口约定，不要复制全部方法。此适配器不承诺模型完全遵循方法，也不拦截任意宿主命令。
+需要持续执行约束的 DSH 使用 [宿主组件](references/host-adapter.md)：注册原生 `fusion` 工具，激活后将实际工具调用约束到 execute，自动捕获回执；压缩后从磁盘恢复，交付前检查未决工作与报告证据。安装 Skill 后还需让当前 Agent 识别其实际 profile，运行包内安装器并重启该 profile。只复制 Skill 文件没有这些 hook。`AGENTS.md` 只需保留入口约定，不要复制全部方法。组件不能替模型保证测试覆盖或结论正确。
+
+[本轮实测](references/agent-execution-validation-2026-09-25.md)：Web 首次目标请求由 186 秒降至 34 秒，压缩后形成报告；同模型 JS 任务仍因输出上限而未交付，不能视为全部通过。
 
 | Agent | 如何加载 | MCP 接入 |
 |---|---|---|
@@ -48,6 +50,8 @@ DSH 可选用 [宿主适配器](references/host-adapter.md)：注册原生 `fusi
 
 ```text
 使用 security-fusion，初始化当前机器的运行环境。
+如果当前是 DSH，先识别实际使用的 profile，运行 scripts/install_dsh_adapter.py 安装或更新宿主组件。
+需要重启时保存续跑位置；重启后验收原生 fusion.execute，不能把配置写入当成运行接通。
 自动检测已有工具和 MCP，复用可用安装，补齐当前所需依赖，接入当前 Agent。
 通过实际调用验收后建立能力索引，交付可用项、阻塞项及证据位置。
 ```
@@ -88,7 +92,7 @@ HTTP 新任务支持 `entry` 起手：自动选择侦察方法、能力和现有
 
 `catalog --skill`、`start`、`plan`、`resume` 会直接返回当前专项的实际方法、完成条件与产物路径；方法从专项原文生成，只加载当前一项。持续执行的 `run/begin` 返回专项→能力→实际工具回执，避免每步重新阅读整套文档。压缩恢复优先处理原有未决/待复核结果，不先跳到新待办。
 
-阶段 `report` 另输出 `report/delivery.json`，显示已登记工具调用和缺失专项产物。`ledger_status=completed` 只代表登记检查完成；`status=partial/review_required` 不替 Agent 宣称整个任务完成。没有宿主日志就无法核对绕过脚本的动作；本包不能强制 DSH 等宿主遵循方法。验收应看真实目标证据、对照与适用面覆盖，不能只看“读了哪些文件”。
+阶段 `report` 另输出 `report/delivery.json`，显示已登记工具调用和缺失专项产物。`ledger_status=completed` 只代表登记检查完成；`status=partial/review_required` 不替 Agent 宣称整个任务完成。DSH 的[宿主组件](references/host-adapter.md)现提供统一 execute、真实调用回执、绕过拦截、交付检查和有限结束纠正；纯文本 Skill 没有这些能力。验收仍看真实目标证据、对照和结果正确性，不能只看“读了哪些文件”。
 
 1. [主路由](references/main-router.md)识别渗透、SRC、逆向、源码审计、红队路径或 AI 应用评估，维护范围、计划、工作项与进度。
 2. [专项路由](manifests/specialists.json)按实际材料选择 recon、web、api、business、js、code、mobile、binary、cloud、infra、ai、validate、report。
@@ -110,7 +114,7 @@ HTTP 新任务支持 `entry` 起手：自动选择侦察方法、能力和现有
 | 多案件共用 MCP | 可变上下文 slot 独占，核对提供者、目标、身份和观察时间；未决调用不允许切换 |
 | 积累经验又污染新任务 | 原始事实不共享；经验经历候选、验证、限定范围、失效/修订，召回不修改检查状态 |
 
-这是字符预算，不是模型 token 或宿主总上下文上限。原生 MCP 的大量输出若已进入宿主上下文，本包无法撤回；应结合 MCP 分页、过滤和导出。实际模型 token/费用改善尚未测量。
+这是字符预算，不是模型 token 或宿主总上下文上限。原生 MCP 的大量输出若已进入宿主上下文，本包无法撤回；应结合 MCP 分页、过滤和导出。模型消耗依赖宿主与任务，不能用字符预算直接换算账单。
 
 Agent 的命令、示例与中断处理见 [运行协议](references/runtime.md)。由 Agent 使用这些命令，业务用户仍可直接用自然语言提交任务。
 

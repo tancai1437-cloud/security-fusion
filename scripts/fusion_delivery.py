@@ -6,14 +6,31 @@ from fusion_methods import specialist_card
 from fusion_store import digest_file
 
 
+def inspect_directory(case, path, item):
+    if not path.is_dir():
+        return dict(item, status="missing")
+    nonempty_files = 0
+    for index, child in enumerate(path.rglob("*")):
+        if index >= 1000:
+            return dict(item, status="too_large_to_inspect")
+        if not child.resolve().is_relative_to(case.root):
+            return dict(item, status="outside_case")
+        if child.is_file() and child.stat().st_size:
+            nonempty_files += 1
+    return dict(item, status="present_unreviewed" if nonempty_files else "empty",
+                nonempty_files=nonempty_files)
+
+
 def inspect_output(case, relative):
     path = (case.root / relative).resolve()
     item = {"path": relative}
     if not path.is_relative_to(case.root):
         return dict(item, status="outside_case")
-    if not path.is_file():
-        return dict(item, status="missing")
     try:
+        if relative.endswith("/"):
+            return inspect_directory(case, path, item)
+        if not path.is_file():
+            return dict(item, status="missing")
         size = path.stat().st_size
         if not size:
             return dict(item, status="empty")
