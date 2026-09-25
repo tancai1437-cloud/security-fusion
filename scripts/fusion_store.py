@@ -15,6 +15,7 @@ import uuid
 PACK = Path(__file__).resolve().parents[1]
 SCHEMA_VERSION = 1
 ACTIVE = ("running", "unknown", "review")
+NOTE_KINDS = ("fact", "negative", "refuted", "hypothesis", "decision", "constraint", "blocker")
 FINGERPRINT_FIELDS = (
     "target", "target_version", "identity_ref", "check_type",
     "inputs", "method_version", "capability_id",
@@ -406,8 +407,7 @@ class Case:
         return {"status": status, "attempt_id": attempt_id, "evidence_ids": [a["id"] for a in artifacts]}
 
     def note(self, kind, text, check_id=None, evidence_ids=(), supersedes=None):
-        require(kind in {"fact", "negative", "refuted", "hypothesis", "decision", "constraint", "blocker"},
-                "Unknown note kind")
+        require(kind in NOTE_KINDS, "Unknown note kind; choose one of: " + ", ".join(NOTE_KINDS))
         text_field(text, "note", 2000)
         check_id = self.check(check_id)["id"] if check_id else None
         for identity in evidence_ids:

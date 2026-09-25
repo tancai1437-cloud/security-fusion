@@ -34,6 +34,8 @@ npx --yes skills@1.7.0 add tancai1437-cloud/security-fusion --list
 
 ## Agent 接入
 
+DSH 可选用 [宿主适配器](references/host-adapter.md)：注册原生 `fusion` 工具，由宿主维护会话绑定，并在压缩移除恢复信息后从磁盘重新加载当前状态。它与普通 Skill 文件安装是两个步骤；不会自动修改日常 profile。`AGENTS.md` 只需保留入口约定，不要复制全部方法。此适配器不承诺模型完全遵循方法，也不拦截任意宿主命令。
+
 | Agent | 如何加载 | MCP 接入 |
 |---|---|---|
 | [DSH / DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/skills.md) | 启用 Skill 组件，读取用户级 `.agents/skills/` | 使用 [官方 MCP 客户端](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/mcp/mcp-client/README.md) |

@@ -139,6 +139,10 @@ def resume(case, identity=None, maximum=6000, binding=None, experiences=None):
         packet["next"] = ("Inspect/reconcile this existing attempt before repeating it; independent checks may proceed."
                           if current["status"] in {"running", "unknown", "review"}
                           else "Execute the current check using its specialist method and route; then inspect evidence.")
+    else:
+        packet["next"] = ("No unresolved or ready pending check was selected; this is not an overall completion claim. "
+                          "To inspect completed or blocked work, query --kind checks, then resume --check <id>. "
+                          "Artifact IDs are not paths: use each returned evidence[].path relative to this case root.")
     if binding:
         packet["binding"] = binding
     last_route = case.db.execute("SELECT seq,payload FROM events WHERE kind='observation_routed' ORDER BY seq DESC LIMIT 1").fetchone()

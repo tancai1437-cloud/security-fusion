@@ -10,7 +10,7 @@ import subprocess
 import sys
 import time
 
-from fusion_store import Case, FusionError, encode, read_json, require
+from fusion_store import Case, FusionError, NOTE_KINDS, encode, read_json, require
 from fusion_views import bounded, catalog, query, report, resume, write_view
 from fusion_scope_cli import add_commands, binding_options, execute_bound, memory_query_options
 from fusion_workspace import Workspace
@@ -82,7 +82,7 @@ def parser():
         if name == "reconcile":
             command.add_argument("--outcome", required=True, choices=["observed", "not_executed"])
         if name == "note":
-            command.add_argument("--kind", required=True)
+            command.add_argument("--kind", required=True, choices=NOTE_KINDS)
             command.add_argument("--text", required=True)
             command.add_argument("--evidence", action="append", default=[])
             command.add_argument("--supersedes")

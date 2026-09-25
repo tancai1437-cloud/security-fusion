@@ -23,6 +23,8 @@ description: 对获准目标执行渗透、SRC、逆向、源码审计或 AI 安
 
 ## 从方法走到调用
 
+宿主提供原生 `fusion` 工具时，优先通过它执行下列命令；案件与会话参数由宿主维护。新任务可调用 `fusion(action="start", args=["--input","task.json","--execute-local"])`，也可通过 `input_json` 提交任务配置。返回的 guidance 和证据预览足够时立即判断并推进，不重复查找脚本路径。仅安装 Skill 不会注册此工具；DSH 接入见 [宿主适配](references/host-adapter.md)。
+
 1. **新任务**读 [快速执行](references/first-action.md)。HTTP 入口或本地二进制用 `start --execute-local` 合并建案、会话绑定和第一次读取；已有材料直接登记对应检查。Agent 维护案件与参数，用户不用逐步填表。
 2. **选工具**：现成本地命令走 `run`；已建立显式目标 stdio 配置的 MCP 走 [mcp-run](references/mcp-execution.md)，程序完成连接、实际工具查询、调用及证据落盘。依赖当前浏览器/工程的 MCP 用宿主已连接工具，按 [执行路由](references/execution-router.md) 核对上下文。只查当前能力，缺项才 [补齐环境](references/environment-bootstrap.md)。
 3. **读结果并推进**：取得输出后先判断实际响应；用 [advance](references/observation-routing.md#简化入口advance) 一次提交上一项复核结论与新事实，程序补齐来源和证据引用，返回下一具体方法。继续调用该方法所需工具。未匹配的问题按当前专项生成具体检查，不强凑标签。
