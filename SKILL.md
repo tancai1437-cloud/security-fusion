@@ -29,16 +29,19 @@ description: 对获准目标执行渗透、SRC、逆向、源码审计或 AI 安
 fusion(action="execute", request={
   "objective":"用户要回答的问题", "scope":"用户约定范围和限制", "target":"规范目标",
   "skill":"当前专项 ID", "capability":"该专项对应的能力 ID",
-  "purpose":"这一步要取得什么证据", "tool":"当前宿主的实际工具名", "arguments":{实际参数},
+  "purpose":"这一步要取得什么证据", "work":{"key":"stable-check","conditions":{"resource":"具体资源","control":"当前对照条件"}},
+  "tool":"当前宿主的实际工具名", "arguments":{实际参数}, "next":"这项复核通过后的下一未完成动作",
   "deliverables":["用户要求的交付文件"]
 })
 ```
+
+新任务的目标检查必须提供 work；同一问题换 shell/MCP 仍沿用 key 与 conditions，不能用工具名当检查名。条件必须包含会影响结论的输入、身份引用或样本版本；变化才另建检查。文件整理、资料搜索用 evidence.persist，可省略 work。next 是可选的未完成计划，执行前即落盘。
 
 后续 shell、搜索、MCP、读写文件都继续走 execute，省略不变的 objective/scope/target；可同时传 `review:{attempt:上一回执的attempt_id,summary:实际结论,verdict:"done"}`。证据、参数、调用 ID 自动绑定落盘，模型不补写原始回执。失败先看返回原因，不能判 done。当前专项的 guidance 已返回时不重读文件。每次调用都要推进具体问题，不能用大量“准备”替代执行。
 
 capability 使用当前专项列出的 ID；联网查资料、保存报告等通用取证操作用 `evidence.persist`，不要臆造 web.search 等能力。单独复核旧回执可只传 `execute(request={review:{attempt,summary,verdict}})`，不必再读文件或重复目标调用；finish 返回未决 ID 时按该 ID 处理。
 
-用户要求暂停或实际受阻：`checkpoint` 的 request 填 summary 与下一未完成动作 next；交付时 `finish` 填 report 文件、summary 和最后的 review，程序核对账本和文件；仅分析或用户切换任务用 `suspend(reason)`，不把暂停标成完成。压缩后 `resume`，沿 checkpoint/current/guidance 继续；不要重复基线。宿主会阻止裸工具绕过并在未交付就结束时有限纠正。文件存在不代表结论正确，仍要做任务对应的实测对照。
+用户要求暂停或实际受阻：`checkpoint` 的 request 填 summary 与下一未完成动作 next；交付时 `finish` 填 report 文件、summary 和最后的 review，程序核对账本和文件；仅分析或用户切换任务用 `suspend(reason)`，不把暂停标成完成。压缩后按 `next_action` 处理待复核/未知调用，读 `results` 复用相关阶段结论；再沿 continuation/checkpoint 与 guidance 推进。宿主保留当前专项方法，即使上一项已 done 也不丢掉方法。宿主会阻止裸工具绕过并在未交付就结束时有限纠正。文件存在不代表结论正确，仍要做任务对应的实测对照。
 
 **没有 `fusion` 工具才使用以下 CLI 流程。** 普通安装只复制 Skill；DSH 初次接入/升级宿主组件见 [宿主适配](references/host-adapter.md)。纯文本 Skill 没有拦截能力，不能声称已经启用执行约束。
 
@@ -52,6 +55,6 @@ capability 使用当前专项列出的 ID；联网查资料、保存报告等通
 
 运行命令显式携带 `--workspace / --session / --case`。同项目不同目标分案；压缩或重启后 `resume`，先处理未决调用与待复核证据；换会话按 [隔离协议](references/scoped-memory.md) 交接。`reuse` 不重发，`hold` 先核对。成功返回不等于检查完成，复核由当前 Agent 根据证据判断。
 
-原始输出自动保存，阶段结束再整理专项产物，经 [validate](specialists/fusion-validate/SKILL.md) 核对并由 [report](specialists/fusion-report/SKILL.md) 交付已测、未测、受阻与依据。账本完成不代表整个评估完成。经验按需检索，阶段结束再审核沉淀；恢复默认最多 6,000 字符。详细命令按需查 [运行协议](references/runtime.md)。
+原始输出自动保存，阶段结束再整理专项产物，经 [validate](specialists/fusion-validate/SKILL.md) 核对并由 [report](specialists/fusion-report/SKILL.md) 交付已测、未测、受阻与依据。账本完成不代表整个评估完成。经验按需检索，阶段结束再审核沉淀；CLI 恢复默认最多 6,000 字符；DSH 整条恢复消息最多 8,000 字符，省略项可分页读取。详细命令按需查 [运行协议](references/runtime.md)。
 
 Python >= 3.9，辅助程序只用标准库。执行约束需已验证的宿主组件；原生 MCP 与直接 stdio 连接的上下文不能互认。方法与许可取舍见 [融合记录](references/upstream-decisions.md)。

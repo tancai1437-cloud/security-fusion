@@ -8,6 +8,7 @@ import uuid
 from fusion_store import FusionError, encode, manifest, require
 from fusion_methods import check_guidance, specialist_card
 from fusion_delivery import delivery_audit
+from fusion_progress import blocked_by, next_action, relevant_results
 
 
 def bounded(value, maximum):
@@ -111,23 +112,31 @@ def append_with_budget(packet, name, candidates, omitted, maximum):
             break
 
 
-def resume(case, identity=None, maximum=6000, binding=None, experiences=None):
+def resume(case, identity=None, maximum=6000, binding=None, experiences=None, fallback_skill=None):
     rows = [dict(r) for r in case.db.execute("SELECT * FROM checks ORDER BY rowid")]
     current = select_current(case, rows, identity)
     current_id = current["id"] if current else None
     required_notes, optional_notes = resume_notes(case, current_id)
-    queue = [check_card(case, r) for r in rows if
+    queue = [dict(check_card(case, r), ready=r["status"] == "pending" and not blocked_by(case, r),
+                  blocked_by=blocked_by(case, r)) for r in rows if
              r["id"] != current_id and r["status"] in {"pending", "failed", "blocked"}]
     inflight = [dict(r) for r in case.db.execute(
         "SELECT id,check_id,status FROM attempts WHERE status IN ('running','unknown','review') ORDER BY started")]
+    results, result_count = relevant_results(case, current, rows)
+    # Keep attention on the selected attempt even when the caller chose a later
+    # unresolved check. Full attempt history is accessible via the paged query.
+    inflight.sort(key=lambda item: item["check_id"] != current_id)
     packet = {
         "case_id": case.meta("case_id"),
         "revision": case.db.execute("SELECT COALESCE(MAX(seq),0) FROM events").fetchone()[0],
         "config": case.meta("config"), "stored_status_counts": dict(Counter(r["status"] for r in rows)),
-        "counts_are_not_evidence_revalidation": True, "in_flight": inflight,
+        "counts_are_not_evidence_revalidation": True, "in_flight": inflight[:1],
+        "omitted_in_flight": max(0, len(inflight) - 1),
         "required_notes": required_notes, "current": None,
         "recent_global_notes": [], "queue": [],
         "omitted_notes": len(optional_notes), "omitted_queue": len(queue),
+        "next_action": next_action(case, current, rows), "results": [], "omitted_results": result_count,
+        "result_use": "Scoped, reviewed observations. Details: query checks/notes/attempts; resume --check ID.",
     }
     if current:
         current_spec = json.loads(current["spec"])
@@ -136,13 +145,15 @@ def resume(case, identity=None, maximum=6000, binding=None, experiences=None):
                                  dependencies=json.loads(current["deps"]),
                                  evidence=case.artifacts(current["latest_attempt"]) if current["latest_attempt"] else [])
         packet["guidance"] = check_guidance(current_spec)
-        packet["next"] = ("Inspect/reconcile this existing attempt before repeating it; independent checks may proceed."
+        packet["next"] = ("Review/reconcile this attempt; independent checks may proceed."
                           if current["status"] in {"running", "unknown", "review"}
-                          else "Execute the current check using its specialist method and route; then inspect evidence.")
+                          else "Execute this check with its guidance; inspect evidence.")
     else:
         packet["next"] = ("No unresolved or ready pending check was selected; this is not an overall completion claim. "
                           "To inspect completed or blocked work, query --kind checks, then resume --check <id>. "
                           "Artifact IDs are not paths: use each returned evidence[].path relative to this case root.")
+        if fallback_skill:
+            packet["guidance"] = {"specialist": specialist_card(fallback_skill)}
     if binding:
         packet["binding"] = binding
     last_route = case.db.execute("SELECT seq,payload FROM events WHERE kind='observation_routed' ORDER BY seq DESC LIMIT 1").fetchone()
@@ -163,17 +174,23 @@ def resume(case, identity=None, maximum=6000, binding=None, experiences=None):
         packet["experience_use"] = experiences["use"]
         packet["omitted_experiences"] = experiences["omitted"] + len(experiences["items"])
     bounded(packet, maximum)
+    append_with_budget(packet, "results", results, "omitted_results", maximum)
+    append_with_budget(packet, "queue", queue, "omitted_queue", maximum)
+    append_with_budget(packet, "in_flight", inflight[1:6], "omitted_in_flight", maximum)
     if experiences is not None:
         append_with_budget(packet, "experience_hints", experiences["items"], "omitted_experiences", maximum)
     append_with_budget(packet, "recent_global_notes", optional_notes, "omitted_notes", maximum)
-    append_with_budget(packet, "queue", queue, "omitted_queue", maximum)
     return bounded(packet, maximum)
 
 
-def query(case, kind, offset=0, limit=10, identity=None, target=None):
+def query(case, kind, offset=0, limit=10, identity=None, target=None, status=None):
     require(kind in {"checks", "notes", "events", "attempts"}, "Unknown query kind")
     require(offset >= 0 and 1 <= limit <= 100, "Use offset >= 0 and limit between 1 and 100")
     clauses, args = [], []
+    if status:
+        require(kind in {"checks", "attempts"}, "Status filtering supports checks and attempts")
+        clauses.append("status=?")
+        args.append(status)
     if identity:
         require(kind != "events", "Event queries currently use pagination only")
         column = "id" if kind == "checks" else "check_id"

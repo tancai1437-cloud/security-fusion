@@ -97,6 +97,8 @@ def parser():
             command.add_argument("--offset", type=int, default=0)
             command.add_argument("--limit", type=int, default=10)
             command.add_argument("--target", help="Exact canonical target; filters checks or their notes")
+            command.add_argument("--status", choices=["pending", "running", "unknown", "review", "done", "failed", "blocked"],
+                                 help="Stored check/attempt status, before freshness revalidation")
         if name == "run":
             command.add_argument("--timeout", type=float, default=300)
             command.add_argument("--cwd", help="Defaults to the case directory")
@@ -204,8 +206,8 @@ def dispatch(args, case):
     if command in {"resume", "query"}:
         with case.transaction():
             if command == "resume":
-                return resume(case, args.check, args.max_chars, args.binding, args.experiences)
-            return bounded(query(case, args.kind, args.offset, args.limit, args.check, args.target), args.max_chars)
+                return resume(case, args.check, args.max_chars, args.binding, args.experiences, args.skill)
+            return bounded(query(case, args.kind, args.offset, args.limit, args.check, args.target, args.status), args.max_chars)
     if command == "report":
         return report(case)
     if command == "run":

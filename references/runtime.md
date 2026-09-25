@@ -72,7 +72,7 @@ python3 "$FUSION" query --workspace "$WORKSPACE" --session "$SESSION" --case "$C
 python3 "$FUSION" query --workspace "$WORKSPACE" --session "$SESSION" --case "$CASE" --kind notes --target local-fixture --limit 5
 ```
 
-恢复包包含目标/范围/约束、当前检查、同源专项行动卡 guidance、相关笔记、未决调用、队列片段及省略计数。默认先选 running/unknown/review，再选依赖已满足的 pending；--check 可显式选择独立项。行动卡从安装包专项原文提取，附源文件 hash，不能把“已返回方法”当成“已遵循方法”。默认总上限仍为 6,000 字符，先保留范围、当前方法和必要证据，历史与经验只按剩余空间填入；必要内容超限明确报错。stored_status_counts 不能替代逐项证据复核。其他记录按 --check 或精确 --target 查询；不同身份/版本下的阴性结论不可无条件推广。
+恢复包包含目标/范围/约束、当前检查、同源专项行动卡 guidance、相关笔记、未决调用、队列片段及省略计数。next_action 指明复核、核对中断、执行或解除阻塞；results 优先携带前置检查的已复核结论、证据路径和反证，区分历史有效与当前可复用。queue 的 ready/blocked_by 区分独立可执行项与依赖受阻项。默认先选 running/unknown/review，再选依赖已满足的 pending；--check 可显式选择独立项。行动卡从安装包专项原文提取，附源文件 hash，不能把“已返回方法”当成“已遵循方法”。默认总上限仍为 6,000 字符，先保留范围、当前方法和必要证据，历史与经验只按剩余空间填入；必要内容超限明确报错。stored_status_counts 不能替代逐项证据复核。未决调用过多时分页，query --kind attempts --status running 可按存储状态查找；--skill 可在无当前检查时保留指定专项方法卡。其他记录按 --check 或精确 --target 查询；不同身份/版本下的阴性结论不可无条件推广。
 
 遇到 running/unknown，先核对 captures/CALL-id、宿主调用记录或实际远端状态：
 
@@ -103,7 +103,7 @@ python3 "$FUSION" report --workspace "$WORKSPACE" --session "$SESSION" --case "$
 
 fusion-report 另外编写 summary.md、report.md、findings.json 和必要的解释性覆盖说明。运行辅助程序不会编造漏洞，也不会覆盖 Agent 编写的 report.md。report 的 ledger_status=completed 仅表示已登记检查都完成；status 在存在执行或产物缺口时为 partial，齐全时为 review_required，不再返回整体 completed。旧版读取 report.status=completed 的调用方应改读 ledger_status，并另行核对 delivery_status。完整适用面、技术结论、文件内容和实际宿主动作有无漏记，仍由主控和验证专项验收；缺宿主记录时 untracked_actions 明确为 unknown_without_host_trace。
 
-默认 6,000 字符是恢复/查询/目录响应的上限，不是总会话 token 上限。省略队列/全局笔记有计数，可分页；必需信息或单个 schema 超限报错。实际 token 取决于模型，宿主也可能仍加载全部工具定义；本包不能撤回已经进入宿主上下文的 MCP 大输出。优先使用服务自身的分页、过滤、导出能力。
+CLI 默认 6,000 字符是恢复/查询/目录响应的上限，DSH 宿主另限制整条恢复消息不超过 8,000 字符，不是总会话 token 上限。省略队列/全局笔记有计数，可分页；必需信息或单个 schema 超限报错。实际 token 取决于模型，宿主也可能仍加载全部工具定义；本包不能撤回已经进入宿主上下文的 MCP 大输出。优先使用服务自身的分页、过滤、导出能力。
 
 账本更新和机械摘要不调用模型。CLI 可在同一个宿主 shell 调用中按实际依赖顺序组合，降低来回次数；复核仍需读取必要证据。不要为了机械落盘创建额外 Agent 或 LLM 总结任务。
 

@@ -7,8 +7,8 @@ import http from 'node:http';
 import { fileURLToPath } from 'node:url';
 import childProcess from 'node:child_process';
 import { syncBuiltinESMExports } from 'node:module';
-import { FusionSession, validateArgs, visibleRecovery } from '../adapters/dsh-runtime.mjs';
-import { executeStep, closeStep, guardReason, stopCorrection, recordTurnOutcome } from '../adapters/dsh-execution.mjs';
+import { FusionSession, validateArgs, visibleRecovery, formatRecovery, RECOVERY_MAX_CHARS } from '../adapters/dsh-runtime.mjs';
+import { executeStep, closeStep, guardReason, stopCorrection, recordTurnOutcome, recoverCaptured } from '../adapters/dsh-execution.mjs';
 
 const skillRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const root = mkdtempSync(path.join(os.tmpdir(), 'fusion-host-test-'));
@@ -104,7 +104,7 @@ test('observed host execution binds once, deduplicates after restart and require
     const target = `http://127.0.0.1:${server.address().port}/alpha`;
     const session = new FusionSession(config, 'observed-execution', root);
     const request = { objective: 'Check controlled alpha', scope: target, target, skill: 'fusion-web',
-      capability: 'http.request', purpose: 'Observe baseline', tool: 'http_reader', arguments: { url: target },
+      capability: 'http.request', work: { key: 'baseline', conditions: { control: 'original' } }, purpose: 'Observe baseline', tool: 'http_reader', arguments: { url: target },
       deliverables: ['answer.md'] };
     const ids = [];
     const dispatch = async (tool, args, id) => {
@@ -158,7 +158,7 @@ test('native execution rejects tool/capability mismatch, secrets and unbound MCP
 
 test('failed and interrupted receipts never become semantic success and changed files are rejected', async () => {
   const request = { objective: 'test', scope: 'fixture', target: 'fixture', skill: 'fusion-js',
-    purpose: 'Execute local fixture', capability: 'js.runtime', tool: 'test_runner', arguments: {} };
+    purpose: 'Execute local fixture', work: { key: 'sample', conditions: { revision: 'fixture-v1' } }, capability: 'js.runtime', tool: 'test_runner', arguments: {} };
   const a = new FusionSession(config, 'failed-execute', root);
   const failed = await executeStep(a, request, async () => ({ isError: true, error: { code: 'TEST_FAILURE' }, content: [] }));
   assert.equal(failed.status, 'failed');
@@ -208,4 +208,106 @@ test('hard model limits remain observable even when a prior phase was paused', (
   assert.equal(restored.mode, 'paused', 'does not silently resume work or claim completion');
   recordTurnOutcome(new FusionSession(config, 'never-activated', root), 1, 'max-tokens');
   assert.equal(new FusionSession(config, 'never-activated', root).state(), null);
+});
+
+test('semantic work survives compaction, switches tools without repeats, and separates changed conditions', async () => {
+  const hits = [];
+  const server = http.createServer((req, res) => { hits.push(req.url); res.end('control denied'); });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const target = `http://127.0.0.1:${server.address().port}/alpha`;
+    const initial = new FusionSession(config, 'semantic-work', root);
+    const request = { objective: 'Compare controlled fixture', scope: target, target, skill: 'fusion-web',
+      capability: 'http.request', purpose: 'Read anonymous baseline',
+      work: { key: 'anonymous-baseline', conditions: { resource: '/alpha', control: 'original' } },
+      tool: 'http_reader', arguments: { url: target }, next: 'Compare the authorized second control' };
+    const dispatch = async (_tool, args) => ({ isError: false, content: [{ type: 'text', text: await (await fetch(args.url)).text() }] });
+    await assert.rejects(executeStep(initial, { ...request, work: undefined }, dispatch), /require work/);
+    assert.equal(hits.length, 0, 'missing work never dispatches a target call');
+    const first = await executeStep(initial, request, dispatch);
+    assert.equal(first.deduplication, 'work_conditions');
+    await executeStep(initial, { review: { summary: 'Anonymous control denied access' } }, dispatch);
+    for (let turn = 1; turn <= 12; turn++) {
+      const fresh = new FusionSession(config, 'semantic-work', root);
+      // A compacted conversation omits the original state source and method text.
+      assert.equal(visibleRecovery({ surface: { nodes: [] } }, fresh.recoveryKey(turn)), false);
+      const recovery = await fresh.recovery();
+      assert.ok(formatRecovery(recovery).length <= RECOVERY_MAX_CHARS);
+      assert.equal(recovery.state.current, null);
+      assert.equal(recovery.state.guidance.specialist.skill_id, 'fusion-web');
+      assert.equal(recovery.state.results[0].attempt_id, first.attempt_id);
+      assert.equal(recovery.state.results[0].summary, 'Anonymous control denied access');
+      assert.equal(recovery.continuation.next, request.next);
+      const reuse = await executeStep(fresh, { ...request, tool: 'different_http_tool',
+        arguments: { url: target, implementation: turn }, purpose: 'Rephrased observation' }, dispatch);
+      assert.equal(reuse.decision, 'reuse');
+      assert.equal(reuse.check_id, first.check_id);
+    }
+    assert.deepEqual(hits, ['/alpha']);
+    const changed = await executeStep(initial, { ...request,
+      work: { ...request.work, conditions: { ...request.work.conditions, control: 'second' } },
+      arguments: { url: target + '?control=second' } }, dispatch);
+    assert.notEqual(changed.check_id, first.check_id);
+    assert.deepEqual(hits, ['/alpha', '/alpha?control=second']);
+    const other = new FusionSession(config, 'semantic-other-owner', root);
+    await executeStep(other, request, dispatch);
+    assert.equal(hits.length, 3, 'another session never silently reuses this case');
+  } finally { await new Promise(resolve => server.close(resolve)); }
+});
+
+test('settled capture after ledger-write crash is recovered exactly once without redispatch', async () => {
+  const a = new FusionSession(config, 'record-crash', root);
+  const request = { objective: 'Local crash fixture', scope: 'local fixture', target: 'fixture', skill: 'fusion-js',
+    capability: 'js.runtime', purpose: 'Run fixed sample', work: { key: 'sample', conditions: { revision: 'v1' } },
+    tool: 'fixture-reader', arguments: {}, next: 'Analyze the captured control' };
+  let calls = 0;
+  const dispatch = async () => { calls++; return { isError: false, content: [{ type: 'text', text: 'fixed local observation' }] }; };
+  const cli = a.cli.bind(a);
+  a.cli = async (action, ...args) => {
+    if (action === 'record') throw new Error('Injected process exit before ledger record');
+    return cli(action, ...args);
+  };
+  await assert.rejects(executeStep(a, request, dispatch), /Injected process exit/);
+  const restored = new FusionSession(config, 'record-crash', root);
+  assert.equal((await restored.recovery()).state.next_action.action, 'reconcile');
+  await recoverCaptured(restored);
+  await recoverCaptured(restored);
+  const recovery = await restored.recovery();
+  assert.equal(recovery.state.next_action.action, 'review');
+  assert.equal(recovery.continuation.next, request.next);
+  assert.equal(restored.state().executed_count, 1);
+  await executeStep(restored, { review: { summary: 'Fixed observation verified' } }, dispatch);
+  assert.equal((await executeStep(restored, { ...request, tool: 'replacement-reader' }, dispatch)).decision, 'reuse');
+  assert.equal(calls, 1);
+});
+
+test('unobserved crash remains unresolved and completed checkpoints do not steer later work', async () => {
+  const a = new FusionSession(config, 'unknown-crash', root);
+  const request = { objective: 'Local interruption fixture', scope: 'fixture', target: 'fixture', skill: 'fusion-web',
+    capability: 'evidence.persist', purpose: 'Local reading', tool: 'reader', arguments: {} };
+  let calls = 0;
+  await executeStep(a, request, async () => { calls++; throw new Error('uncertain outcome'); });
+  await recoverCaptured(a);
+  assert.equal((await a.recovery()).state.next_action.action, 'reconcile');
+  assert.equal((await executeStep(a, request, async () => calls++)).decision, 'hold');
+  assert.equal(calls, 1);
+  await closeStep(a, 'checkpoint', { summary: 'Interrupted read needs reconciliation', next: 'Inspect prior capture' });
+  const clean = await executeStep(a, { ...request, arguments: { different_local_file: true } },
+    async () => ({ isError: false, content: [{ type: 'text', text: 'independent local content' }] }));
+  assert.equal(clean.status, 'review');
+  assert.equal(a.state().checkpoint, null, 'old checkpoint must not route new work backward');
+});
+
+test('recovery bounds the entire host message including tool faults and survives unicode', async () => {
+  const a = new FusionSession(config, 'message-budget', root);
+  await executeStep(a, { objective: 'Bound recovery ' + '测试🔎'.repeat(50), scope: 'local fixture', target: 'fixture',
+    skill: 'fusion-js', capability: 'evidence.persist', purpose: 'Read fixture', tool: 'reader', arguments: {} },
+    async () => ({ isError: false, content: [{ type: 'text', text: 'local observation' }] }));
+  for (let n = 0; n < 60; n++) a.observe('reader-' + n, { isError: true, error: { message: 'x'.repeat(300) } });
+  const recovery = await a.recovery();
+  assert.ok(formatRecovery(recovery).length <= RECOVERY_MAX_CHARS);
+  assert.equal(recovery.omitted_tool_errors, 57);
+  assert.equal(recovery.state.next_action.action, 'review');
+  assert.equal(recovery.state.guidance.specialist.skill_id, 'fusion-js');
+  assert.equal(JSON.parse(readFileSync(recovery.details_path)).tool_errors['reader-0'].length, 300);
 });
