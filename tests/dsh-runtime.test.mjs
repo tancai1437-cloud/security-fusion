@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, symlinkSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
 import { fileURLToPath } from 'node:url';
 import childProcess from 'node:child_process';
 import { syncBuiltinESMExports } from 'node:module';
-import { FusionSession, validateArgs, visibleRecovery, formatRecovery, RECOVERY_MAX_CHARS } from '../adapters/dsh-runtime.mjs';
+import { FusionSession, validateArgs, visibleRecovery, formatRecovery, RECOVERY_MAX_CHARS, replaceRecovery } from '../adapters/dsh-runtime.mjs';
 import { executeStep, closeStep, guardReason, stopCorrection, recordTurnOutcome, recoverCaptured } from '../adapters/dsh-execution.mjs';
 
 const skillRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -125,9 +125,9 @@ test('observed host execution binds once, deduplicates after restart and require
     assert.equal(repeat.decision, 'reuse');
     assert.deepEqual(hits, ['/alpha']);
     await assert.rejects(closeStep(restored, 'finish', { summary: 'Missing deliverable', report: 'answer.md' }), /ENOENT/);
-    writeFileSync(path.join(root, 'answer.md'), 'Fixture report cites fabricated CALL-00000000000000000000000000000000');
+    writeFileSync(path.join(restored.casePath, 'answer.md'), 'Fixture report cites fabricated CALL-00000000000000000000000000000000');
     await assert.rejects(closeStep(restored, 'finish', { summary: 'Cannot submit fabricated receipt', report: 'answer.md' }), /unobserved execution/);
-    writeFileSync(path.join(root, 'answer.md'), 'Fixture report: protected_access=false. Observed ' + first.attempt_id);
+    writeFileSync(path.join(restored.casePath, 'answer.md'), 'Fixture report: protected_access=false. Observed ' + first.attempt_id);
     await assert.rejects(closeStep(restored, 'finish', { summary: 'Stage files still missing', report: 'answer.md' }), /Specialist deliverables missing/);
     const partial = await closeStep(restored, 'finish', { summary: 'Explicitly incomplete stage files', report: 'answer.md', status: 'partial' });
     assert.equal(partial.status, 'partial');
@@ -135,13 +135,117 @@ test('observed host execution binds once, deduplicates after restart and require
     const stage = path.join(restored.casePath, 'specialists/fusion-web');
     mkdirSync(stage, { recursive: true });
     for (const file of ['web-checks.json', 'candidates.json']) writeFileSync(path.join(stage, file), '[]');
-    const end = await closeStep(restored, 'finish', { summary: 'Fixture inspected', report: 'answer.md' });
+    await assert.rejects(closeStep(restored, 'finish', { summary: 'Files alone are insufficient', report: 'answer.md' }), /Goal acceptance remains incomplete/);
+    const end = await closeStep(restored, 'finish', { summary: 'Fixture inspected', report: 'answer.md',
+      assessment: [{ criterion: 'objective', attempts: [first.attempt_id], summary: 'Controlled response directly shows protected_access=false' }] });
     assert.equal(end.status, 'submitted');
     assert.deepEqual(end.delivery_gaps, []);
     assert.equal(end.deliverables.length, 1);
     assert.equal(stopCorrection(restored, 2), undefined);
     assert.equal((await restored.recovery()).closure.report.sha256, end.report.sha256);
   } finally { await new Promise(resolve => server.close(resolve)); }
+});
+
+test('same cwd outputs are isolated, immutable versions are retrievable, and escapes never dispatch', async () => {
+  const a = new FusionSession(config, 'output-a', root);
+  const b = new FusionSession(config, 'output-b', root);
+  writeFileSync(path.join(root, 'shared-output.md'), 'shared source must remain unchanged');
+  let writes = 0;
+  const dispatch = async (_tool, args) => {
+    writes++; mkdirSync(path.dirname(args.file_path), { recursive: true });
+    writeFileSync(args.file_path, args.content);
+    return { isError: false, content: [{ type: 'text', text: 'Actual file written' }] };
+  };
+  const request = target => ({ objective: 'Save fixture', scope: target, target, skill: 'fusion-web',
+    capability: 'evidence.persist', purpose: 'Persist stage output', tool: 'write',
+    work: { key: 'parent-question', conditions: { control: 'shared observation' } },
+    arguments: { file_path: 'shared-output.md', content: target }, deliverables: ['shared-output.md'] });
+  const first = await executeStep(a, request('alpha'), dispatch);
+  await executeStep(b, request('beta'), dispatch);
+  assert.equal(readFileSync(path.join(a.casePath, 'shared-output.md'), 'utf8'), 'alpha');
+  assert.equal(readFileSync(path.join(b.casePath, 'shared-output.md'), 'utf8'), 'beta');
+  assert.equal(readFileSync(path.join(root, 'shared-output.md'), 'utf8'), 'shared source must remain unchanged');
+  await assert.rejects(executeStep(a, { ...request('alpha'), arguments: { file_path: path.join(root, 'shared-output.md'), content: 'wrong' } }, dispatch), /inside this session/);
+  await assert.rejects(executeStep(a, { ...request('alpha'), arguments: { file_path: '../escape.md', content: 'wrong' } }, dispatch), /inside this session/);
+  assert.equal(writes, 2);
+  const sibling = await executeStep(a, { ...request('alpha'), arguments: { file_path: 'second-output.md', content: 'second file' } }, dispatch);
+  assert.equal(sibling.status, 'done', 'sharing a parent work key must not deduplicate distinct files');
+  assert.match(sibling.completion_scope, /file_persistence_only/);
+  assert.equal(readFileSync(path.join(a.casePath, 'second-output.md'), 'utf8'), 'second file');
+  assert.equal(writes, 3);
+  await executeStep(a, { review: { attempt: first.attempt_id, summary: 'Alpha content observed on disk' } }, dispatch);
+  const updated = await executeStep(a, { ...request('alpha'), arguments: { file_path: 'shared-output.md', content: 'alpha v2' } }, dispatch);
+  assert.equal(readFileSync(first.outputs[0].capture, 'utf8'), 'alpha');
+  assert.equal(readFileSync(updated.outputs[0].capture, 'utf8'), 'alpha v2');
+  const artifacts = await a.call('query', ['--kind', 'artifacts', '--check', first.check_id]);
+  const output = artifacts.items.find(e => e.sha256 === first.outputs[0].sha256);
+  assert.equal((await a.call('artifact', ['--artifact', output.id])).text, 'alpha');
+  await assert.rejects(b.call('artifact', ['--artifact', output.id]), /Unknown artifact/);
+});
+
+test('replacement projection retains one full state block and preserves original journal data', () => {
+  // Small surface fixture; the optional host integration also exercises DSH's actual Session implementation.
+  const events = [], nodes = [];
+  const session = { surface: { nodes }, eventAt: seq => events[seq], append(type, data, intent) {
+    const seq = events.length; events.push({ type, data, seq, ...intent });
+    if (intent.surfaceOp === 'append') nodes.push(seq);
+    else nodes.splice(nodes.indexOf(intent.surfaceOp.start), 1, seq);
+  } };
+  session.append('user/message', { source: { kind: 'user' }, content: 'original task' }, { surfaceOp: 'append' });
+  session.append('user/message', { source: { kind: 'security-fusion-state', digest: 'old' }, content: 'old facts' }, { surfaceOp: 'append' });
+  for (let n = 0; n < 12; n++) {
+    assert.equal(replaceRecovery(session, { source: { kind: 'security-fusion-state', digest: String(n) }, content: 'current facts' }), true);
+    assert.equal(nodes.length, 2);
+    assert.equal(visibleRecovery(session, String(n)), true);
+  }
+  assert.equal(events[0].data.content, 'original task');
+  assert.equal(events[1].data.content, 'old facts');
+  assert.equal(events.length, 14);
+});
+
+test('structured writers reject linked escapes and only auto-review exact requested bytes', async () => {
+  const session = new FusionSession(config, 'writer-validation', root);
+  const request = { objective: 'Save a local file', scope: 'local fixture', target: 'fixture', skill: 'fusion-web',
+    capability: 'evidence.persist', purpose: 'Write fixture', tool: 'write', arguments: { file_path: 'file.md', content: 'expected' } };
+  const mismatch = await executeStep(session, request, async (_name, args) => {
+    writeFileSync(args.file_path, 'different');
+    return { isError: false, content: [{ type: 'text', text: 'Tool claimed success' }] };
+  });
+  assert.equal(mismatch.status, 'review', 'a success message cannot prove file content');
+  const outside = path.join(root, 'linked-outside'); mkdirSync(outside);
+  symlinkSync(outside, path.join(session.casePath, 'linked'), process.platform === 'win32' ? 'junction' : 'dir');
+  let calls = 0;
+  await assert.rejects(executeStep(session, { ...request, arguments: { file_path: 'linked/escape.md', content: 'no' } }, async () => calls++), /inside this session/);
+  assert.equal(calls, 0);
+});
+
+test('automatic experience retrieval shares reviewed methods but separates same-named project paths', async () => {
+  const cwd = path.join(root, 'memory-project'); mkdirSync(cwd);
+  const unrelated = path.join(root, 'other-parent', 'memory-project'); mkdirSync(unrelated, { recursive: true });
+  const a = new FusionSession(config, 'experience-a', cwd);
+  const b = new FusionSession(config, 'experience-b', cwd);
+  const c = new FusionSession(config, 'experience-c', unrelated);
+  const request = target => ({ objective: 'Compare ownership control', scope: target, target, skill: 'fusion-web',
+    capability: 'http.request', purpose: 'Observe ownership control', tool: 'fixture_reader',
+    arguments: {}, work: { key: 'control', conditions: { identity_ref: 'test-account' } } });
+  const dispatch = async () => ({ isError: false, content: [{ type: 'text', text: 'Offline fixture: access denied' }] });
+  const observed = await executeStep(a, request('alpha'), dispatch);
+  await a.call('review', ['--attempt', observed.attempt_id, '--verdict', 'done', '--summary', 'Control denied access']);
+  assert.equal(a.state().last_execution.status, 'done', 'legacy review uses the native validity default and updates recovery');
+  const note = await a.call('note', ['--kind', 'negative', '--text', 'Ownership control requires a distinct identity',
+    '--check', observed.check_id, '--evidence', observed.evidence_ids[0]]);
+  const method = await a.call('memory-add', ['--note', note.note_id], JSON.stringify({
+    title: 'Ownership control', lesson: 'Compare ownership under distinct test identities',
+    conditions: ['An object API with test accounts'], counterexamples: ['A status code alone proves no access'],
+    tags: ['ownership', 'control'], skill_id: 'fusion-web' }));
+  await a.call('memory-review', ['--memory', method.memory_id, '--verdict', 'accept', '--scope', 'project',
+    '--validation', 'Method and source evidence checked; target details removed', '--redacted', '--valid-for', '3600']);
+  for (const session of [b, c]) await executeStep(session, request('beta'), dispatch);
+  const same = await b.recovery(), different = await c.recovery();
+  assert.equal(same.state.experience_hints[0].memory_id, method.memory_id);
+  assert.equal(same.state.results.length, 0, 'case A target facts never become case B results');
+  assert.deepEqual(different.state.experience_hints, []);
+  assert.ok(formatRecovery(same).length <= RECOVERY_MAX_CHARS);
 });
 
 test('native execution rejects tool/capability mismatch, secrets and unbound MCP before dispatch', async () => {

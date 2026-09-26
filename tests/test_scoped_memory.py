@@ -169,6 +169,25 @@ class ScopedMemoryTests(unittest.TestCase):
         self.workspace.context_release(self.a, "slot")
         self.workspace.context_set(self.b, "slot", self.observation())
 
+    def test_different_aliases_cannot_claim_one_actual_resource(self):
+        self.workspace.context_set(self.a, "a-browser", self.observation())
+        with self.assertRaisesRegex(FusionError, "another case"):
+            self.workspace.context_set(self.b, "b-browser", self.observation())
+        with self.assertRaisesRegex(FusionError, "already has a slot"):
+            self.workspace.context_set(self.a, "a-alias", self.observation())
+        self.workspace.context_set(self.b, "b-browser", self.observation(context_id="independent-project"))
+        self.workspace.context_release(self.a, "a-browser")
+        self.workspace.context_set(self.b, "b-browser", self.observation())
+
+    def test_legacy_resource_collision_blocks_execution_until_explicit_release(self):
+        self.workspace.context_set(self.a, "a-browser", self.observation())
+        self.workspace.db.execute("INSERT INTO contexts VALUES(?,?,?,?)",
+                                  ("old-b-alias", self.b.meta("case_id"), "burp", encode(self.observation())))
+        with self.assertRaisesRegex(FusionError, "another case"):
+            self.workspace.context_check(self.a, "one", "burp", "a-browser")
+        self.workspace.context_release(self.b, "old-b-alias")
+        self.workspace.context_check(self.a, "one", "burp", "a-browser")
+
     def test_missing_mcp_context_does_not_reserve_a_call(self):
         result = self.cli("begin", self.a, "session-a", "--check", "one", "--provider", "burp",
                           "--tool", "fixture", expected=2)

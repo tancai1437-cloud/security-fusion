@@ -10,6 +10,13 @@ import io
 
 
 class DshAdapterTests(unittest.TestCase):
+    @unittest.skipUnless(os.environ.get('FUSION_DSH_RUNTIME') and shutil.which('node'), 'Optional installed DSH SDK')
+    def test_actual_host_schema_and_surface(self):
+        root = Path(__file__).resolve().parents[1]
+        result = subprocess.run(['node', '--test', 'tests/dsh-schema.test.mjs'], cwd=root,
+                                capture_output=True, text=True, encoding='utf-8', timeout=30)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_note_error_explains_valid_kinds_without_source_inspection(self):
         root = Path(__file__).resolve().parents[1]
         sys.path.insert(0, str(root / 'scripts'))

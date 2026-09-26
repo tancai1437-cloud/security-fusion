@@ -9,6 +9,7 @@ from fusion_store import FusionError, encode, manifest, require
 from fusion_methods import check_guidance, specialist_card
 from fusion_delivery import delivery_audit
 from fusion_progress import blocked_by, next_action, relevant_results
+from fusion_acceptance import acceptance
 
 
 def bounded(value, maximum):
@@ -113,6 +114,24 @@ def append_with_budget(packet, name, candidates, omitted, maximum, container=Non
             break
 
 
+def prioritize_results(case, packet, results, maximum):
+    # Facts outrank long method prose; completion and the exact source remain.
+    if case.meta("config").get("criteria"):
+        packet["acceptance"] = acceptance(case)
+    specialist = packet.get("guidance", {}).get("specialist")
+    method = specialist.pop("method") if specialist else None
+    if specialist:
+        specialist["method_deferred"] = True
+    bounded(packet, maximum)
+    append_with_budget(packet, "results", results, "omitted_results", maximum)
+    if specialist:
+        specialist["method"] = method
+        del specialist["method_deferred"]
+        if len(encode(packet)) > maximum:
+            del specialist["method"]
+            specialist["method_deferred"] = True
+
+
 def resume(case, identity=None, maximum=6000, binding=None, experiences=None, fallback_skill=None):
     rows = [dict(r) for r in case.db.execute("SELECT * FROM checks ORDER BY rowid")]
     current = select_current(case, rows, identity)
@@ -176,8 +195,7 @@ def resume(case, identity=None, maximum=6000, binding=None, experiences=None, fa
         packet["experience_engine"] = experiences["engine"]
         packet["experience_use"] = experiences["use"]
         packet["omitted_experiences"] = experiences["omitted"] + len(experiences["items"])
-    bounded(packet, maximum)
-    append_with_budget(packet, "results", results, "omitted_results", maximum)
+    prioritize_results(case, packet, results, maximum)
     append_with_budget(packet, "queue", queue, "omitted_queue", maximum)
     append_with_budget(packet, "in_flight", inflight[1:6], "omitted_in_flight", maximum)
     if route_candidates:
@@ -189,7 +207,7 @@ def resume(case, identity=None, maximum=6000, binding=None, experiences=None, fa
 
 
 def query(case, kind, offset=0, limit=10, identity=None, target=None, status=None):
-    require(kind in {"checks", "notes", "events", "attempts"}, "Unknown query kind")
+    require(kind in {"checks", "notes", "events", "attempts", "artifacts"}, "Unknown query kind")
     require(offset >= 0 and 1 <= limit <= 100, "Use offset >= 0 and limit between 1 and 100")
     clauses, args = [], []
     if status:
@@ -199,7 +217,7 @@ def query(case, kind, offset=0, limit=10, identity=None, target=None, status=Non
     if identity:
         require(kind != "events", "Event queries currently use pagination only")
         column = "id" if kind == "checks" else "check_id"
-        clauses.append(f"{column}=?")
+        clauses.append("attempt_id IN (SELECT id FROM attempts WHERE check_id=?)" if kind == "artifacts" else f"{column}=?")
         args.append(case.check(identity)["id"])
     if target:
         require(kind in {"checks", "notes"}, "Target filtering supports checks and notes")
@@ -233,6 +251,10 @@ def write_view(case, relative, content):
     os.replace(temporary, path)
 
 
+def completion_status(ledger_status, delivery, goal):
+    return "review_required" if ledger_status == "completed" and not delivery["gaps"] and not goal["gaps"] else "partial"
+
+
 def report(case):
     with case.transaction():
         checks = [check_card(case, dict(r), verify=True) for r in case.db.execute("SELECT * FROM checks ORDER BY rowid")]
@@ -250,7 +272,8 @@ def report(case):
                "Then run fusion.py resume --workspace <registry> --session <session-id> --case <case-directory>.\n"
                "Do not reload all history or assume this export is current.\n")
     delivery = delivery_audit(case, checks, attempts)
-    status = "review_required" if ledger_status == "completed" and not delivery["gaps"] else "partial"
+    goal = acceptance(case, details=True)
+    status = completion_status(ledger_status, delivery, goal)
     snapshot = {"status": status, "ledger_status": ledger_status,
                 "completion_scope": "no_overall_completion_claim", "revision": revision,
                 "counts": counts, "checks": checks, "delivery_status": delivery["status"]}
@@ -281,10 +304,17 @@ def report(case):
     write_view(case, "events.jsonl", "".join(encode(e) + "\n" for e in events))
     write_view(case, "evidence/records.json", encode(artifacts) + "\n")
     write_view(case, "report/delivery.json", encode(dict(delivery, revision=revision)) + "\n")
+    write_view(case, "report/acceptance.json", encode(goal) + "\n")
+    goal_lines = ["# Goal acceptance", "", goal["validation"], ""]
+    for item in goal["items"]:
+        goal_lines += [f"## {item['id']} [{item['status']}]", "", item["question"], "",
+                       item.get("summary", "No evidence-based assessment yet."), "",
+                       "Attempts: " + ", ".join(item.get("attempts", [])), ""]
+    write_view(case, "report/acceptance.md", "\n".join(goal_lines))
     return {"status": status, "ledger_status": ledger_status,
             "completion_scope": "no_overall_completion_claim", "revision": revision,
             "counts": counts, "registered_attempts": delivery["registered_attempts"],
-            "delivery_status": delivery["status"], "delivery_gaps": delivery["gaps"][:10],
+            "delivery_status": delivery["status"], "delivery_gaps": delivery["gaps"][:10], "acceptance": goal,
             "omitted_gaps": max(0, len(delivery["gaps"]) - 10),
             "untracked_actions": delivery["untracked_actions"],
             "artifacts": ["report/ledger.md", "report/coverage.json", "report/delivery.json", "resume.md"]}

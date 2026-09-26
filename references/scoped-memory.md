@@ -35,7 +35,7 @@ python3 "$FUSION" handoff --workspace "$WORKSPACE" --session "$SESSION" --case "
 
 ## MCP 上下文
 
-不同案件不能同时拥有同一 slot。slot 使用稳定的主机/提供者/真实可变上下文实例标识；不要给同一个共享 Burp 项目或浏览器状态起两个别名来绕过占用。
+不同案件不能同时拥有同一 slot 或同一 provider/context_id。注册库在同一写事务内检查真实资源标识，换 slot 别名也会拒绝；旧记录若已有重复占用，执行前同样拒绝，需明确释放错误占用。同一案件也应复用该资源原有 slot。context_id 必须来自实际工具观察，换名字不能制造隔离。
 
 调用宿主真实的项目/页面/样本/身份查询后，保存观察 JSON：
 

@@ -19,6 +19,18 @@ from fusion_methods import check_guidance, execution_route
 from fusion_routing import dispatch_route
 from fusion_advance import advance
 from fusion_mcp import mcp_run
+from fusion_evidence import read_evidence
+from fusion_acceptance import assess
+
+
+def add_artifact_command(commands):
+    command = commands.add_parser("artifact", help="Read a bounded slice of case-owned evidence")
+    command.add_argument("--case", required=True)
+    binding_options(command)
+    command.add_argument("--artifact", required=True)
+    command.add_argument("--offset", type=int, default=0, help="Byte offset in the immutable evidence copy")
+    command.add_argument("--length", type=int, default=2048)
+    command.add_argument("--max-chars", type=int, default=6000)
 
 
 def parser():
@@ -35,12 +47,13 @@ def parser():
     listing.add_argument("--instance", help="Current host instance; prevents reusing another host's readiness")
     listing.add_argument("--max-chars", type=int, default=6000)
     add_commands(commands)
-    for name in ("init", "plan", "route", "advance", "mcp-run", "begin", "record", "review", "reconcile", "note", "resume", "query", "report", "run"):
+    add_artifact_command(commands)
+    for name in ("init", "plan", "route", "advance", "mcp-run", "begin", "record", "review", "reconcile", "note", "resume", "query", "report", "run", "assess"):
         command = commands.add_parser(name)
         command.add_argument("--case", required=True)
         if name != "init":
             binding_options(command)
-        if name in {"init", "plan", "route"}:
+        if name in {"init", "plan", "route", "assess"}:
             command.add_argument("--input", required=True)
         if name in {"route", "advance"}:
             command.add_argument("--mcp-profile", help="Optional explicit-target stdio adapter to match by capability")
@@ -93,7 +106,7 @@ def parser():
         if name == "resume":
             memory_query_options(command, recovery=True)
         if name == "query":
-            command.add_argument("--kind", choices=["checks", "notes", "events", "attempts"], required=True)
+            command.add_argument("--kind", choices=["checks", "notes", "events", "attempts", "artifacts"], required=True)
             command.add_argument("--offset", type=int, default=0)
             command.add_argument("--limit", type=int, default=10)
             command.add_argument("--target", help="Exact canonical target; filters checks or their notes")
@@ -179,12 +192,15 @@ def record_result(args, case):
 
 def dispatch(args, case):
     command = args.command
-    if command == "route":
-        return dispatch_route(args, case, local_run)
-    if command == "advance":
-        return advance(args, case, local_run)
-    if command == "mcp-run":
-        return mcp_run(case, args)
+    handlers = {
+        "artifact": lambda: read_evidence(case, args.artifact, args.offset, args.length, args.max_chars),
+        "assess": lambda: assess(case, read_json(args.input)),
+        "route": lambda: dispatch_route(args, case, local_run),
+        "advance": lambda: advance(args, case, local_run),
+        "mcp-run": lambda: mcp_run(case, args),
+    }
+    if command in handlers:
+        return handlers[command]()
     if command == "plan":
         specs = read_json(args.input)
         guidance = check_guidance(specs[0]) if specs else None

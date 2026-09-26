@@ -31,17 +31,20 @@ fusion(action="execute", request={
   "skill":"当前专项 ID", "capability":"该专项对应的能力 ID",
   "purpose":"这一步要取得什么证据", "work":{"key":"stable-check","conditions":{"resource":"具体资源","control":"当前对照条件"}},
   "tool":"当前宿主的实际工具名", "arguments":{实际参数}, "next":"这项复核通过后的下一未完成动作",
-  "deliverables":["用户要求的交付文件"]
+  "criteria":[{"id":"goal-question","question":"按用户原目标，怎样才算回答了关键问题？"}],
+  "deliverables":["REPORT.md"]
 })
 ```
 
-新任务的目标检查必须提供 work；同一问题换 shell/MCP 仍沿用 key 与 conditions，不能用工具名当检查名。条件必须包含会影响结论的输入、身份引用或样本版本；变化才另建检查。文件整理、资料搜索用 evidence.persist，可省略 work。next 是可选的未完成计划，执行前即落盘。
+新任务的目标检查必须提供 work；同一问题换 shell/MCP 仍沿用 key 与 conditions，不能用工具名当检查名。条件必须包含会影响结论的输入、身份引用或样本版本；变化才另建检查。文件整理、资料搜索用 evidence.persist，按实际调用参数查重，不按父问题的 work 合并不同文件或查询。next 是可选的未完成计划，执行前即落盘。
+
+criteria 是原任务的可验证问题，复杂任务拆成少量具体条件，单点任务可直接用目标；不要扩大用户范围。阶段观察不等于最终回答。所有交付写到宿主给出的 case_path；write/edit 和 deliverables 的相对路径按本案解析，读取项目源码仍用明确路径。shell/MCP 写文件时显式使用本案绝对路径。依赖前一步产物的执行传 depends_on:[实际 check_id]，让版本变化能被检出。
 
 后续 shell、搜索、MCP、读写文件都继续走 execute，省略不变的 objective/scope/target；可同时传 `review:{attempt:上一回执的attempt_id,summary:实际结论,verdict:"done"}`。证据、参数、调用 ID 自动绑定落盘，模型不补写原始回执。失败先看返回原因，不能判 done。当前专项的 guidance 已返回时不重读文件。每次调用都要推进具体问题，不能用大量“准备”替代执行。
 
 capability 使用当前专项列出的 ID；联网查资料、保存报告等通用取证操作用 `evidence.persist`，不要臆造 web.search 等能力。单独复核旧回执可只传 `execute(request={review:{attempt,summary,verdict}})`，不必再读文件或重复目标调用；finish 返回未决 ID 时按该 ID 处理。
 
-用户要求暂停或实际受阻：`checkpoint` 的 request 填 summary 与下一未完成动作 next；交付时 `finish` 填 report 文件、summary 和最后的 review，程序核对账本和文件；仅分析或用户切换任务用 `suspend(reason)`，不把暂停标成完成。压缩后按 `next_action` 处理待复核/未知调用，读 `results` 复用相关阶段结论；再沿 continuation/checkpoint 与 guidance 推进。宿主保留当前专项方法，即使上一项已 done 也不丢掉方法。宿主会阻止裸工具绕过并在未交付就结束时有限纠正。文件存在不代表结论正确，仍要做任务对应的实测对照。
+用户要求暂停或实际受阻：`checkpoint` 的 request 填 summary 与下一未完成动作 next；交付时 `finish` 填 report、summary、最后的 review，以及 assessment:[{criterion,attempts:[实际 CALL-ID],summary:证据如何回答该条件}]；未解决条件保留缺口，partial 明确部分交付。仅分析或切换任务用 suspend(reason)。压缩后先按 next_action 处理未决调用，再读 results 复用前置结论，结合 acceptance 的缺口、continuation/checkpoint 推进。guidance 标 method_deferred 时按 source 读取当前方法，不能把省略当成已执行。宿主限制绕过并有限纠正过早结束；语义复核仍由当前 Agent 做。
 
 **没有 `fusion` 工具才使用以下 CLI 流程。** 普通安装只复制 Skill；DSH 初次接入/升级宿主组件见 [宿主适配](references/host-adapter.md)。纯文本 Skill 没有拦截能力，不能声称已经启用执行约束。
 
@@ -55,6 +58,6 @@ capability 使用当前专项列出的 ID；联网查资料、保存报告等通
 
 运行命令显式携带 `--workspace / --session / --case`。同项目不同目标分案；压缩或重启后 `resume`，先处理未决调用与待复核证据；换会话按 [隔离协议](references/scoped-memory.md) 交接。`reuse` 不重发，`hold` 先核对。成功返回不等于检查完成，复核由当前 Agent 根据证据判断。
 
-原始输出自动保存，阶段结束再整理专项产物，经 [validate](specialists/fusion-validate/SKILL.md) 核对并由 [report](specialists/fusion-report/SKILL.md) 交付已测、未测、受阻与依据。账本完成不代表整个评估完成。经验按需检索，阶段结束再审核沉淀；CLI 恢复默认最多 6,000 字符；DSH 整条恢复消息最多 8,000 字符，省略项可分页读取。详细命令按需查 [运行协议](references/runtime.md)。
+原始输出自动保存，阶段结束再整理专项产物，经 [validate](specialists/fusion-validate/SKILL.md) 核对并由 [report](specialists/fusion-report/SKILL.md) 交付。先 query --kind artifacts --check ID 找目录，再 artifact --artifact E-ID --offset 0 --length 2048 取必要片段；不为找证据遍历整个目录。DSH 恢复自动检索本项目当前专项的已审核方法经验，不将经验变成目标事实。恢复先放结论，完整方法按预算补入；CLI 默认 6,000 字符，DSH 单份当前工作集最多 8,000 字符并替换旧恢复块。详见 [运行协议](references/runtime.md) 和 [基础能力改造](references/foundations.md)。
 
 Python >= 3.9，辅助程序只用标准库。执行约束需已验证的宿主组件；原生 MCP 与直接 stdio 连接的上下文不能互认。方法与许可取舍见 [融合记录](references/upstream-decisions.md)。

@@ -209,6 +209,7 @@ class Workspace:
         self.require_target(case, observation["target"])
         self.check_observation_age(observation)
         with self.transaction():
+            self.require_resource_owner(case, slot, observation)
             row = self.db.execute("SELECT * FROM contexts WHERE slot=?", (slot,)).fetchone()
             require(row is None or row["case_id"] == case.meta("case_id"), "Tool context is owned by another case")
             if row:
@@ -221,6 +222,16 @@ class Workspace:
                             (slot, case.meta("case_id"), observation["provider"], encode(observation)))
             self.audit("context_observed", {"slot": slot, "case_id": case.meta("case_id"), "observation": observation})
         return {"slot": slot, "case_id": case.meta("case_id"), "health": "caller_observed_not_independently_probed"}
+
+    def require_resource_owner(self, case, slot, observation):
+        # Slot names are aliases, not isolation boundaries. Run this inside the
+        # registry write transaction so two cases cannot both claim the resource.
+        for row in self.db.execute("SELECT * FROM contexts WHERE slot<>?", (slot,)):
+            other = json.loads(row["observation"])
+            same = (other["provider"], other["context_id"]) == (observation["provider"], observation["context_id"])
+            if same:
+                require(row["case_id"] == case.meta("case_id"), "Tool resource is owned by another case, even under a different slot")
+                require(False, "Tool resource already has a slot in this case; reuse or explicitly release that slot")
 
     @staticmethod
     def check_observation_age(observation):
@@ -236,6 +247,7 @@ class Workspace:
         require(row is not None and row["case_id"] == case.meta("case_id") and row["provider"] == provider,
                 "Missing or mismatched tool context binding")
         observed = json.loads(row["observation"])
+        self.require_resource_owner(case, slot, observed)
         self.check_observation_age(observed)
         require(observed["target"] == spec["target"] and observed["identity_ref"] == spec["identity_ref"],
                 "Tool target or identity does not match this check")

@@ -73,6 +73,19 @@ def text_field(value, name, maximum=2000):
     return value
 
 
+def validate_criteria(criteria):
+    require(isinstance(criteria, list) and 1 <= len(criteria) <= 12, "criteria must contain 1..12 goal questions")
+    ids = set()
+    for item in criteria:
+        require(isinstance(item, dict), "criterion must be an object")
+        identity = text_field(item.get("id"), "criterion.id", 80)
+        require(re.fullmatch(r"[A-Za-z0-9_.-]+", identity) and identity not in ids, "criterion IDs must be unique stable identifiers")
+        ids.add(identity)
+        text_field(item.get("question"), "criterion.question", 1000)
+    require(len(encode(criteria)) <= 2400, "Keep criteria within 2400 characters; store detail as evidence")
+    return criteria
+
+
 def validate_spec(spec):
     require(isinstance(spec, dict), "Each check must be an object")
     for field in FINGERPRINT_FIELDS:
@@ -149,6 +162,8 @@ class Case:
         for constraint in constraints:
             text_field(constraint, "constraint", 2000)
         reject_credentials(config)
+        if "criteria" in config:
+            validate_criteria(config["criteria"])
         root = Path(root).resolve()
         require(root != PACK and PACK not in root.parents, "Keep case data outside the installed skill")
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
