@@ -2,7 +2,7 @@
 
 适用于新任务。当前 Agent 选择工具和参数；程序负责登记、隔离、查重与捕获，不会自行判断测试面或调用模型。已有案件直接 resume；换会话先 handoff，命令见 [运行协议](runtime.md)。
 
-**DSH 已有原生 fusion 工具时，使用主入口的 execute(request)；本文 CLI 配置步骤不需要再做。** 首次 execute 合并建案、方法校验、宿主真实调用和回执捕获；后续继续 execute，并传上一结果的语义 review。不要为了遵守本文先读取实现源码或制作工具清单。
+**DSH 已有原生 fusion 工具时，使用主入口的 route → execute；本文 CLI 配置步骤不需要再做。** route 先返回当前方法与真实工具 schema，紧接 execute(route_id,arguments) 合并建案、宿主真实调用和回执捕获；后续继续 execute，并传上一结果的语义 review。直接 execute 的首次返回可能只是 route_ready，必须继续，不能当成已执行。不要为了遵守本文先读取实现源码或制作工具清单。
 
 ## 选一项能拿到证据的检查
 

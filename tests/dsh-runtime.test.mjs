@@ -292,7 +292,7 @@ test('guard persists across recreation, allows scoped skill preparation, and res
   assert.match(guardReason(session, readSkill), /execute/);
   assert.equal(guardReason(session, { name: 'fusion' }), undefined);
   assert.equal(guardReason(new FusionSession(config, 'unrelated-owner', root), raw), undefined);
-  assert.equal(stopCorrection(session, 1), undefined, 'loading for analysis does not authorize forced execution');
+  assert.match(stopCorrection(session, 0), /suspend/, 'loading without execution offers an analysis exit, never dispatches');
   session.update({ mode: 'executing' });
   assert.ok(stopCorrection(session, 1)); assert.ok(stopCorrection(session, 1));
   assert.equal(stopCorrection(session, 1), undefined);

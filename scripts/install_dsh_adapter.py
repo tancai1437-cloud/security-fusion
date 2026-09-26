@@ -8,7 +8,7 @@ import re
 import shutil
 
 PACK = Path(__file__).resolve().parents[1]
-FILES = ("dsh.mjs", "dsh-runtime.mjs", "dsh-execution.mjs")
+FILES = ("dsh.mjs", "dsh-runtime.mjs", "dsh-execution.mjs", "dsh-routing.mjs")
 BEGIN = "# BEGIN security-fusion managed adapter"
 END = "# END security-fusion managed adapter"
 NAME = "security-fusion-host"
