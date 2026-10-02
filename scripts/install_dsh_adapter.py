@@ -6,9 +6,10 @@ import json
 from pathlib import Path
 import re
 import shutil
+from fusion_dsh_purge import purge_config
 
 PACK = Path(__file__).resolve().parents[1]
-FILES = ("dsh.mjs", "dsh-runtime.mjs", "dsh-execution.mjs", "dsh-routing.mjs")
+FILES = ("dsh.mjs", "dsh-runtime.mjs", "dsh-execution.mjs", "dsh-routing.mjs", "dsh-purge-preset.mjs", "dsh-purge-bridge.mjs")
 BEGIN = "# BEGIN security-fusion managed adapter"
 END = "# END security-fusion managed adapter"
 NAME = "security-fusion-host"
@@ -18,8 +19,12 @@ def merge_managed(existing, entry):
     if not isinstance(existing, dict) or set(existing) != {"insert"} or len(existing["insert"]) != 1:
         raise ValueError("Malformed managed adapter insertion")
     prior = existing["insert"][0]
-    if prior.get("id") != NAME or prior.get("name") != entry["name"]:
+    allowed = {"./" + NAME + "/" + filename for filename in ("dsh.mjs", "dsh-purge-preset.mjs")}
+    if prior.get("id") != NAME or prior.get("name") not in allowed or entry["name"] not in allowed:
         raise ValueError("An unmanaged security-fusion entry exists; reconcile it before installing")
+    if prior["name"].endswith("dsh-purge-preset.mjs") and entry["name"].endswith("/dsh.mjs"):
+        # Ordinary upgrades must not silently expand a preset-scoped adapter to every session.
+        entry = {**entry, "name": prior["name"]}
     return {**prior, **entry, "config": {**prior.get("config", {}), **entry["config"]}}
 
 
@@ -126,19 +131,32 @@ def write_patch(profile, patch, original, updated):
     return result
 
 
-def install(profile, state_dir, python, *, uninstall=False, dry_run=False):
+def adapter_entry(profile, state_dir, python, original, uninstall, purge, runtime, dsh_home):
+    if not uninstall and not purge and (profile / 'node_modules/dsh-purge/package.json').is_file() and 'dsh-purge-preset.mjs' not in original:
+        raise ValueError("dsh-purge is installed: use --purge --runtime SDK_ROOT --dsh-home DSH_HOME to avoid installing a competing global controller")
+    entry = {"id": NAME, "name": "./" + NAME + "/dsh.mjs",
+             "config": {"skillRoot": str(PACK), "stateDir": str(state_dir), "python": python}}
+    if purge and not uninstall:
+        entry["name"] = "./" + NAME + "/dsh-purge-preset.mjs"
+        entry["config"].update(purge_config(profile, runtime, dsh_home))
+    return entry
+
+
+def install(profile, state_dir, python, *, uninstall=False, dry_run=False, purge=False, runtime=None, dsh_home=None):
     profile, state_dir = Path(profile).resolve(), Path(state_dir).resolve()
     validate_profile(profile, state_dir)
     directory = profile / NAME
     validate_owned_directory(directory)
     patch = profile / "cordis.patch.yml"
     original = patch.read_text(encoding="utf-8-sig") if patch.exists() else ""
-    entry = {"id": NAME, "name": "./" + NAME + "/dsh.mjs",
-             "config": {"skillRoot": str(PACK), "stateDir": str(state_dir), "python": python}}
+    entry = adapter_entry(profile, state_dir, python, original, uninstall, purge, runtime, dsh_home)
     updated = patch_text(original, entry, uninstall)
     result = {"status": "preview" if dry_run else "removed" if uninstall else "configured_requires_restart",
               "profile": str(profile), "patch": str(patch), "state_dir": str(state_dir),
               "runtime_verified": False, "preserved": "Existing profile settings and case state"}
+    if purge and not uninstall:
+        result.update({"preset": "security-fusion", "activation": "Restart this profile, select Security Fusion in a NEW session",
+                       "verification": "Version/files checked only; actual preset mount and target-machine execution still required"})
     if dry_run:
         return result
     if not uninstall:
@@ -154,9 +172,13 @@ def main():
     parser.add_argument("--python", default="python3")
     parser.add_argument("--uninstall", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--purge", action="store_true", help="Use a scoped single-session preset alongside dsh-purge; leave redteam unchanged")
+    parser.add_argument("--runtime", help="Existing SDK root containing package.json and node_modules")
+    parser.add_argument("--dsh-home", help="Actual DSH_HOME; never inferred from another Agent")
     args = parser.parse_args()
     try:
-        result = install(args.profile, args.state_dir, args.python, uninstall=args.uninstall, dry_run=args.dry_run)
+        result = install(args.profile, args.state_dir, args.python, uninstall=args.uninstall, dry_run=args.dry_run,
+                         purge=args.purge, runtime=args.runtime, dsh_home=args.dsh_home)
         print(json.dumps(result, ensure_ascii=False))
     except (OSError, ValueError, TypeError) as error:
         print(json.dumps({"status": "error", "error": str(error)}, ensure_ascii=False))

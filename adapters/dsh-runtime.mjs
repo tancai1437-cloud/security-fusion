@@ -15,7 +15,7 @@ function execute(command, args, options) {
 export const actions = new Set(['start', 'catalog', 'plan', 'advance', 'route', 'run', 'mcp-run',
   'begin', 'record', 'review', 'reconcile', 'note', 'resume', 'query', 'report', 'context-set', 'context-release',
   'execute', 'save', 'checkpoint', 'finish', 'suspend']);
-for (const action of ['artifact', 'assess', 'node-review', 'memory-search', 'memory-show', 'memory-add', 'memory-review']) actions.add(action);
+for (const action of ['artifact', 'assess', 'node-review', 'memory-search', 'memory-show', 'memory-add', 'memory-review', 'host-status']) actions.add(action);
 const ownedOptions = ['--workspace', '--case', '--session'];
 
 export function digest(value) {
@@ -58,6 +58,7 @@ function recoveryHeader(session, state) {
   const errors = Object.entries(state.tool_errors || {});
   const deliverables = state.task?.deliverables || [];
   return { host_session: session.owner, cwd: session.cwd, skill_root: session.config.skillRoot,
+    ...(state.purge ? { drill: { engagement: state.purge.id, target: state.purge.target, role: 'derived_asset_projection' } } : {}),
     case_path: session.casePath, runtime_session: session.session, details_path: session.stateFile,
     mode: state.mode || 'ready', current_skill: state.last_skill,
     current_route: state.current_route,
@@ -233,7 +234,8 @@ export function visibleRecovery(session, identity) {
 
 /** DSH's logged surface replacement preserves the journal while keeping one
  * full current workset in model history. Never replace user or tool messages. */
-export function replaceRecovery(session, message) {
+export function replaceRecovery(session, message, formatVersion = 0) {
+  if (![0, 4].includes(formatVersion)) throw new Error('Unsupported DSH surface format; preserve the existing journal');
   const old = session.surface.nodes.filter(seq => {
     const e = session.eventAt(seq);
     return e?.type === 'user/message' && e.data.source?.kind === 'security-fusion-state';
@@ -242,7 +244,8 @@ export function replaceRecovery(session, message) {
   for (const seq of old) {
     const data = seq === old.at(-1) ? message : { ...message, id: message.id + '-' + seq,
       source: { kind: 'security-fusion-retired' }, content: [{ type: 'text', text: 'Prior task state superseded; use current security-fusion-state.' }] };
-    session.append('user/message', data, { surfaceOp: { op: 'replace', start: seq, end: seq }, sourceEventSeqs: [seq] });
+    const bounds = formatVersion === 4 ? { startSeq: seq, endSeq: seq } : { start: seq, end: seq };
+    session.append('user/message', data, { surfaceOp: { op: 'replace', ...bounds }, sourceEventSeqs: [seq] });
   }
   return true;
 }

@@ -14,11 +14,11 @@ test('real DSH schema accepts encoded objects, rejects invalid leaf args before 
     const packageUrl = name => pathToFileURL(path.join(runtime, 'node_modules/@deepseek-ai', name, 'lib/index.js')).href;
     for (const name of ['dsh.mjs', 'dsh-runtime.mjs', 'dsh-execution.mjs', 'dsh-routing.mjs']) {
       let code = readFileSync(path.join(root, 'adapters', name), 'utf8');
-      for (const pkg of ['dsh-tools', 'dsh-llm']) code = code.replaceAll(`'@deepseek-ai/${pkg}'`, JSON.stringify(packageUrl(pkg)));
+      for (const pkg of ['dsh-tools', 'dsh-llm', 'dsh-session']) code = code.replaceAll(`'@deepseek-ai/${pkg}'`, JSON.stringify(packageUrl(pkg)));
       writeFileSync(path.join(temporary, name), code);
     }
     const { apply } = await import(pathToFileURL(path.join(temporary, 'dsh.mjs')));
-    const { Session } = await import(packageUrl('dsh-session'));
+    const { Session, SESSION_FORMAT_VERSION } = await import(packageUrl('dsh-session'));
     const { createUserMessage } = await import(packageUrl('dsh-llm'));
     const { replaceRecovery } = await import(pathToFileURL(path.join(temporary, 'dsh-runtime.mjs')));
     const stored = Session.create('sdk-surface');
@@ -30,7 +30,7 @@ test('real DSH schema accepts encoded objects, rejects invalid leaf args before 
     for (let n = 0; n < 12; n++) {
       const message = createUserMessage({ source: { kind: 'security-fusion-state', digest: String(n) },
         content: [{ type: 'text', text: 'Current state ' + n }] });
-      if (!replaceRecovery(stored, message)) stored.append('user/message', message, { surfaceOp: 'append' });
+      if (!replaceRecovery(stored, message, SESSION_FORMAT_VERSION)) stored.append('user/message', message, { surfaceOp: 'append' });
     }
     assert.equal(stored.surface.nodes.length, 3, 'one user message, one short retirement marker, one full state');
     assert.equal(stored.surface.nodes.filter(seq => stored.eventAt(seq).data.source.kind === 'security-fusion-state').length, 1);
@@ -58,7 +58,7 @@ test('adapter intercepts entry reads, prepares before dispatch and records the s
     const packageUrl = name => pathToFileURL(path.join(runtime, 'node_modules/@deepseek-ai', name, 'lib/index.js')).href;
     for (const name of ['dsh.mjs', 'dsh-runtime.mjs', 'dsh-execution.mjs', 'dsh-routing.mjs']) {
       let code = readFileSync(path.join(root, 'adapters', name), 'utf8');
-      for (const pkg of ['dsh-tools', 'dsh-llm']) code = code.replaceAll(`'@deepseek-ai/${pkg}'`, JSON.stringify(packageUrl(pkg)));
+      for (const pkg of ['dsh-tools', 'dsh-llm', 'dsh-session']) code = code.replaceAll(`'@deepseek-ai/${pkg}'`, JSON.stringify(packageUrl(pkg)));
       writeFileSync(path.join(temporary, name), code);
     }
     const { apply } = await import(pathToFileURL(path.join(temporary, 'dsh.mjs')));
@@ -94,6 +94,9 @@ test('adapter intercepts entry reads, prepares before dispatch and records the s
     const sample = path.join(temporary, 'fixture.js'); writeFileSync(sample, 'const actual = 27;');
     const tool = registered.get('fusion');
     const exec = { agent, signal: AbortSignal.timeout(20000), rootCallId: 'root', token: { id: 'parent' }, deferContext() {} };
+    const status = JSON.parse(await tool.execute({ action: 'host-status' }, exec));
+    assert.equal(status.status, 'observed_registry'); assert.equal(status.target_action_executed, false);
+    assert.equal(status.case_started, false); assert.deepEqual(status.tools, ['fusion']);
     const request = { target: sample, scope: 'This local fixture only', objective: 'Read the constant',
       skill: 'fusion-js', capability: 'js.source', purpose: 'Inspect source',
       work: { key: 'fixture', conditions: { sample: 'v1' } }, tool: 'read', arguments: { file_path: sample } };

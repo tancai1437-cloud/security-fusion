@@ -1,6 +1,7 @@
-/** DSH 0.1.2-rc.1 adapter. Keep all dsh*.mjs modules together. */
+/** DSH observed-execution adapter. Keep all dsh*.mjs modules together. */
 import { defineTool, validateArgs as validateToolArgs, validateJsonSchemaValue } from '@deepseek-ai/dsh-tools';
 import { createUserMessage } from '@deepseek-ai/dsh-llm';
+import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { FusionSession, actions, digest, visibleRecovery, formatRecovery, replaceRecovery } from './dsh-runtime.mjs';
@@ -99,10 +100,23 @@ export function normalizeRequest(args, shape) {
   return { ...args, request };
 }
 
+function hostStatus(ctx, exec, session) {
+    const visible = ctx.tools.schemas(exec.agent).map(t => t.name);
+    return { status: 'observed_registry', target_action_executed: false,
+      integration: session.config.integration || 'standalone',
+      session_format: SESSION_FORMAT_VERSION,
+      session: session.owner, case_started: !!session.state()?.task,
+      tools: visible.filter(n => n === 'fusion' || n.startsWith('redteam_')),
+      mcp_tool_count: visible.filter(n => n.startsWith('mcp__')).length,
+      drill_engagement: session.state()?.purge?.id || null,
+      health: 'Registry visibility only. No tool health/target/model-adherence claim.' };
+}
+
 async function performAction(ctx, get, children, args, exec) {
   exec.signal.throwIfAborted();
   const session = get(exec.agent);
   const request = args.request || (args.input_json ? JSON.parse(args.input_json) : {});
+  if (args.action === 'host-status') return hostStatus(ctx, exec, session);
   if (args.action === 'route' && args.request) {
     return prepareRoute(session, request, ctx.tools.schemas(exec.agent), exec.signal);
   }
@@ -183,6 +197,7 @@ async function dispatchChild(ctx, children, exec, name, arguments_, callId) {
 
 export function apply(ctx, config) {
   if (!config?.skillRoot || !config?.stateDir) throw new Error('skillRoot and private stateDir required');
+  if (![0, 4].includes(SESSION_FORMAT_VERSION)) throw new Error('Unsupported DSH session format: ' + SESSION_FORMAT_VERSION);
   const get = agent => new FusionSession(config, agent.session.id, agent.session.header.cwd);
   const children = new Map();
   const tool = createFusionTool(ctx, get, children, config);
@@ -248,6 +263,6 @@ async function restore(ctx, tool, get, { agent, turn, signal }, next) {
       m.source?.kind === 'security-fusion-state' && m.source.digest === identity)) return decision;
     const message = createUserMessage({ source: { kind: 'security-fusion-state', digest: identity },
       content: [{ type: 'text', text: formatRecovery(packet) }] });
-    if (replaceRecovery(agent.session, message)) return decision;
+    if (replaceRecovery(agent.session, message, SESSION_FORMAT_VERSION)) return decision;
     return { ...decision, messages: [...decision.messages, message] };
 }

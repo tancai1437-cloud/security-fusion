@@ -69,3 +69,38 @@ class DshInstallTests(unittest.TestCase):
         self.assertIn('fixed-target', self.patch.read_text())
         self.run_install(uninstall=True)
         self.assertEqual(json.loads(self.patch.read_text()), [])
+
+    def test_purge_preview_rejects_wrong_sdk_without_writing_then_migrates_only_owned_row(self):
+        runtime = self.root / 'runtime'
+        runtime.mkdir()
+        (runtime / 'package.json').write_text('{}')
+        for name in ('dsh-tools', 'dsh-session', 'dsh-llm', 'dsh-web-app'):
+            package = runtime / 'node_modules/@deepseek-ai' / name
+            package.mkdir(parents=True)
+            (package / 'package.json').write_text(json.dumps({'version': '0.1.2-rc.1'}))
+        with self.assertRaisesRegex(ValueError, '0.2.0-rc.2'):
+            self.run_install(purge=True, runtime=runtime, dsh_home=self.root, dry_run=True)
+        self.assertEqual(self.patch.read_text(), self.original)
+        self.assertFalse((self.profile / NAME).exists())
+        for package in (runtime / 'node_modules/@deepseek-ai').iterdir():
+            (package / 'package.json').write_text(json.dumps({'version': '0.2.0-rc.2'}))
+        standard = runtime / 'node_modules/@deepseek-ai/dsh-web-app/presets'
+        standard.mkdir()
+        (standard / 'standard.patch.yml').write_text('[]')
+        self.run_install()  # legacy adapter installed before purge appeared
+        purge = self.profile / 'node_modules/dsh-purge'
+        (purge / 'lib/redteam').mkdir(parents=True)
+        (purge / 'lib/redteam/tools.js').write_text('// fixture only, never executed')
+        (purge / 'package.json').write_text(json.dumps({'name': 'dsh-purge', 'version': '1.1.47', 'dshTarget': '0.2.0-rc.2'}))
+        preview = self.run_install(purge=True, runtime=runtime, dsh_home=self.root, dry_run=True)
+        self.assertFalse(preview['runtime_verified'])
+        with self.assertRaisesRegex(ValueError, '--purge'):
+            self.run_install()
+        self.run_install(purge=True, runtime=runtime, dsh_home=self.root)
+        self.run_install()  # ordinary upgrade preserves preset scoping
+        content = self.patch.read_text()
+        self.assertIn(self.original.strip(), content)
+        self.assertIn('dsh-purge-preset.mjs', content)
+        self.assertEqual(content.count(BEGIN), 1)
+        self.run_install(uninstall=True)
+        self.assertEqual(self.patch.read_text().strip(), self.original.strip())

@@ -23,6 +23,8 @@ description: 对获准目标执行渗透、SRC、逆向、源码审计或 AI 安
 
 ## 从方法走到真实调用
 
+若宿主使用 dsh-purge，先核对 [共存接入](references/dsh-purge-integration.md)：在 `Security Fusion · 单会话研究` 预设执行，资产台属于派生索引，原始证据和恢复仍来自本案；不把红队指挥预设与此执行协议叠在同一会话。接入状态可用 `fusion(action="host-status")` 查看，一般任务不重复检查。
+
 宿主有 `fusion` 时先 route，紧接 execute。route 自动组合当前专项方法、执行能力和当前事件需要的运行约定，再匹配本会话真实工具。已返回方法不重复读文件；多候选选一项，工具缺失记录具体缺口。
 
 ```text

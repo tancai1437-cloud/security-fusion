@@ -44,6 +44,8 @@ npx --yes skills@1.7.0 add tancai1437-cloud/security-fusion --list
 
 ## Agent 接入
 
+**已使用 dsh-purge 的 DSH 用户**使用 [专用共存接入](references/dsh-purge-integration.md)：同一宿主增加 `Security Fusion · 单会话研究` 预设，复用原生工具、MCP、压缩和 Drill 资产台。安装器用 `--purge` 区分模式，避免与红队指挥预设相互接管；当前按 DSH 0.2.0-rc.2 / dsh-purge 1.1.47 的固定接口核对，具体实测范围见该文档。
+
 需要持续执行约束的 DSH 使用 [宿主组件](references/host-adapter.md)：注册原生 `fusion` 工具，激活后将实际工具调用约束到 execute，自动捕获回执；压缩后从磁盘恢复，交付前检查未决工作与报告证据。安装 Skill 后还需让当前 Agent 识别其实际 profile，运行包内安装器并重启该 profile。只复制 Skill 文件没有这些 hook。`AGENTS.md` 只需保留入口约定，不要复制全部方法。组件不能替模型保证测试覆盖或结论正确。
 
 [本轮实测](references/agent-execution-validation-2026-09-25.md)：Web 首次目标请求由 186 秒降至 34 秒，压缩后形成报告；同模型 JS 任务仍因输出上限而未交付，不能视为全部通过。

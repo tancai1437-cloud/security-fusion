@@ -1,6 +1,6 @@
 # DSH 执行约束与恢复
 
-适用于 DSH 0.1.2-rc.1。Skill 提供方法，宿主组件负责让实际调用持续经过执行入口、保存真实回执、恢复任务状态，并在缺少交付记录就结束时有限纠正。组件不替模型证明业务结论正确。
+独立组件原按 DSH 0.1.2-rc.1 联调；DSH 0.2.0-rc.2 搭配 dsh-purge 使用 [专用共存预设](dsh-purge-integration.md)，不要照下面命令挂第二个全局控制器。Skill 提供方法，宿主组件负责让实际调用持续经过执行入口、保存真实回执、恢复任务状态，并在缺少交付记录就结束时有限纠正。组件不替模型证明业务结论正确。
 
 ## 安装与升级
 
@@ -14,7 +14,7 @@ python3 "$FUSION_ROOT/scripts/install_dsh_adapter.py" \
   --python python3
 ```
 
-Windows 可将解释器设为 `python` 或实际绝对路径。`--dry-run` 只检查并显示将配置的位置。安装器复用已有 DSH 依赖，复制四个 adapter 模块，向所选 profile 的 cordis.patch.yml 加一个有边界标记的条目，备份改动前的配置；重复执行更新同一条目。它保留其他配置和原有案件，不安装模型或安全工具。
+Windows 可将解释器设为 `python` 或实际绝对路径。`--dry-run` 只检查并显示将配置的位置。安装器复用已有 DSH 依赖，复制六个 adapter 模块（四个核心模块及两个按需加载的 purge 模块），向所选 profile 的 cordis.patch.yml 加一个有边界标记的条目，备份改动前的配置；重复执行更新同一条目。它保留其他配置和原有案件，不安装模型或安全工具。
 
 重启该 profile 后，确认真实工具列表包含 `fusion`；执行结果应有实际 `tool_call_id`、`case_path` 和 `observed.capture`。安装器返回 `configured_requires_restart`，不把写完配置称为运行已接通。
 
