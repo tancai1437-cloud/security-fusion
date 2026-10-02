@@ -64,9 +64,12 @@ class DshInstallTests(unittest.TestCase):
         line = next(x for x in text.splitlines() if x.startswith('- {'))
         entry = json.loads(line[2:])
         entry['insert'][0]['config']['boundTools'] = {'mcp__fixture__read': 'fixed-target'}
+        entry['insert'][0]['config']['requireMission'] = False
         self.patch.write_text(text.replace(line, '- ' + json.dumps(entry)))
         self.run_install()
         self.assertIn('fixed-target', self.patch.read_text())
+        upgraded = json.loads(next(x[2:] for x in self.patch.read_text().splitlines() if x.startswith('- {')))
+        self.assertIs(upgraded['insert'][0]['config']['requireMission'], False)
         self.run_install(uninstall=True)
         self.assertEqual(json.loads(self.patch.read_text()), [])
 

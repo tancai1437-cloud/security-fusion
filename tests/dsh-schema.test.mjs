@@ -12,7 +12,7 @@ test('real DSH schema accepts encoded objects, rejects invalid leaf args before 
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
     const temporary = mkdtempSync(path.join(os.tmpdir(), 'fusion-sdk-'));
     const packageUrl = name => pathToFileURL(path.join(runtime, 'node_modules/@deepseek-ai', name, 'lib/index.js')).href;
-    for (const name of ['dsh.mjs', 'dsh-runtime.mjs', 'dsh-execution.mjs', 'dsh-routing.mjs']) {
+    for (const name of ['dsh.mjs', 'dsh-runtime.mjs', 'dsh-execution.mjs', 'dsh-routing.mjs', 'dsh-artifacts.mjs']) {
       let code = readFileSync(path.join(root, 'adapters', name), 'utf8');
       for (const pkg of ['dsh-tools', 'dsh-llm', 'dsh-session']) code = code.replaceAll(`'@deepseek-ai/${pkg}'`, JSON.stringify(packageUrl(pkg)));
       writeFileSync(path.join(temporary, name), code);
@@ -56,7 +56,7 @@ test('adapter intercepts entry reads, prepares before dispatch and records the s
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
     const temporary = mkdtempSync(path.join(os.tmpdir(), 'fusion-route-sdk-'));
     const packageUrl = name => pathToFileURL(path.join(runtime, 'node_modules/@deepseek-ai', name, 'lib/index.js')).href;
-    for (const name of ['dsh.mjs', 'dsh-runtime.mjs', 'dsh-execution.mjs', 'dsh-routing.mjs']) {
+    for (const name of ['dsh.mjs', 'dsh-runtime.mjs', 'dsh-execution.mjs', 'dsh-routing.mjs', 'dsh-artifacts.mjs']) {
       let code = readFileSync(path.join(root, 'adapters', name), 'utf8');
       for (const pkg of ['dsh-tools', 'dsh-llm', 'dsh-session']) code = code.replaceAll(`'@deepseek-ai/${pkg}'`, JSON.stringify(packageUrl(pkg)));
       writeFileSync(path.join(temporary, name), code);
@@ -108,6 +108,11 @@ test('adapter intercepts entry reads, prepares before dispatch and records the s
     const actual = JSON.parse(await tool.execute({ action: 'execute', request: { route_id: ready.route_id } }, exec));
     assert.equal(actual.routing.id, ready.route_id); assert.equal(calls, 1);
     assert.match(actual.observed.text, /actual = 27/);
+    const recoveredExcerpt = JSON.parse(await tool.execute({ action: 'artifact',
+      artifact_id: actual.evidence_ids[0].slice(0, 12), query: 'actual = 27' }, exec));
+    assert.equal(recoveredExcerpt.artifact_id, actual.evidence_ids[0]);
+    assert.ok(recoveredExcerpt.matches.length > 0);
+    assert.equal(calls, 1, 'artifact recovery must not call the target tool again');
     const reviewOnly = JSON.parse(await tool.execute({ action: 'execute', request: {
       route_id: ready.route_id, review: { summary: 'Actual source declares constant 27' } } }, exec));
     assert.equal(reviewOnly.status, 'reviewed'); assert.equal(calls, 1, 'review with a route locator must never replay the tool');
@@ -130,9 +135,7 @@ test('adapter intercepts entry reads, prepares before dispatch and records the s
     assert.equal(session.state().last_execution.status, 'done', 'preparation must not swallow the previous review');
     assert.equal(explicitReviewSaved(session), false, 'route defaults never replay judgement');
     const content = '# Actual report\nQuotes: "controlled", nested JSON: {"result":27}\n中文\\path\n';
-    const preparedSave = JSON.parse(await tool.execute({ action: 'save', file_path: 'REPORT.md', content }, exec));
-    assert.equal(preparedSave.status, 'route_ready');
-    const saved = JSON.parse(await tool.execute({ action: 'execute', request: { route_id: preparedSave.route_id } }, exec));
+    const saved = JSON.parse(await tool.execute({ action: 'save', file_path: 'REPORT.md', content }, exec));
     assert.equal(saved.status, 'done');
     assert.equal(readFileSync(path.join(session.casePath, 'REPORT.md'), 'utf8'), content);
     const again = JSON.parse(await tool.execute({ action: 'save', file_path: 'second.md', content }, exec));

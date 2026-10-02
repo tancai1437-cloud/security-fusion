@@ -289,7 +289,7 @@ test('guard persists across recreation, allows scoped skill preparation, and res
   const readSkill = { name: 'read', arguments: { file_path: path.join(skillRoot, 'specialists/fusion-js/SKILL.md') } };
   assert.equal(guardReason(session, readSkill), undefined);
   session.update({ preparations: 2 });
-  assert.match(guardReason(session, readSkill), /execute/);
+  assert.equal(guardReason(session, readSkill), undefined, 'owned instruction reads remain flexible after preparation');
   assert.equal(guardReason(session, { name: 'fusion' }), undefined);
   assert.equal(guardReason(new FusionSession(config, 'unrelated-owner', root), raw), undefined);
   assert.match(stopCorrection(session, 0), /suspend/, 'loading without execution offers an analysis exit, never dispatches');

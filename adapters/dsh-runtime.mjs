@@ -22,6 +22,21 @@ export function digest(value) {
   return createHash('sha256').update(value).digest('hex');
 }
 
+// Normalize URL identity, not scope: /app and /app/ and different queries
+// remain distinct. Non-URL targets (files, database IDs) retain their identity.
+export function canonicalTarget(value) {
+  if (typeof value !== 'string' || !/^https?:\/\//i.test(value)) return value;
+  try {
+    const url = new URL(value);
+    if (url.username || url.password) return value;
+    return url.origin + (url.pathname === '/' ? '' : url.pathname) + url.search + url.hash;
+  } catch { return value; }
+}
+
+export function sameTarget(left, right) {
+  return typeof left === 'string' && typeof right === 'string' && canonicalTarget(left) === canonicalTarget(right);
+}
+
 export function validateArgs(action, args) {
   if (!actions.has(action)) throw new Error('Unsupported fusion action');
   if (!Array.isArray(args) || args.some(a => typeof a !== 'string' || a.includes('\0'))) {
@@ -105,7 +120,7 @@ export class FusionSession {
     writeJson(this.stateFile, { ...this.state(), ...fields });
   }
 
-  observe(tool, result) {
+  observe(tool, result, target) {
     const state = this.state();
     if (!state?.active) return;
     state.tool_errors ||= {};
@@ -113,6 +128,10 @@ export class FusionSession {
       state.tool_errors[tool] = String(result.error?.message || 'Tool returned an error; inspect the host receipt').slice(0, 300);
     } else {
       delete state.tool_errors[tool];
+    }
+    if (target) {
+      state.tool_health ||= {};
+      state.tool_health[tool] = { target, at: Date.now(), ok: !result.isError };
     }
     // Metadata only; do not duplicate raw tool output or credentials into prompts.
     writeJson(this.stateFile, state);

@@ -27,10 +27,12 @@ description: 对获准目标执行渗透、SRC、逆向、源码审计或 AI 安
 
 若宿主使用 dsh-purge，先核对 [共存接入](references/dsh-purge-integration.md)：在 `Security Fusion · 单会话研究` 预设执行，资产台属于派生索引，原始证据和恢复仍来自本案；不把红队指挥预设与此执行协议叠在同一会话。接入状态可用 `fusion(action="host-status")` 查看，一般任务不重复检查。
 
-宿主有 `fusion` 时先 route，紧接 execute。route 自动组合当前专项方法、执行能力和当前事件需要的运行约定，再匹配本会话真实工具。已返回方法不重复读文件；多候选选一项，工具缺失记录具体缺口。
+宿主有 `fusion` 时，目标操作先 route，紧接 execute。route 组合当前专项方法并优先选择已有可调用工具，参考目标绑定和近期执行结果；可指定其他真实工具并说明适用原因，不强制所有操作都用 MCP。确实缺少能力才补装，工具故障不自动重放目标操作。
+
+严格保持任务目标/身份、案件归属、真实回执与证据版本；专项和工具按当前问题灵活切换。拿到实际 API/身份线索就考虑 api，拿到前端请求代码就考虑 js，遇到业务状态就考虑 business；不要为了沿用 route_id 把所有操作都挂在 recon。局部文件分析用本案或 Skill 内的绝对文件路径，可直接 read/grep；保存用 save，目标操作仍 execute。读取旧证据不要求重新声明一项测试。
 
 ```text
-fusion(action="route", request={"skill":"当前专项 ID","capability":"当前能力 ID",
+fusion(action="route", request={"mission":"src","skill":"当前专项 ID","capability":"当前能力 ID",
   "purpose":"本步要回答的问题","objective":"原任务目标","scope":"约定范围","target":"规范目标",
   "work":{"key":"稳定的问题标识","conditions":{"resource":"具体资源及对照条件"}},
   "criteria":[{"id":"goal","question":"目标怎样才算回答"}],"deliverables":["REPORT.md"]})
@@ -39,7 +41,9 @@ fusion(action="execute", request={"route_id":"返回的 ROUTE-ID","arguments":{�
 
 route_ready 尚未执行，实际回执才算调用。可传 procedure 选择具体方法；未知工具核对真实接口后说明 tool_reason，不编造名称。注册、健康、当前目标可用、结论成立分别判断。
 
-同一问题换工具仍用同一 work.key/conditions；输入、身份、资源或样本变化时准确更新条件。后续工具继续 execute，省略不变的 objective/scope/target；依赖传实际 check_id 的 depends_on。读取真实结果后可随下一次调用提交 review:{attempt,summary,verdict}，单独 review 不重发。保存产物用 `fusion(action="save",file_path="REPORT.md",content="正文")`，写入当前 case_path；首次若返回路由，按回执继续。参数不明确或报错时才读 [宿主执行约定](references/host-execution.md)。
+原生宿主为新路由返回短 ID，旧路由继续有效。紧接上一条观测且中间没有其他执行时，review 可只填 summary/verdict，宿主取上一回执；复核更早结果才填完整 attempt。ID 抄错时按错误提示复制本案真实 ID，不猜补字符，也不重跑目标来“补回执”。
+
+同一问题换工具仍用同一 work.key/conditions；输入、身份、资源或样本变化时准确更新条件。后续工具继续 execute，省略不变的 objective/scope/target；依赖传实际 check_id 的 depends_on。读取真实结果后可随下一次调用提交 review:{attempt,summary,verdict}，单独 review 不重发。保存产物用 `fusion(action="save",file_path="REPORT.md",content="正文")`，宿主自动准备写入路由并核对字节，不需要模型再拼 writer 或权限参数。参数不明确或报错时才读 [宿主执行约定](references/host-execution.md)。
 
 ## 推进、复盘与恢复
 
@@ -47,9 +51,9 @@ route_ready 尚未执行，实际回执才算调用。可传 procedure 选择具
 
 在阶段结论、转向或主线阻塞时用 [node-review](references/node-review.md) 保存问题、已复核 CALL-ID、结论、未决点与下一试验。不是每次读文件都复盘；没有实测证据的暂停用 checkpoint。节点不自动执行下一步，也不代表任务完成。
 
-压缩/重启后先恢复本案状态，按 next_action 核对未决调用，再读 node_review、results 和 acceptance 缺口。节点证据变更或已过期先核对；节点/方法被预算延后时按指针读取。reuse 不重发，hold 先核对；真正复测给 retest_reason。完整材料用 query --kind artifacts 找 E-ID，再 artifact 分段读取；不跨案继承已完成结果。
+压缩/重启后先恢复本案状态，按 next_action 核对未决调用，再读 node_review、results 和 acceptance 缺口。节点证据变更或已过期先核对；节点/方法被预算延后时按指针读取。reuse 不重发，hold 先核对；真正复测给 retest_reason。完整材料用 query --kind artifacts 找 E-ID，`fusion(action="artifact",artifact_id="E-…",query="要查的文本")` 搜索，或用 offset/length 分段读取。导入的 MCP 大工件和原始回执均可检索；不跨案继承结果。
 
-有候选才进入 [validate](specialists/fusion-validate/SKILL.md)，需完整项目报告才进入 [report](specialists/fusion-report/SKILL.md)；单点任务沿当前专项交付。finish 关联目标条件与实际证据，缺口未解明确 partial。用户暂停用 checkpoint；转去无关分析用 suspend，本案证据整理和报告继续管理路径。
+有候选才进入 [validate](specialists/fusion-validate/SKILL.md)，需完整项目报告才进入 [report](specialists/fusion-report/SKILL.md)；单点任务沿当前专项交付。finish 关联目标条件与实际证据；阶段报告可以 status=partial，未复核项保留为未决，不为交付把所有观察强行判为 done。用户暂停用 checkpoint；转去无关分析用 suspend，本案证据整理和报告继续管理路径。
 
 ## 没有原生宿主时
 

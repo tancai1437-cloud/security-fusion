@@ -9,7 +9,7 @@ import shutil
 from fusion_dsh_purge import purge_config
 
 PACK = Path(__file__).resolve().parents[1]
-FILES = ("dsh.mjs", "dsh-runtime.mjs", "dsh-execution.mjs", "dsh-routing.mjs", "dsh-purge-preset.mjs", "dsh-purge-bridge.mjs")
+FILES = ("dsh.mjs", "dsh-runtime.mjs", "dsh-execution.mjs", "dsh-routing.mjs", "dsh-artifacts.mjs", "dsh-purge-preset.mjs", "dsh-purge-bridge.mjs")
 BEGIN = "# BEGIN security-fusion managed adapter"
 END = "# END security-fusion managed adapter"
 NAME = "security-fusion-host"
@@ -25,7 +25,10 @@ def merge_managed(existing, entry):
     if prior["name"].endswith("dsh-purge-preset.mjs") and entry["name"].endswith("/dsh.mjs"):
         # Ordinary upgrades must not silently expand a preset-scoped adapter to every session.
         entry = {**entry, "name": prior["name"]}
-    return {**prior, **entry, "config": {**prior.get("config", {}), **entry["config"]}}
+    config = {**prior.get("config", {}), **entry["config"]}
+    if "requireMission" in prior.get("config", {}):
+        config["requireMission"] = prior["config"]["requireMission"]
+    return {**prior, **entry, "config": config}
 
 
 def json_patch(text, entry, uninstall):
@@ -135,7 +138,7 @@ def adapter_entry(profile, state_dir, python, original, uninstall, purge, runtim
     if not uninstall and not purge and (profile / 'node_modules/dsh-purge/package.json').is_file() and 'dsh-purge-preset.mjs' not in original:
         raise ValueError("dsh-purge is installed: use --purge --runtime SDK_ROOT --dsh-home DSH_HOME to avoid installing a competing global controller")
     entry = {"id": NAME, "name": "./" + NAME + "/dsh.mjs",
-             "config": {"skillRoot": str(PACK), "stateDir": str(state_dir), "python": python}}
+             "config": {"skillRoot": str(PACK), "stateDir": str(state_dir), "python": python, "requireMission": True}}
     if purge and not uninstall:
         entry["name"] = "./" + NAME + "/dsh-purge-preset.mjs"
         entry["config"].update(purge_config(profile, runtime, dsh_home))

@@ -16,13 +16,17 @@ function createFusionTool(ctx, get, children, config) {
   const modules = JSON.parse(readFileSync(path.join(config.skillRoot, 'manifests/specialists.json'), 'utf8')).modules;
   const definition = {
     name: 'fusion',
-    description: 'Use for authorized security assessment, SRC, reverse engineering and source audits. FIRST route request={skill,capability,purpose,tool?} returns the actual specialist method and current host tool schema; procedure can select a concrete method. Then execute request={route_id,arguments,work:{key,conditions}} calls the REAL tool. First execution also objective,scope,target,criteria:[{id,question}],deliverables:[case-relative paths]. Unprepared execute returns a route first: NO target call. Never count route_ready as execution. Reuse work across tools. Results/output versions are captured. Next execute can review:{attempt,summary,verdict:"done"}; review alone makes no target call. SAVE FILES with action="save", file_path="REPORT.md", content="plain text" as TOP-LEVEL fields; no nested/JSON-encoded request needed. save uses the real host writer within this case and may return route_ready first. resume restores results. artifact args=["--artifact","E-...","--offset","0","--length","2048"] reads saved evidence. checkpoint request={summary,next,review?} for a user pause/blocker. finish request={report,summary,review?,assessment:[{criterion,attempts,summary}],status?:"partial"}. suspend request={reason} only for user cancellation/unrelated work; existing-case analysis/reporting uses artifact/save/finish. Other CLI actions use args/input_json.',
+    description: 'Use for authorized security assessment, SRC, reverse engineering and source audits. FIRST route request={skill,capability,purpose,tool?} returns the actual specialist method and current host tool schema; procedure can select a concrete method. Then execute request={route_id,arguments,work:{key,conditions}} calls the REAL tool. First execution also objective,scope,target,criteria:[{id,question}],deliverables:[case-relative paths]. Unprepared execute returns a route first: NO target call. Never count route_ready as execution. Reuse work across tools. Results/output versions are captured. Next execute can review:{attempt,summary,verdict:"done"}; review alone makes no target call. SAVE FILES with action="save", file_path="REPORT.md", content="plain text" as TOP-LEVEL fields; no nested/JSON-encoded request needed. save prepares and calls the real case-scoped writer in one operation; do not add permission parameters. resume restores results. artifact artifact_id="E-...", query="literal text" searches saved evidence; offset/length reads slices. Direct read/grep of an absolute file inside this case or skill is allowed. All target calls still use execute. checkpoint request={summary,next,review?} for a user pause/blocker. finish request={report,summary,review?,assessment:[{criterion,attempts,summary}],status?:"partial"}; partial preserves unresolved observations without claiming they are done. suspend request={reason} only for user cancellation/unrelated work; existing-case analysis/reporting uses artifact/save/finish. Other CLI actions use args/input_json.',
     parameters: {
       action: { type: 'string', enum: [...actions].filter(action => action !== 'knowledge'), required: true },
       args: { type: 'array', items: { type: 'string' } },
       input_json: { type: 'string' },
       file_path: { type: 'string', description: 'save only: case-relative output path, e.g. REPORT.md' },
       content: { type: 'string', description: 'save only: actual file content, directly as text. Do not JSON-encode a request object around it.' },
+      artifact_id: { type: 'string', description: 'artifact only: an actual E-ID from this case' },
+      query: { type: 'string', description: 'artifact only: literal search text; reads saved evidence, no network' },
+      offset: { type: 'integer', description: 'artifact only: byte offset returned by a prior page' },
+      length: { type: 'integer', description: 'artifact only: bounded slice length, defaults to 2048 bytes' },
       request: { type: 'object', additionalProperties: false, properties: {
         mission: { type: 'string', enum: ['pentest', 'src', 'redteam', 'reverse', 'audit', 'ai-assessment'], description: 'First route/execute: preserve the user task type; SRC and redteam must be explicit. Immutable after case start.' },
         objective: { type: 'string' }, scope: { type: 'string' }, target: { type: 'string' },
@@ -113,11 +117,34 @@ function hostStatus(ctx, exec, session) {
       health: 'Registry visibility only. No tool health/target/model-adherence claim.' };
 }
 
+function artifactArgs(args) {
+  return ['--artifact', args.artifact_id, '--offset', String(args.offset ?? 0),
+    '--length', String(args.length ?? 2048), ...(args.query === undefined ? [] : ['--search', args.query])];
+}
+
+async function saveAction(ctx, children, exec, session, args, request) {
+  const saved = saveRequest(session, args, request);
+  const prepared = await prepareRoute(session, saved, ctx.tools.schemas(exec.agent), exec.signal);
+  if (prepared.status !== 'route_ready') return prepared;
+  return executeAction(ctx, children, exec, session, { route_id: prepared.route_id, ...(request.review ? { review: request.review } : {}) });
+}
+
+function readArtifact(session, args, signal) {
+  if (args.artifact_id) return session.call('artifact', artifactArgs(args), undefined, signal);
+  guardCliDispatch(session, args);
+  return session.call('artifact', args.args || [], args.input_json, signal);
+}
+
 async function performAction(ctx, get, children, args, exec) {
   exec.signal.throwIfAborted();
   const session = get(exec.agent);
   const request = args.request || (args.input_json ? JSON.parse(args.input_json) : {});
-  if (args.action === 'host-status') return hostStatus(ctx, exec, session);
+  const localActions = {
+    'host-status': () => hostStatus(ctx, exec, session),
+    artifact: () => readArtifact(session, args, exec.signal),
+    save: () => saveAction(ctx, children, exec, session, args, request),
+  };
+  if (Object.hasOwn(localActions, args.action)) return localActions[args.action]();
   if (args.action === 'route' && args.request) {
     return prepareRoute(session, request, ctx.tools.schemas(exec.agent), exec.signal);
   }
@@ -127,8 +154,8 @@ async function performAction(ctx, get, children, args, exec) {
   if (args.action === 'node-review') {
     return session.call('node-review', args.args || [], args.request ? JSON.stringify(request.node || {}) : args.input_json, exec.signal);
   }
-  if (['execute', 'save'].includes(args.action)) {
-    return executeAction(ctx, children, exec, session, args.action === 'save' ? saveRequest(session, args, request) : request);
+  if (args.action === 'execute') {
+    return executeAction(ctx, children, exec, session, request);
   }
   if (['checkpoint', 'finish', 'suspend'].includes(args.action)) {
     const value = await closeStep(session, args.action, request, exec.signal);
@@ -142,7 +169,8 @@ async function performAction(ctx, get, children, args, exec) {
 function saveRequest(session, args, request) {
   if (!session.state()?.task) throw new Error('save requires an executed case; perform the first target check before writing deliverables.');
   if (typeof args.file_path !== 'string' || typeof args.content !== 'string') throw new Error('save needs top-level file_path and content strings');
-  return { ...request, skill: request.skill || session.state().last_skill, capability: 'evidence.persist',
+  const { route_id, ...options } = request;
+  return { ...options, skill: request.skill || session.state().last_skill, capability: 'evidence.persist',
     purpose: request.purpose || 'Persist case output ' + args.file_path, tool: 'write',
     arguments: { file_path: args.file_path, content: args.content } };
 }

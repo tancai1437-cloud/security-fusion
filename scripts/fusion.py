@@ -33,6 +33,7 @@ def add_artifact_command(commands):
     command.add_argument("--offset", type=int, default=0, help="Byte offset in the immutable evidence copy")
     command.add_argument("--length", type=int, default=2048)
     command.add_argument("--max-chars", type=int, default=6000)
+    command.add_argument("--search", help="Bounded literal text search in this immutable artifact; no network")
 
 
 def parser():
@@ -201,7 +202,7 @@ def record_result(args, case):
 def dispatch(args, case):
     command = args.command
     handlers = {
-        "artifact": lambda: read_evidence(case, args.artifact, args.offset, args.length, args.max_chars),
+        "artifact": lambda: read_evidence(case, args.artifact, args.offset, args.length, args.max_chars, args.search),
         "assess": lambda: assess(case, read_json(args.input)),
         "route": lambda: dispatch_route(args, case, local_run),
         "advance": lambda: advance(args, case, local_run),

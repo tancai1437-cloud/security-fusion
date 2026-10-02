@@ -14,19 +14,19 @@ python3 "$FUSION_ROOT/scripts/install_dsh_adapter.py" \
   --python python3
 ```
 
-Windows 可将解释器设为 `python` 或实际绝对路径。`--dry-run` 只检查并显示将配置的位置。安装器复用已有 DSH 依赖，复制六个 adapter 模块（四个核心模块及两个按需加载的 purge 模块），向所选 profile 的 cordis.patch.yml 加一个有边界标记的条目，备份改动前的配置；重复执行更新同一条目。它保留其他配置和原有案件，不安装模型或安全工具。
+Windows 可将解释器设为 `python` 或实际绝对路径。`--dry-run` 只检查并显示将配置的位置。安装器复用已有 DSH 依赖，复制七个 adapter 模块（五个核心模块及两个按需加载的 purge 模块），向所选 profile 的 cordis.patch.yml 加一个有边界标记的条目，备份改动前的配置；重复执行更新同一条目。它保留其他配置和原有案件，不安装模型或安全工具。
 
 重启该 profile 后，确认真实工具列表包含 `fusion`；执行结果应有实际 `tool_call_id`、`case_path` 和 `observed.capture`。安装器返回 `configured_requires_restart`，不把写完配置称为运行已接通。
 
-已有手工添加、没有管理标记的 security-fusion-host 条目时，安装器会保留并报告冲突。维护该原条目也可以：同时更新 [dsh.mjs](../adapters/dsh.mjs)、[dsh-runtime.mjs](../adapters/dsh-runtime.mjs)、[dsh-execution.mjs](../adapters/dsh-execution.mjs)、[dsh-routing.mjs](../adapters/dsh-routing.mjs)，四者必须在同一目录；skillRoot 指向当前技能包，stateDir 在包外。不可仅更新一个 JS 文件。
+已有手工添加、没有管理标记的 security-fusion-host 条目时，安装器会保留并报告冲突。维护该原条目也可以：同时更新 [dsh.mjs](../adapters/dsh.mjs)、[dsh-runtime.mjs](../adapters/dsh-runtime.mjs)、[dsh-execution.mjs](../adapters/dsh-execution.mjs)、[dsh-routing.mjs](../adapters/dsh-routing.mjs) 与 [dsh-artifacts.mjs](../adapters/dsh-artifacts.mjs)，五者必须在同一目录；skillRoot 指向当前技能包，stateDir 在包外。不可仅更新一个 JS 文件。
 
 ## 先路由，再实际调用
 
-`route` 的 request 接收 skill、capability、purpose，可选 tool；也可用 procedure 绑定已有具体方法对应的专项/能力。只查询当前 Agent 实际可见的工具，结合能力清单、DSH 本地接口和维护者的 capabilityTools 配置匹配。唯一候选直接给出；多个候选要求择一，零候选返回缺口，不伪造工具。已知名称匹配仅是候选依据，不是健康探测或语义认证。
+`route` 的 request 接收 skill、capability、purpose，可选 tool；首次任务同时指定 mission。也可用 procedure 绑定已有具体方法对应的专项/能力。只查询当前 Agent 实际可见的工具，结合能力清单、DSH 本地接口和维护者的 capabilityTools 配置匹配。等效候选结合目标绑定、近期真实结果和宿主偏好选择；读/写等不同操作、无法区分的状态型 MCP 仍要求择一。零候选返回缺口，不伪造工具。已知名称匹配仅是候选依据，不是健康探测或语义认证。
 
 返回包含同源专项方法、完成条件、阶段产物、真实参数 schema 和 route_id。紧接 `execute(request={route_id,arguments,...})`；首次任务字段可提前放 route，或在 execute 补齐。route_ready 不建检查、不调用目标、不算完成。直接 execute 仍兼容参数写法，但首次先返回路由，第二次才执行；同一路由缓存不反复发送方法。
 
-报告/JSON 产物用 `save` 的顶层 file_path、content 字段直接传文字，避免把包含引号的整份文件再次编码为 request 字符串。此入口需要已经执行的案件，只选当前专项的 evidence.persist → 真实 write 工具；仍经过路由准备、实时 schema 校验、路径隔离、真实调用与版本捕获，不是模拟落盘。首次可能返回 route_ready，按返回 ID 执行即可；已准备过的 writer 直接写入。
+报告/JSON 产物用 `save` 的顶层 file_path、content 字段直接传文字，避免把包含引号的整份文件再次编码为 request 字符串。此入口需要已经执行的案件，只选当前专项的 evidence.persist → 真实 write 工具；在一次调用内完成路由准备、实时 schema 校验、路径隔离、真实调用与版本捕获。模型无需再拼执行或权限参数，只有真实写入成功才返回已保存。
 
 evidence.persist 经真实 read 成功读取当前技能包或本案已有材料时，自动记“材料读取完成”，无需再消耗一次模型调用复核读规则这件事。它只确认宿主读取，不证明文件中的业务推论；任意目标源码、失败读取、MCP 结果仍需原有复核。只传 route_id + review 的 execute 视为单独复核，不重放该路由的旧参数。已暂停任务再次尝试 execute/save 时先标记为继续执行，参数错误不能让状态继续冒充已妥善暂停；fusion 自身错误也进入有预算的恢复提示。
 
@@ -40,6 +40,7 @@ evidence.persist 经真实 read 成功读取当前技能包或本案已有材料
 {
   "action": "execute",
   "request": {
+    "mission": "pentest",
     "objective": "核对已授权入口的正常响应",
     "scope": "用户指定的精确入口，只读，不跟随范围外跳转",
     "target": "https://authorized.example/entry",

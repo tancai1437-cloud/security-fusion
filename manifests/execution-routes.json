@@ -131,6 +131,7 @@
     },
     {
       "id": "web.crawl",
+      "http_methods": ["GET", "HEAD", "OPTIONS"],
       "required_input": [
         "scope",
         "entrypoints"

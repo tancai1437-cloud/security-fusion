@@ -7,10 +7,60 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from fusion_store import Case, encode
 from fusion_views import resume
+from fusion_evidence import read_evidence
 from test_runtime import CONFIG, spec
 
 
 class RecoveryProgressTests(unittest.TestCase):
+    def test_short_evidence_ids_resolve_only_when_unique_in_current_case(self):
+        self.case.plan([spec('first'), spec('second', inputs={'sample': 2})])
+        first = self.case.artifacts(self.complete('first'))[0]
+        with self.case.transaction():
+            self.case.db.execute('UPDATE artifacts SET id=? WHERE id=?', ('E-' + 'a' * 31 + '0', first['id']))
+        packet = read_evidence(self.case, 'E-aaaaaaaa', search='denied')
+        self.assertEqual(packet['artifact_id'], 'E-' + 'a' * 31 + '0')
+        self.assertEqual(len(packet['matches']), 1)
+        other = Case.create(self.root / 'other-alias', CONFIG)
+        try:
+            with self.assertRaisesRegex(ValueError, 'Unknown artifact'):
+                read_evidence(other, 'E-aaaaaaaa')
+        finally:
+            other.close()
+        second = self.case.artifacts(self.complete('second'))[0]
+        with self.case.transaction():
+            self.case.db.execute('UPDATE artifacts SET id=? WHERE id=?', ('E-' + 'a' * 31 + '1', second['id']))
+        with self.assertRaisesRegex(ValueError, 'Ambiguous artifact'):
+            read_evidence(self.case, 'E-aaaaaaaa')
+        with self.assertRaisesRegex(ValueError, 'Unknown artifact'):
+            read_evidence(self.case, 'E-aaaaaaa')
+        (self.case.root / first['path']).write_text('tampered')
+        with self.assertRaisesRegex(ValueError, 'Evidence changed'):
+            read_evidence(self.case, 'E-' + 'a' * 31 + '0')
+
+    def test_large_artifact_literal_search_pages_and_rejects_tampered_or_foreign_evidence(self):
+        self.raw.write_text('x' * 1200000 + ' loginBoundary ' + ('prefix LOGINBOUNDARY suffix ' * 14), encoding='utf-8')
+        self.case.plan([spec('large-source')])
+        attempt = self.complete('large-source')
+        artifact = self.case.artifacts(attempt)[0]
+        first = read_evidence(self.case, artifact['id'], search='loginboundary')
+        self.assertEqual(len(first['matches']), 8)
+        self.assertEqual(first['matches'][0]['offset'], 1200001)
+        self.assertFalse(first['search_complete'])
+        self.assertLessEqual(len(encode(first)), 6000)
+        second = read_evidence(self.case, artifact['id'], offset=first['next_offset'], search='loginboundary')
+        self.assertEqual(len(second['matches']), 7)
+        self.assertTrue(second['search_complete'])
+        self.assertGreater(second['matches'][0]['offset'], first['matches'][-1]['offset'])
+        other = Case.create(self.root / 'other-search', CONFIG)
+        try:
+            with self.assertRaises(ValueError):
+                read_evidence(other, artifact['id'], search='loginboundary')
+        finally:
+            other.close()
+        (self.case.root / artifact['path']).write_text('tampered', encoding='utf-8')
+        with self.assertRaises(ValueError):
+            read_evidence(self.case, artifact['id'], search='loginboundary')
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="fusion-progress-")
         self.addCleanup(self.temp.cleanup)
