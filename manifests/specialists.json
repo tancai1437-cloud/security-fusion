@@ -12,7 +12,8 @@
         "web.crawl",
         "browser.observe",
         "http.history",
-        "evidence.persist"
+        "evidence.persist",
+        "knowledge.lookup"
       ],
       "source_ids": [
         "S09",
@@ -31,7 +32,8 @@
         "http.request",
         "web.templates",
         "browser.observe",
-        "evidence.persist"
+        "evidence.persist",
+        "knowledge.lookup"
       ],
       "source_ids": [
         "S09",
@@ -51,7 +53,8 @@
         "http.request",
         "browser.observe",
         "code.inspect",
-        "evidence.persist"
+        "evidence.persist",
+        "knowledge.lookup"
       ],
       "source_ids": [
         "S27",
@@ -71,7 +74,8 @@
         "http.history",
         "http.request",
         "code.inspect",
-        "evidence.persist"
+        "evidence.persist",
+        "knowledge.lookup"
       ],
       "source_ids": [
         "S22"
@@ -89,7 +93,8 @@
         "http.history",
         "js.source",
         "js.runtime",
-        "evidence.persist"
+        "evidence.persist",
+        "knowledge.lookup"
       ],
       "source_ids": [
         "S13",
@@ -110,7 +115,8 @@
       "applicable_when": "已提供源码/配置或可用代码材料",
       "execution_routes": [
         "code.inspect",
-        "evidence.persist"
+        "evidence.persist",
+        "knowledge.lookup"
       ],
       "source_ids": [
         "S21",
@@ -130,7 +136,8 @@
         "http.history",
         "binary.analysis",
         "js.source",
-        "evidence.persist"
+        "evidence.persist",
+        "knowledge.lookup"
       ],
       "source_ids": [
         "S12",
@@ -153,7 +160,8 @@
         "binary.profile",
         "binary.dotnet",
         "memory.triage",
-        "memory.reproduce"
+        "memory.reproduce",
+        "knowledge.lookup"
       ],
       "source_ids": [
         "S16",
@@ -173,7 +181,8 @@
       "execution_routes": [
         "cloud.posture",
         "code.inspect",
-        "evidence.persist"
+        "evidence.persist",
+        "knowledge.lookup"
       ],
       "source_ids": [
         "S06"
@@ -189,7 +198,8 @@
         "service.inventory",
         "infra.observe",
         "code.inspect",
-        "evidence.persist"
+        "evidence.persist",
+        "knowledge.lookup"
       ],
       "source_ids": [
         "S03",
@@ -208,7 +218,8 @@
         "http.request",
         "ai.boundary",
         "code.inspect",
-        "evidence.persist"
+        "evidence.persist",
+        "knowledge.lookup"
       ],
       "source_ids": [
         "S28"
@@ -225,7 +236,8 @@
         "code.inspect",
         "http.history",
         "http.request",
-        "evidence.persist"
+        "evidence.persist",
+        "knowledge.lookup"
       ],
       "source_ids": [
         "S07",
@@ -242,7 +254,8 @@
       "applicable_when": "任务收口或需要交付阶段结果",
       "execution_routes": [
         "report.compose",
-        "evidence.persist"
+        "evidence.persist",
+        "knowledge.lookup"
       ],
       "source_ids": [
         "S10",

@@ -1,0 +1,334 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-02",
+  "policy": "人工提炼的检索卡，不复制执行上游代码；方法线索不是目标事实。",
+  "cards": [
+    {
+      "id": "src-object-boundary",
+      "missions": [
+        "src",
+        "pentest",
+        "audit"
+      ],
+      "skills": [
+        "fusion-recon",
+        "fusion-api"
+      ],
+      "tags": [
+        "对象",
+        "租户",
+        "越权",
+        "IDOR",
+        "authorization",
+        "api"
+      ],
+      "question": "角色、租户、对象与操作的授权边界是否一致？",
+      "requires": [
+        "两组受控测试身份及各自对象",
+        "正常业务请求与资源归属证据"
+      ],
+      "steps": [
+        "先建立本人合法读取/操作与无身份对照。",
+        "一次只改变身份、对象或操作中的一个维度，保存请求和响应业务含义。",
+        "分别检查读、写、导出与嵌套资源；只对范围内受控对象验证。"
+      ],
+      "disprove": [
+        "共享资源或业务明确允许访问",
+        "仅状态码变化、空列表或参数校验错误",
+        "缓存/登录壳导致的同内容"
+      ],
+      "next": "确认边界后核对业务影响和修复复测条件；阴性记录具体维度，不能代表全部接口安全。",
+      "sources": [
+        "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/05-Authorization_Testing/04-Testing_for_Insecure_Direct_Object_References"
+      ]
+    },
+    {
+      "id": "src-business-invariant",
+      "missions": [
+        "src",
+        "pentest",
+        "audit"
+      ],
+      "skills": [
+        "fusion-business",
+        "fusion-api",
+        "fusion-recon"
+      ],
+      "tags": [
+        "订单",
+        "金额",
+        "额度",
+        "次数",
+        "状态",
+        "business",
+        "workflow"
+      ],
+      "question": "服务端是否在整个业务状态转换中维护同一个约束？",
+      "requires": [
+        "合法测试业务流程及前后状态",
+        "可回退测试对象与明确操作预算"
+      ],
+      "steps": [
+        "把合法流程的输入、状态、余额/次数等不变量写清楚。",
+        "沿服务端真实请求核对状态前提、字段来源与跨系统交接。",
+        "用最小受控差异区分校验缺失、延迟同步、重复回包与真实状态改变。"
+      ],
+      "disprove": [
+        "界面显示变更但服务端状态未改变",
+        "合法补偿或最终一致性尚未收敛"
+      ],
+      "next": "有状态差异才追踪影响；记录清理与恢复，阻塞时转已有独立问题。",
+      "sources": [
+        "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/10-Business_Logic_Testing/01-Test_Business_Logic_Data_Validation"
+      ]
+    },
+    {
+      "id": "src-identity-lifecycle",
+      "missions": [
+        "src",
+        "pentest"
+      ],
+      "skills": [
+        "fusion-api",
+        "fusion-recon"
+      ],
+      "tags": [
+        "登录",
+        "恢复",
+        "重置",
+        "会话",
+        "注销",
+        "token",
+        "session",
+        "authentication"
+      ],
+      "question": "身份恢复或角色变化后，旧会话与其他入口是否仍持有不该保留的权限？",
+      "requires": [
+        "可控账号与合法恢复/注销流程",
+        "已确认生效的身份基线"
+      ],
+      "steps": [
+        "记录流程前后身份、权限和会话有效性。",
+        "在同一受控对象上比较旧/新会话与无身份对照。",
+        "核对其他已观察入口的一致性，保存有效期和撤销规则。"
+      ],
+      "disprove": [
+        "会话未成功登录",
+        "业务允许的短暂缓存/撤销延时",
+        "仅客户端UI变化"
+      ],
+      "next": "确定影响窗口及受影响操作；未获得第二身份不声称覆盖跨账号边界。",
+      "sources": [
+        "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/04-Authentication_Testing/09-Testing_for_Weak_Password_Change_or_Reset_Functionalities"
+      ]
+    },
+    {
+      "id": "redteam-entry-triage",
+      "missions": [
+        "redteam"
+      ],
+      "skills": [
+        "fusion-recon",
+        "fusion-web",
+        "fusion-infra"
+      ],
+      "tags": [
+        "红队",
+        "打点",
+        "入口",
+        "资产",
+        "暴露",
+        "entry",
+        "surface",
+        "identity"
+      ],
+      "question": "哪个已确认入口能验证约定的关键控制，而非只增加资产数量？",
+      "requires": [
+        "明确的控制/检测目标与范围",
+        "入口可达、技术组件或身份条件的实际证据"
+      ],
+      "steps": [
+        "按入口记录来源、访问条件、组件证据、身份边界和预期控制。",
+        "优先处理前提已齐且能消除关键不确定性的入口；待确认资产先排队。",
+        "把可达、产品指纹、CVE适用性和已验证影响分别标记，绑定各自证据。"
+      ],
+      "disprove": [
+        "同一登录壳被统计为多个有效入口",
+        "标题/端口推断的产品版本",
+        "仅公开案例就推定当前路径成立"
+      ],
+      "next": "选一条可证伪的控制假设，写明预期观察/停止条件；前提不满足保存阻塞，不能硬接下一跳。",
+      "sources": [
+        "https://center-for-threat-informed-defense.github.io/attack-flow/"
+      ]
+    },
+    {
+      "id": "redteam-path-evidence",
+      "missions": [
+        "redteam"
+      ],
+      "skills": [
+        "fusion-infra",
+        "fusion-cloud",
+        "fusion-api",
+        "fusion-recon"
+      ],
+      "tags": [
+        "路径",
+        "依赖",
+        "检测",
+        "遥测",
+        "节点",
+        "控制",
+        "path",
+        "telemetry"
+      ],
+      "question": "上一步实际结果是否满足下一控制验证的全部前提？",
+      "requires": [
+        "带条件和时间的前置证据",
+        "约定目标与预期防守观测"
+      ],
+      "steps": [
+        "每个节点只写一个待核验问题、输入证据和成功/反证条件。",
+        "将前置证据绑定 depends_on；版本、身份或输入变化时重新核对依赖。",
+        "对齐执行时间、测试对象和防守日志；没有遥测只能记录观测缺口。"
+      ],
+      "disprove": [
+        "前置结果过期或仅为候选",
+        "无告警被当作检测失效",
+        "不同目标或身份的证据被拼接"
+      ],
+      "next": "在结论/转向时 node-review 保存当前节点和下个区分性试验；不扩展未约定目标。",
+      "sources": [
+        "https://center-for-threat-informed-defense.github.io/attack-flow/"
+      ]
+    },
+    {
+      "id": "cve-applicability",
+      "missions": [
+        "src",
+        "redteam",
+        "pentest",
+        "audit"
+      ],
+      "skills": [
+        "fusion-recon",
+        "fusion-web",
+        "fusion-code",
+        "fusion-infra"
+      ],
+      "tags": [
+        "CVE",
+        "版本",
+        "组件",
+        "补丁",
+        "KEV",
+        "EPSS",
+        "OSV",
+        "package",
+        "backport",
+        "适用性"
+      ],
+      "question": "公开漏洞的受影响条件是否真的适用于已观察组件？",
+      "requires": [
+        "可定位的产品/包及版本来源",
+        "配置、发行版与补丁/回移信息"
+      ],
+      "steps": [
+        "精确CVE用cve模式；明确生态/包/版本用package；近期变化用recent且固定时间窗分页。",
+        "先看PUBLISHED/REJECTED/withdrawn，再读affected版本范围、配置及厂商引用。",
+        "分别核对产品身份、版本、修复回移、功能启用和可达性；未知字段保持未知。"
+      ],
+      "disprove": [
+        "横幅被修改、代理隐藏真实组件",
+        "发行版已回移修复",
+        "包存在但相关功能不可达",
+        "撤回/拒绝条目"
+      ],
+      "next": "适用性仍未知先补证据；成立后才安排约定范围内的最小验证。KEV/EPSS只辅助优先级，不证明目标有漏洞。",
+      "sources": [
+        "https://github.com/CVEProject/cvelistV5",
+        "https://github.com/cisagov/kev-data",
+        "https://www.first.org/epss/faq",
+        "https://google.github.io/osv.dev/post-v1-query/"
+      ]
+    },
+    {
+      "id": "src-impact-closure",
+      "missions": [
+        "src",
+        "pentest"
+      ],
+      "skills": [
+        "fusion-validate",
+        "fusion-report"
+      ],
+      "tags": [
+        "报告",
+        "影响",
+        "复现",
+        "SRC",
+        "提交",
+        "修复",
+        "report"
+      ],
+      "question": "报告是否证明一个明确的安全边界及实际业务影响？",
+      "requires": [
+        "原始请求/响应与受控对照",
+        "项目范围、接受标准与实际测试边界"
+      ],
+      "steps": [
+        "用证据ID串起入口、前提、差异、影响和限制。",
+        "区分线索、可疑行为、已确认问题与阴性。",
+        "写明最小复现、脱敏材料、修复建议及复测观察；收尾清理测试数据。"
+      ],
+      "disprove": [
+        "只有扫描器标题/CVSS",
+        "复现依赖未提供身份/配置",
+        "预期影响被当作实测影响"
+      ],
+      "next": "验收标准逐条关联真实回执；受阻项交付partial和恢复条件。",
+      "sources": [
+        "https://owasp.org/www-project-web-security-testing-guide/"
+      ]
+    },
+    {
+      "id": "source-condition-trace",
+      "missions": [
+        "src",
+        "pentest",
+        "audit"
+      ],
+      "skills": [
+        "fusion-code"
+      ],
+      "tags": [
+        "源码",
+        "数据流",
+        "调用链",
+        "校验",
+        "source",
+        "sink",
+        "reachability"
+      ],
+      "question": "外部输入到敏感操作之间，防护和可达条件是否在同一路径成立？",
+      "requires": [
+        "具体入口与当前源码版本",
+        "输入、调用与校验的可定位引用"
+      ],
+      "steps": [
+        "沿当前入口追踪输入转换、身份校验和敏感操作。",
+        "记录实际支配该调用的检查，区分未调用代码和实际可达路径。",
+        "用配置或受控运行证据消除关键可达性未知。"
+      ],
+      "disprove": [
+        "其他层已阻断输入",
+        "分析的是未启用功能或不同版本"
+      ],
+      "next": "将未决可达条件作为下一检查，不用危险函数出现次数判断漏洞数量。",
+      "sources": [
+        "https://github.com/trailofbits/skills"
+      ]
+    }
+  ]
+}

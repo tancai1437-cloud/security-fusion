@@ -7,6 +7,8 @@ description: 对获准目标执行渗透、SRC、逆向、源码审计或 AI 安
 
 ## 选择一个当前专项
 
+首次原生 route/execute 明确 `mission: src / redteam / pentest / reverse / audit / ai-assessment`，后续沿用本案类型。SRC 沿业务边界与影响深入；红队沿约定控制和前置证据推进。组件/CVE线索或方法受阻时，用 `knowledge.lookup` → `fusion_knowledge`：local 查方法/审核经验，cve/package/recent 查公开情报。最多两张方法卡，完整快照落盘；见 [知识与情报](references/intelligence-knowledge.md)。
+
 | 当前任务或已有材料 | 立即进入 | 起手证据 |
 |---|---|---|
 | 渗透 / SRC 新目标，已有 URL | [recon](specialists/fusion-recon/SKILL.md) | 入口的实际响应、业务入口与跳转 |

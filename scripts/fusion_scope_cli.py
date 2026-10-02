@@ -7,7 +7,7 @@ from fusion_views import bounded
 from fusion_workspace import Workspace
 
 COMMANDS = {"bind", "handoff", "context-set", "context-release", "memory-add", "memory-review",
-            "memory-show", "memory-embed", "memory-search"}
+            "memory-show", "memory-embed", "memory-search", "knowledge"}
 
 
 def binding_options(command):
@@ -45,7 +45,7 @@ def configure_command(command, name):
         command.add_argument("--reason", required=True)
     if name in {"context-set", "context-release"}:
         command.add_argument("--slot", required=True)
-    if name in {"context-set", "memory-add", "memory-embed"}:
+    if name in {"context-set", "memory-add", "memory-embed", "knowledge"}:
         command.add_argument("--input", required=True)
     if name == "memory-add":
         command.add_argument("--note", required=True)
@@ -74,6 +74,9 @@ def search(memory, registration, args, query_text, maximum):
 
 
 def scope_command(args, case, workspace, registration):
+    if args.command == "knowledge":
+        from fusion_knowledge import knowledge_query
+        return knowledge_query(case, workspace, registration["project"], read_json(args.input))
     memory = Memory(workspace)
     project = registration["project"]
     if args.command == "context-set":

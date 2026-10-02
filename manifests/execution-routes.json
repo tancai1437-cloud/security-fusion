@@ -599,6 +599,26 @@
           "evidence_level": "local_design"
         }
       ]
+    },
+    {
+      "id": "knowledge.lookup",
+      "required_input": [
+        "case_binding",
+        "skill",
+        "mode",
+        "public_identifier_or_local_query"
+      ],
+      "expected_output": "短摘要、来源/新鲜度、分页与完整快照；不代表目标漏洞成立",
+      "choices": [
+        {
+          "provider": "host",
+          "tool_candidates": [
+            "fusion_knowledge"
+          ],
+          "notes": "DSH原生fusion.execute调用；CLI使用绑定案件的knowledge命令；不另建MCP连接",
+          "evidence_level": "local_implementation"
+        }
+      ]
     }
   ]
 }

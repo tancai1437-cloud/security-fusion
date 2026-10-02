@@ -941,6 +941,37 @@
       "source_refs": [
         "references/binary-depth.md"
       ]
+    },
+    {
+      "id": "advisory-applicability",
+      "skill_id": "fusion-recon",
+      "capability_id": "knowledge.lookup",
+      "any_features": [
+        "software.identified",
+        "cve.mentioned"
+      ],
+      "requires": [],
+      "unless": [],
+      "priority": 72,
+      "question": "核对公开漏洞条目的状态、版本与配置适用性",
+      "steps": [
+        "调用fusion_knowledge：精确CVE用cve，明确生态/包/版本用package；未知产品先保留线索，不猜CVE。",
+        "读取受影响范围、厂商引用与补丁/回移条件；KEV/EPSS只作优先级参考。",
+        "与当前目标的产品、版本、配置、可达性证据分别对齐；缺失项保持未知。"
+      ],
+      "acceptance": [
+        "REJECTED/withdrawn不作为当前有效漏洞结论。",
+        "情报查询不是目标验证；旧缓存/接口失败不能解释为无漏洞。"
+      ],
+      "next_on": {
+        "applicability_unknown": "补版本、配置或补丁证据；不重复查询同一条目",
+        "applicability_supported": "安排约定范围内最小验证与对照",
+        "not_applicable": "保存条件及反证；继续当前业务面"
+      },
+      "required_inputs": [],
+      "source_refs": [
+        "references/intelligence-knowledge.md"
+      ]
     }
   ]
 }

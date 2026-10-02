@@ -18,12 +18,13 @@ function createFusionTool(ctx, get, children, config) {
     name: 'fusion',
     description: 'Use for authorized security assessment, SRC, reverse engineering and source audits. FIRST route request={skill,capability,purpose,tool?} returns the actual specialist method and current host tool schema; procedure can select a concrete method. Then execute request={route_id,arguments,work:{key,conditions}} calls the REAL tool. First execution also objective,scope,target,criteria:[{id,question}],deliverables:[case-relative paths]. Unprepared execute returns a route first: NO target call. Never count route_ready as execution. Reuse work across tools. Results/output versions are captured. Next execute can review:{attempt,summary,verdict:"done"}; review alone makes no target call. SAVE FILES with action="save", file_path="REPORT.md", content="plain text" as TOP-LEVEL fields; no nested/JSON-encoded request needed. save uses the real host writer within this case and may return route_ready first. resume restores results. artifact args=["--artifact","E-...","--offset","0","--length","2048"] reads saved evidence. checkpoint request={summary,next,review?} for a user pause/blocker. finish request={report,summary,review?,assessment:[{criterion,attempts,summary}],status?:"partial"}. suspend request={reason} only for user cancellation/unrelated work; existing-case analysis/reporting uses artifact/save/finish. Other CLI actions use args/input_json.',
     parameters: {
-      action: { type: 'string', enum: [...actions], required: true },
+      action: { type: 'string', enum: [...actions].filter(action => action !== 'knowledge'), required: true },
       args: { type: 'array', items: { type: 'string' } },
       input_json: { type: 'string' },
       file_path: { type: 'string', description: 'save only: case-relative output path, e.g. REPORT.md' },
       content: { type: 'string', description: 'save only: actual file content, directly as text. Do not JSON-encode a request object around it.' },
       request: { type: 'object', additionalProperties: false, properties: {
+        mission: { type: 'string', enum: ['pentest', 'src', 'redteam', 'reverse', 'audit', 'ai-assessment'], description: 'First route/execute: preserve the user task type; SRC and redteam must be explicit. Immutable after case start.' },
         objective: { type: 'string' }, scope: { type: 'string' }, target: { type: 'string' },
         skill: { type: 'string', enum: modules.map(m => m.id) },
         capability: { type: 'string', enum: [...new Set(modules.flatMap(m => m.execution_routes))] },
@@ -106,7 +107,7 @@ function hostStatus(ctx, exec, session) {
       integration: session.config.integration || 'standalone',
       session_format: SESSION_FORMAT_VERSION,
       session: session.owner, case_started: !!session.state()?.task,
-      tools: visible.filter(n => n === 'fusion' || n.startsWith('redteam_')),
+      tools: visible.filter(n => ['fusion', 'fusion_knowledge'].includes(n) || n.startsWith('redteam_')),
       mcp_tool_count: visible.filter(n => n.startsWith('mcp__')).length,
       drill_engagement: session.state()?.purge?.id || null,
       health: 'Registry visibility only. No tool health/target/model-adherence claim.' };
@@ -164,6 +165,7 @@ async function executeAction(ctx, children, exec, session, request) {
 }
 
 function guardCliDispatch(session, args) {
+  if (args.action === 'knowledge') throw new Error('Use route capability=knowledge.lookup, tool=fusion_knowledge, then execute; knowledge calls must be captured.');
   const localDispatch = (args.args || []).some(a => a.startsWith('--') && '--execute-local'.startsWith(a.split('=')[0]));
   if (session.state()?.route_contract && (['run', 'mcp-run', 'begin', 'record'].includes(args.action) ||
       (['start', 'route', 'advance'].includes(args.action) && localDispatch))) {
@@ -200,6 +202,7 @@ export function apply(ctx, config) {
   if (![0, 4].includes(SESSION_FORMAT_VERSION)) throw new Error('Unsupported DSH session format: ' + SESSION_FORMAT_VERSION);
   const get = agent => new FusionSession(config, agent.session.id, agent.session.header.cwd);
   const children = new Map();
+  ctx.tools.register(createKnowledgeTool(get));
   const tool = createFusionTool(ctx, get, children, config);
   ctx.tools.register(tool);
   ctx.tools.guard(exec => enforceEntry(ctx, tool, get, children, exec));
@@ -214,6 +217,27 @@ export function apply(ctx, config) {
     if (signal.aborted || ctx.tools.get('fusion', agent) !== tool) return;
     const correction = stopCorrection(get(agent), turn);
     if (correction) agent.steer(createUserMessage({ source: { kind: 'security-fusion-closure' }, content: [{ type: 'text', text: correction }] }));
+  });
+}
+
+function createKnowledgeTool(get) {
+  return defineTool({ name: 'fusion_knowledge',
+    description: 'Case-bound knowledge retrieval. local searches bundled methods and reviewed project experience without network. cve queries CVE List/CISA KEV/FIRST EPSS; package uses OSV; recent queries modified NVD records in a fixed window. Only explicit public identifiers/product metadata go online; never send target URLs, private package names or requests. Use through fusion.execute with capability knowledge.lookup. Returns compact sources and a captured full JSON snapshot; no target vulnerability is established.',
+    parameters: {
+      mode: { type: 'string', enum: ['local', 'cve', 'package', 'recent'], required: true },
+      skill: { type: 'string', required: true }, query: { type: 'string' }, cve: { type: 'string' },
+      package: { type: 'string' }, ecosystem: { type: 'string' }, version: { type: 'string' },
+      product: { type: 'string' }, days: { type: 'integer' }, offset: { type: 'integer' },
+      until: { type: 'string' }, cursor: { type: 'string' },
+      offline: { type: 'boolean' }, refresh: { type: 'boolean' }, include_general: { type: 'boolean' },
+    },
+    output: { schema: { type: 'string' }, render: (_, value) => [{ type: 'text', text: value }] },
+    async execute(args, exec) {
+      if (!exec.agent) throw new Error('Owning session required');
+      const session = get(exec.agent);
+      if (!session.state()?.task || session.state()?.mode === 'suspended') throw new Error('Active case required');
+      return JSON.stringify(await session.call('knowledge', [], JSON.stringify(args), exec.signal));
+    },
   });
 }
 

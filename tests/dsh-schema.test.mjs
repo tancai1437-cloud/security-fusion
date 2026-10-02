@@ -96,11 +96,12 @@ test('adapter intercepts entry reads, prepares before dispatch and records the s
     const exec = { agent, signal: AbortSignal.timeout(20000), rootCallId: 'root', token: { id: 'parent' }, deferContext() {} };
     const status = JSON.parse(await tool.execute({ action: 'host-status' }, exec));
     assert.equal(status.status, 'observed_registry'); assert.equal(status.target_action_executed, false);
-    assert.equal(status.case_started, false); assert.deepEqual(status.tools, ['fusion']);
-    const request = { target: sample, scope: 'This local fixture only', objective: 'Read the constant',
+    assert.equal(status.case_started, false); assert.deepEqual(status.tools, ['fusion_knowledge', 'fusion']);
+    const request = { mission: 'src', target: sample, scope: 'This local fixture only', objective: 'Read the constant',
       skill: 'fusion-js', capability: 'js.source', purpose: 'Inspect source',
       work: { key: 'fixture', conditions: { sample: 'v1' } }, tool: 'read', arguments: { file_path: sample } };
     const ready = JSON.parse(await tool.execute({ action: 'execute', request }, exec));
+    assert.equal(ready.guidance.mission.id, 'src');
     assert.equal(ready.status, 'route_ready'); assert.equal(calls, 0);
     await assert.rejects(tool.execute({ action: 'run', args: ['--check', 'fake', '--', 'echo', 'bypass'] }, exec), /cannot bypass/);
     await assert.rejects(tool.execute({ action: 'advance', args: ['--execute-l'] }, exec), /cannot bypass/);
@@ -120,6 +121,7 @@ test('adapter intercepts entry reads, prepares before dispatch and records the s
     assert.equal(decision.status, 'node_recorded'); assert.equal(decision.task_completed, false);
     assert.equal(calls, 1, 'node review must not dispatch a target action');
     const restored = await session.recovery();
+    assert.equal(restored.task.mission, 'src');
     assert.equal(restored.state.node_review.next_test, node.next_test);
     await assert.rejects(tool.execute({ action: 'node-review', request: { node: { ...node, attempts: ['CALL-invented'] } } }, exec), /Unknown attempt/);
     const next = JSON.parse(await tool.execute({ action: 'execute', request: { ...request,
@@ -142,6 +144,23 @@ test('adapter intercepts entry reads, prepares before dispatch and records the s
     events.get('tools/result')({ agent, name: 'fusion', arguments: { action: 'execute' } },
       { isError: true, error: { message: 'Invalid request shape' } });
     assert.equal(session.state().tool_errors.fusion, 'Invalid request shape');
+    const knowledge = { mission: 'src', skill: 'fusion-api', capability: 'knowledge.lookup', tool: 'fusion_knowledge',
+      purpose: 'Retrieve object authorization method', arguments: { mode: 'local', skill: 'fusion-api', query: '对象 租户 越权' },
+      work: { key: 'object-method', conditions: { boundary: 'controlled-object-v1' } } };
+    const kbReady = JSON.parse(await tool.execute({ action: 'route', request: knowledge }, exec));
+    assert.equal(kbReady.execution.tool, 'fusion_knowledge');
+    assert.equal(kbReady.execution.binding_source, 'host_interface');
+    assert.ok(guard({ agent, name: 'fusion_knowledge', arguments: knowledge.arguments }));
+    const kb = JSON.parse(await tool.execute({ action: 'execute', request: { route_id: kbReady.route_id } }, exec));
+    assert.match(kb.observed.text, /src-object-boundary/);
+    const artifacts = await session.cli('query', ['--kind', 'artifacts', '--check', kb.check_id]);
+    assert.ok(artifacts.items.some(item => {
+      const text = readFileSync(path.join(session.casePath, item.path), 'utf8');
+      try { const value = JSON.parse(text); return value.methods?.[0]?.id === 'src-object-boundary' && value.case_id; }
+      catch { return false; }
+    }), 'full knowledge snapshot is imported as actual case evidence, not only a path in prose');
+    await assert.rejects(tool.execute({ action: 'knowledge', input_json: JSON.stringify(knowledge.arguments) }, exec), /action.*must be one of/);
+    await assert.rejects(tool.execute({ action: 'execute', request: { route_id: kbReady.route_id, mission: 'redteam' } }, exec), /Mission cannot change/);
   });
 
 function explicitReviewSaved(session) {

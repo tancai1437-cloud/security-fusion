@@ -42,6 +42,13 @@ class ObservationRoutingTests(unittest.TestCase):
         path.write_text(json.dumps(data), encoding="utf-8")
         return self.cli("route", "--input", path, *args, expected=expected)
 
+    def test_observed_component_selects_knowledge_without_claiming_execution(self):
+        self.seed()
+        result = self.route(self.observation("software.identified", "cve.mentioned"))
+        self.assertIn("advisory-applicability", json.dumps(result))
+        self.assertIn("knowledge.lookup", json.dumps(result))
+        self.assertNotIn('"status": "done"', json.dumps(result))
+
     def test_http_entry_selects_specialist_capability_and_real_program_without_manual_check(self):
         if not shutil.which("curl"):
             self.skipTest("curl unavailable")

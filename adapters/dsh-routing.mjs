@@ -5,13 +5,14 @@ import { digest } from './dsh-runtime.mjs';
 import { rejectInlineCredentials } from './dsh-execution.mjs';
 
 const HOST_TOOLS = {
+  'knowledge.lookup': ['fusion_knowledge'],
   'code.inspect': ['read', 'grep', 'glob'],
   'js.source': ['read', 'grep', 'glob'],
   'evidence.persist': ['read', 'write', 'edit', 'grep', 'glob', 'web_search', 'web_fetch'],
   'report.compose': ['read', 'write', 'edit'],
 };
 const CONTROL = /^(fusion|skill|create_goal|update_goal|get_goal|todo_write|request_user_input)$|subagent|workflow|ralph/;
-const DEFAULT_FIELDS = ['objective', 'scope', 'target', 'skill', 'capability', 'purpose', 'work', 'arguments',
+const DEFAULT_FIELDS = ['mission', 'objective', 'scope', 'target', 'skill', 'capability', 'purpose', 'work', 'arguments',
   'tool', 'tool_reason', 'procedure', 'next', 'criteria', 'constraints', 'deliverables', 'identity_ref',
   'context_slot', 'depends_on'];
 
@@ -121,6 +122,11 @@ export async function prepareRoute(session, request, tools, signal) {
     throw new Error('Target differs from this session. Use a separate session; do not switch the existing case.');
   }
   session.activate();
+  if (session.state()?.task && request.mission && request.mission !== session.state().task.mission) {
+    throw new Error('Mission cannot change in an existing case; use its original mission or a separate session.');
+  }
+  const mission = request.mission || session.state()?.task?.mission;
+  const profile = catalog(session, 'missions.json', 'missions').find(m => m.id === mission)?.research_profile;
   const selected = selection(session, request);
   if (selected.response) return selected.response;
   const choice = chooseTool(session, selected.route, request, tools);
@@ -128,6 +134,7 @@ export async function prepareRoute(session, request, tools, signal) {
   const guidance = { specialist: composed.method, composition: composed.runtime, capability: { id: selected.capability,
     required_input: selected.route.required_input, expected_output: selected.route.expected_output },
     ...(selected.procedure ? { procedure: selected.procedure } : {}) };
+  if (profile) guidance.mission = { id: mission, ...profile };
   if (!choice.tool) return { ...choice, skill: selected.skill, capability: selected.capability,
     target_action_executed: false, guidance };
   const stamp = signature(selected, choice);

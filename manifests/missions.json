@@ -53,7 +53,13 @@
       "closure": [
         "fusion-validate",
         "fusion-report"
-      ]
+      ],
+      "research_profile": {
+        "focus": "真实业务功能→身份/对象/状态边界→可证伪对照→业务影响→可复现报告。",
+        "priority": "沿当前功能深入读写/角色/租户/状态；不要以资产数量或CVE标题作为结果。",
+        "knowledge_trigger": "新业务边界或受阻时knowledge.lookup本地方法；组件版本明确才查询公开漏洞数据。",
+        "closure": "按项目接受标准核对影响、复现、反证、脱敏、清理与修复复测；阻塞交付partial。"
+      }
     },
     {
       "id": "reverse",
@@ -111,7 +117,13 @@
       "closure": [
         "fusion-validate",
         "fusion-report"
-      ]
+      ],
+      "research_profile": {
+        "focus": "入口→控制假设→前置证据→最小验证→防守观测；只推进约定路径。",
+        "priority": "优先已具备前提且能消除关键不确定性的节点；新资产先带来源排队。",
+        "knowledge_trigger": "组件/CVE线索用knowledge.lookup；路径受阻或换面时检索当前方法，不能重复广撒网。",
+        "closure": "节点复盘保留已证实/否定/未知、depends_on、检测证据及恢复条件。"
+      }
     },
     {
       "id": "ai-assessment",

@@ -52,7 +52,7 @@ async function reviewPrevious(session, review, signal) {
   const verdict = review.verdict || 'done';
   if (verdict === 'done' && observed.status !== 'review') throw new Error('Failed/unknown tool results cannot be marked done');
   const reviewed = await session.cli('review', ['--attempt', attempt, '--verdict', verdict,
-    '--summary', required(review.summary, 'review.summary', 1200), '--valid-for', String(review.valid_for ?? 86400)], signal);
+    '--summary', required(review.summary, 'review.summary', 1200), '--valid-for', String(review.valid_for ?? (observed.tool === 'fusion_knowledge' ? 3600 : 86400))], signal);
   if (session.state()?.last_execution?.attempt === attempt) {
     session.update({ last_execution: { ...session.state().last_execution, status: verdict,
       summary: reviewed.summary || review.summary } });
@@ -132,13 +132,17 @@ function workIdentity(value) {
 
 async function bindStep(session, request, step, spec, signal) {
   const { target, skill } = step;
+  if (session.state()?.task && request.mission && request.mission !== session.state().task.mission) {
+    throw new Error('Mission cannot change in an existing case; keep its original mission or start a separate session.');
+  }
   let planned;
   if (!existsSync(path.join(session.casePath, 'case.sqlite3'))) {
     const task = { objective: required(request.objective, 'objective'), scope: required(request.scope, 'scope'),
       target, skill, deliverables: request.deliverables || [], criteria: request.criteria || [{ id: 'objective', question: request.objective }] };
     if (!Array.isArray(task.deliverables) || task.deliverables.some(x => typeof x !== 'string')) throw new Error('deliverables must be file paths');
     task.deliverables = task.deliverables.map(x => caseFile(session, x));
-    const mission = ['fusion-js', 'fusion-binary', 'fusion-mobile'].includes(skill) ? 'reverse' : skill === 'fusion-code' ? 'audit' : 'pentest';
+    const mission = request.mission || (['fusion-js', 'fusion-binary', 'fusion-mobile'].includes(skill) ? 'reverse' : skill === 'fusion-code' ? 'audit' : 'pentest');
+    task.mission = mission;
     planned = await session.call('start', [], JSON.stringify({ project: path.basename(session.cwd).slice(0, 80) + ':' + digest(session.cwd).slice(0, 20), targets: [target],
       config: { mission_id: mission, objective: task.objective, scope: task.scope,
         criteria: task.criteria,
@@ -245,9 +249,12 @@ function managedMaterial(session, file) {
 }
 
 function captureOutput(session, step, attempt, directory, result, status) {
-  if (status !== 'review' || !['write', 'edit'].includes(step.tool)) return { result, status, outputs: [] };
+  if (status !== 'review' || !['write', 'edit', 'fusion_knowledge'].includes(step.tool)) return { result, status, outputs: [] };
   try {
-    const output = ownedFile(session, step.args.file_path, true);
+    const pointer = step.tool === 'fusion_knowledge'
+      ? JSON.parse(result.content.find(c => c.type === 'text').text).snapshot : null;
+    const output = ownedFile(session, pointer ? pointer.path : step.args.file_path, true);
+    if (pointer && output.sha256 !== pointer.sha256) throw new Error('Knowledge snapshot hash mismatch');
     const snapshot = path.join(directory, attempt + '.output');
     copyFileSync(output.path, snapshot);
     return { result, status, outputs: [{ path: output.path, capture: snapshot, sha256: fileHash(snapshot) }] };
