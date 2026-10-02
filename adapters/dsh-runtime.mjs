@@ -15,7 +15,7 @@ function execute(command, args, options) {
 export const actions = new Set(['start', 'catalog', 'plan', 'advance', 'route', 'run', 'mcp-run',
   'begin', 'record', 'review', 'reconcile', 'note', 'resume', 'query', 'report', 'context-set', 'context-release',
   'execute', 'save', 'checkpoint', 'finish', 'suspend']);
-for (const action of ['artifact', 'assess', 'memory-search', 'memory-show', 'memory-add', 'memory-review']) actions.add(action);
+for (const action of ['artifact', 'assess', 'node-review', 'memory-search', 'memory-show', 'memory-add', 'memory-review']) actions.add(action);
 const ownedOptions = ['--workspace', '--case', '--session'];
 
 export function digest(value) {
@@ -118,7 +118,7 @@ export class FusionSession {
   }
 
   async cli(action, args, signal) {
-    const bound = action === 'catalog' ? [] : ['--workspace', this.workspace, '--session', this.session, '--case', this.casePath];
+    const bound = ['catalog', 'compose'].includes(action) ? [] : ['--workspace', this.workspace, '--session', this.session, '--case', this.casePath];
     try {
       const { stdout } = await execute(this.config.python || (process.platform === 'win32' ? 'python' : 'python3'),
         [this.script, action, ...bound, ...args], { cwd: this.cwd, signal, timeout: 330000, maxBuffer: 1024 * 1024,
@@ -143,7 +143,7 @@ export class FusionSession {
       args.push('--valid-for', '86400'); // Same default as native execute.review.
     }
     if (input !== undefined) {
-      if (!['start', 'plan', 'route', 'advance', 'context-set', 'mcp-run', 'assess', 'memory-add'].includes(action)) {
+      if (!['start', 'plan', 'route', 'advance', 'context-set', 'mcp-run', 'assess', 'node-review', 'memory-add'].includes(action)) {
         throw new Error('input_json is not supported for this action');
       }
       if (input.length > 65536) throw new Error('input_json exceeds 64 KiB');

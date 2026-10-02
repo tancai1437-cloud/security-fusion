@@ -54,7 +54,8 @@ function selection(session, request) {
   if (!module.execution_routes.includes(capability)) throw new Error(`Allowed capabilities for ${skill}: ${module.execution_routes.join(', ')}`);
   const route = catalog(session, 'execution-routes.json', 'routes').find(r => r.id === capability);
   const sourceHash = digest(readFileSync(path.join(session.config.skillRoot, module.path), 'utf8'));
-  return { module, route, procedure, skill, capability, sourceHash };
+  const compositionHash = digest(readFileSync(path.join(session.config.skillRoot, 'manifests/components.json'), 'utf8'));
+  return { module, route, procedure, skill, capability, sourceHash, compositionHash };
 }
 
 function bindingSource(session, route, tool) {
@@ -93,7 +94,7 @@ function chooseTool(session, route, request, tools) {
 
 function signature(selected, choice) {
   return digest(JSON.stringify({ skill: selected.skill, capability: selected.capability,
-    source: selected.sourceHash, route: selected.route, procedure: selected.procedure,
+    source: selected.sourceHash, composition: selected.compositionHash, route: selected.route, procedure: selected.procedure,
     tool: choice.tool.name, schema: choice.tool.parameters, source_binding: choice.source, reason: choice.reason }));
 }
 
@@ -102,7 +103,7 @@ function remember(session, request, selected, choice, stamp) {
   Object.assign(defaults, { skill: selected.skill, capability: selected.capability, tool: choice.tool.name });
   const id = 'ROUTE-' + digest(session.owner + stamp).slice(0, 24);
   const record = { id, signature: stamp, defaults, source: selected.module.path,
-    source_sha256: selected.sourceHash, binding_source: choice.source };
+    source_sha256: selected.sourceHash, composition_sha256: selected.compositionHash, binding_source: choice.source };
   const prior = (session.state()?.prepared_routes || []).filter(r => r.id !== id);
   session.update({ route_contract: 'prepared-v1', mode: session.state()?.task ? 'executing' : 'ready',
     prepared_routes: [...prior.slice(-5), record],
@@ -123,8 +124,8 @@ export async function prepareRoute(session, request, tools, signal) {
   const selected = selection(session, request);
   if (selected.response) return selected.response;
   const choice = chooseTool(session, selected.route, request, tools);
-  const card = (await session.cli('catalog', ['--skill', selected.skill], signal)).action_card;
-  const guidance = { specialist: card, capability: { id: selected.capability,
+  const composed = await session.cli('compose', ['--skill', selected.skill, '--capability', selected.capability, '--host', 'dsh'], signal);
+  const guidance = { specialist: composed.method, composition: composed.runtime, capability: { id: selected.capability,
     required_input: selected.route.required_input, expected_output: selected.route.expected_output },
     ...(selected.procedure ? { procedure: selected.procedure } : {}) };
   if (!choice.tool) return { ...choice, skill: selected.skill, capability: selected.capability,
@@ -154,7 +155,7 @@ export async function requireRoute(session, request, tools, signal) {
     const stamp = signature(selected, choice);
     const saved = (session.state()?.prepared_routes || []).find(r => r.signature === stamp);
     if (saved) return { receipt: { id: saved.id, skill: selected.skill, capability: selected.capability,
-      tool: choice.tool.name, source: saved.source, source_sha256: saved.source_sha256,
+      tool: choice.tool.name, source: saved.source, source_sha256: saved.source_sha256, composition_sha256: saved.composition_sha256,
       binding_source: choice.source, procedure: selected.procedure?.id } };
   }
   return { response: await prepareRoute(session, request, tools, signal) };

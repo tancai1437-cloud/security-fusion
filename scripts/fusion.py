@@ -21,6 +21,8 @@ from fusion_advance import advance
 from fusion_mcp import mcp_run
 from fusion_evidence import read_evidence
 from fusion_acceptance import assess
+from fusion_composition import compose, component_card, PHASES, HOSTS
+from fusion_node_review import review_node
 
 
 def add_artifact_command(commands):
@@ -39,21 +41,27 @@ def parser():
     add_start_command(commands)
     listing = commands.add_parser("catalog", help="Read only one routing layer or capability")
     selectors = listing.add_mutually_exclusive_group()
-    for name in ("mission", "skill", "capability"):
+    for name in ("mission", "skill", "capability", "component"):
         selectors.add_argument("--" + name)
     listing.add_argument("--inventory")
     listing.add_argument("--environment", help="Private verified environment index")
     listing.add_argument("--agent", choices=["dsh", "opencode", "pi"])
     listing.add_argument("--instance", help="Current host instance; prevents reusing another host's readiness")
     listing.add_argument("--max-chars", type=int, default=6000)
+    composition = commands.add_parser("compose", help="Compose one method/capability with event-specific runtime contracts; no execution")
+    composition.add_argument("--skill", required=True)
+    composition.add_argument("--capability", required=True)
+    composition.add_argument("--phase", choices=PHASES, default="execute")
+    composition.add_argument("--host", choices=HOSTS, default="cli")
+    composition.add_argument("--max-chars", type=int, default=6000)
     add_commands(commands)
     add_artifact_command(commands)
-    for name in ("init", "plan", "route", "advance", "mcp-run", "begin", "record", "review", "reconcile", "note", "resume", "query", "report", "run", "assess"):
+    for name in ("init", "plan", "route", "advance", "mcp-run", "begin", "record", "review", "reconcile", "note", "resume", "query", "report", "run", "assess", "node-review"):
         command = commands.add_parser(name)
         command.add_argument("--case", required=True)
         if name != "init":
             binding_options(command)
-        if name in {"init", "plan", "route", "assess"}:
+        if name in {"init", "plan", "route", "assess", "node-review"}:
             command.add_argument("--input", required=True)
         if name in {"route", "advance"}:
             command.add_argument("--mcp-profile", help="Optional explicit-target stdio adapter to match by capability")
@@ -219,6 +227,8 @@ def dispatch(args, case):
         return case.reconcile(args.attempt, args.outcome, args.summary, args.artifact)
     if command == "note":
         return case.note(args.kind, args.text, args.check, args.evidence, args.supersedes)
+    if command == "node-review":
+        return review_node(case, read_json(args.input))
     if command in {"resume", "query"}:
         with case.transaction():
             if command == "resume":
@@ -231,23 +241,29 @@ def dispatch(args, case):
     raise FusionError("Unknown command")
 
 
+def catalog_command(args):
+    require(not args.inventory or args.capability, "--inventory requires --capability")
+    if args.environment:
+        from fusion_environment import Environment
+        require(args.capability and args.agent and args.instance and not args.inventory,
+                "--environment requires capability, agent and instance; cannot combine --inventory")
+        return bounded(Environment(args.environment, args.agent).lookup(args.capability, args.instance), args.max_chars)
+    require(not args.agent and not args.instance, "Agent/instance require --environment")
+    value = component_card(args.component) if args.component else catalog(
+        args.mission, args.skill, args.capability, read_json(args.inventory) if args.inventory else None)
+    return bounded(value, args.max_chars)
+
+
 def main(argv=None):
     args = parser().parse_args(argv)
     case = None
     try:
         if args.command == "start":
             result = start(args, local_run)
+        elif args.command == "compose":
+            result = bounded(compose(args.skill, args.capability, args.phase, args.host), args.max_chars)
         elif args.command == "catalog":
-            require(not args.inventory or args.capability, "--inventory requires --capability")
-            if args.environment:
-                from fusion_environment import Environment
-                require(args.capability and args.agent and args.instance and not args.inventory,
-                        "--environment requires capability, agent and instance; cannot combine --inventory")
-                result = bounded(Environment(args.environment, args.agent).lookup(args.capability, args.instance), args.max_chars)
-            else:
-                require(not args.agent and not args.instance, "Agent/instance require --environment")
-                result = bounded(catalog(args.mission, args.skill, args.capability,
-                                         read_json(args.inventory) if args.inventory else None), args.max_chars)
+            result = catalog_command(args)
         elif args.command == "init":
             case = Case.create(args.case, read_json(args.input))
             result = {"status": "created", "case_id": case.meta("case_id")}

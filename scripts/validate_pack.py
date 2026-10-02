@@ -24,6 +24,22 @@ def require(condition, message):
 def main():
     evidence = read_json("sources.lock.json")
     source_index = unique_index(evidence["sources"], "sources")
+    components = unique_index(read_json("manifests/components.json")["components"], "components")
+    survey = read_json("references/upstream-survey-2026-10-02.json")
+    researched = {r.get("full_name", r["requested_repo"]) for r in survey["repositories"] if r["status"] == "observed"}
+    for component in components.values():
+        require(component["kind"] in {"method", "adapter", "runtime", "quality"}, "Unknown component kind")
+        require(set(component["phases"]) <= {"execute", "recover", "review", "deliver"}, "Unknown component phase")
+        require(component["gap"] and component["contract"], "Component must state contract and limitations")
+        require(set(component["upstreams"]) <= researched, "Component source was not observed")
+        for relative in component["implementation"] + component["tests"]:
+            resolved = (ROOT / relative).resolve()
+            require(resolved.is_relative_to(ROOT) and resolved.exists(), "Missing component implementation/test")
+    for source in survey["source_files"]:
+        require(bool(re.fullmatch(r"[0-9a-f]{40}", source["commit"])) and
+                bool(re.fullmatch(r"[0-9a-f]{64}", source["sha256"])), "Missing fixed research source hash")
+        require(source["url"].startswith("https://github.com/" + source["repo"] + "/blob/" + source["commit"] + "/"),
+                "Research source URL must pin its commit")
     modules = unique_index(read_json("manifests/specialists.json")["modules"], "modules")
     execution = read_json("manifests/execution-routes.json")
     providers = unique_index(execution["providers"], "providers")
@@ -124,6 +140,10 @@ def main():
         "environment_recipes": len(setup),
         "upstream_projects": len({s["repo"] for s in source_index.values()}),
         "upstream_files": len(source_index),
+        "component_types": len(components),
+        "survey_candidates": len(survey["repositories"]),
+        "survey_selected": len(survey["decisions"]),
+        "survey_fixed_files": len(survey["source_files"]),
         "example_workitems": len(work),
         "local_links_checked": link_count,
         "live_mcp_integration": "NOT_RUN",

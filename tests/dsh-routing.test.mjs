@@ -22,6 +22,8 @@ test('unprepared dispatch returns the source method first; restart restores the 
   const first = await requireRoute(session, request, [read]);
   assert.equal(first.response.status, 'route_ready');
   assert.equal(first.response.target_action_executed, false);
+  assert.equal(first.response.guidance.composition.host, 'dsh');
+  assert.deepEqual(first.response.guidance.composition.components, ['evidence', 'isolation']);
   assert.ok(readFileSync(first.response.guidance.specialist.source, 'utf8').replaceAll('\r\n', '\n').includes(first.response.guidance.specialist.method));
   assert.equal(first.response.execution.parameters.required[0], 'file_path');
   assert.equal(existsSync(path.join(session.casePath, 'case.sqlite3')), false, 'routing must not fake an execution/check');
@@ -37,6 +39,7 @@ test('unprepared dispatch returns the source method first; restart restores the 
   const actual = await executeStep(restarted, expanded, dispatch, undefined, ready.receipt);
   assert.equal(actual.routing.id, first.response.route_id);
   assert.equal(actual.routing.source_sha256, first.response.guidance.specialist.source_sha256);
+  assert.equal(actual.routing.composition_sha256.length, 64);
   assert.equal(actual.status, 'review'); assert.equal(calls, 1);
   assert.equal(restarted.state().current_route.status, 'executed');
   assert.throws(() => expandRoute(restarted, { route_id: first.response.route_id, arguments: { file_path: 'changed.js' } }), /this call's work/);
@@ -92,6 +95,10 @@ test('procedure binds specialist and capability; changed schema or method requir
   const method = path.join(local, 'specialists/fusion-binary/SKILL.md');
   writeFileSync(method, readFileSync(method, 'utf8') + '\nUpdated fixture method\n');
   assert.equal((await requireRoute(session, expanded, [shell])).response.status, 'route_ready');
+  const components = path.join(local, 'manifests/components.json');
+  const data = JSON.parse(readFileSync(components, 'utf8')); data.selection_policy += ' fixture revision';
+  writeFileSync(components, JSON.stringify(data));
+  assert.equal((await requireRoute(session, expanded, [shell])).response.status, 'route_ready', 'changed composition invalidates a prepared route');
 });
 
 test('zero execution is corrected finitely and recorded; analysis suspension remains unrestricted', async () => {

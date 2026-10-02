@@ -49,6 +49,13 @@ function createFusionTool(ctx, get, children, config) {
           criterion: { type: 'string', required: true }, attempts: { type: 'array', items: { type: 'string' }, required: true },
           summary: { type: 'string', required: true },
         } }, description: 'finish: explain how actual reviewed attempts answer each criterion; files alone do not establish success' },
+        node: { type: 'object', additionalProperties: false, properties: {
+          question: { type: 'string', required: true }, conclusion: { type: 'string', required: true },
+          attempts: { type: 'array', items: { type: 'string' }, required: true },
+          unresolved: { type: 'array', items: { type: 'string' }, required: true },
+          decision: { type: 'string', enum: ['continue', 'pivot', 'blocked', 'ready_to_deliver'], required: true },
+          next_test: { type: 'string', required: true },
+        }, description: 'node-review only, at a meaningful finding/pivot/blocker: preserve the current question, evidence, gaps and next discriminating test. Not required after every tool.' },
         identity_ref: { type: 'string' }, context_slot: { type: 'string' },
         depends_on: { type: 'array', items: { type: 'string' } }, retest_reason: { type: 'string' },
         summary: { type: 'string' }, next: { type: 'string', description: 'Optional next uncompleted action; execute persists it BEFORE dispatch; checkpoint requires it' }, reason: { type: 'string' },
@@ -101,6 +108,9 @@ async function performAction(ctx, get, children, args, exec) {
   }
   if (args.action === 'review' && args.request?.review) {
     return executeStep(session, { review: request.review }, null, exec.signal);
+  }
+  if (args.action === 'node-review') {
+    return session.call('node-review', args.args || [], args.request ? JSON.stringify(request.node || {}) : args.input_json, exec.signal);
   }
   if (['execute', 'save'].includes(args.action)) {
     return executeAction(ctx, children, exec, session, args.action === 'save' ? saveRequest(session, args, request) : request);

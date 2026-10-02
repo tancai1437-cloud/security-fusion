@@ -110,6 +110,15 @@ test('adapter intercepts entry reads, prepares before dispatch and records the s
     const alias = JSON.parse(await tool.execute({ action: 'review', request: {
       review: { attempt: actual.attempt_id, summary: 'The same captured source observation' } } }, exec));
     assert.equal(alias.status, 'reviewed'); assert.equal(calls, 1, 'structured review and CLI review must not be confused');
+    const node = { question: 'What does the controlled source establish?', attempts: [actual.attempt_id],
+      conclusion: 'The captured source declares constant 27; runtime behaviour has not been tested.',
+      unresolved: ['Runtime behaviour'], decision: 'continue', next_test: 'Inspect the existing controlled runtime observation.' };
+    const decision = JSON.parse(await tool.execute({ action: 'node-review', request: { node } }, exec));
+    assert.equal(decision.status, 'node_recorded'); assert.equal(decision.task_completed, false);
+    assert.equal(calls, 1, 'node review must not dispatch a target action');
+    const restored = await session.recovery();
+    assert.equal(restored.state.node_review.next_test, node.next_test);
+    await assert.rejects(tool.execute({ action: 'node-review', request: { node: { ...node, attempts: ['CALL-invented'] } } }, exec), /Unknown attempt/);
     const next = JSON.parse(await tool.execute({ action: 'execute', request: { ...request,
       capability: 'evidence.persist', review: { summary: 'The source declares the constant 27' } } }, exec));
     assert.equal(next.status, 'route_ready'); assert.equal(next.previous_review, 'reviewed');

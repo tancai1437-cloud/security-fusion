@@ -10,6 +10,7 @@ from fusion_methods import check_guidance, specialist_card
 from fusion_delivery import delivery_audit
 from fusion_progress import blocked_by, next_action, relevant_results
 from fusion_acceptance import acceptance
+from fusion_node_review import restore_node
 
 
 def bounded(value, maximum):
@@ -123,6 +124,7 @@ def prioritize_results(case, packet, results, maximum):
     if specialist:
         specialist["method_deferred"] = True
     bounded(packet, maximum)
+    restore_node(case, packet, maximum)
     append_with_budget(packet, "results", results, "omitted_results", maximum)
     if specialist:
         specialist["method"] = method
