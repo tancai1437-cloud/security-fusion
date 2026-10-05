@@ -27,7 +27,18 @@ def main():
     components = unique_index(read_json("manifests/components.json")["components"], "components")
     survey = read_json("references/upstream-survey-2026-10-02.json")
     researched = {r.get("full_name", r["requested_repo"]) for r in survey["repositories"] if r["status"] == "observed"}
+    selection = read_json("references/component-selection-2026-10-06.json")
+    require(set(selection["groups"]) == set(components), "Each component needs a current three-source selection")
+    for repo in selection["repositories"]:
+        require(repo["status"] == "observed" and not repo["archived"], "Selected repository was not observed active")
+        require(bool(re.fullmatch(r"[0-9a-f]{40}", repo["commit"])), "Selected repository needs a pinned commit")
+        researched.add(repo["requested_repo"])
+        for source in repo["sources"]:
+            require(bool(re.fullmatch(r"[0-9a-f]{64}", source["sha256"])), "Selected source needs a content hash")
+            require(source["url"].startswith(repo["html_url"] + "/blob/" + repo["commit"] + "/"), "Source must use the observed commit")
     for component in components.values():
+        require(len(set(component["upstreams"])) == 3 and component["upstreams"] == selection["groups"][component["id"]],
+                "Each component must select exactly three matching upstreams")
         require(component["kind"] in {"method", "adapter", "runtime", "quality"}, "Unknown component kind")
         require(set(component["phases"]) <= {"execute", "recover", "review", "deliver"}, "Unknown component phase")
         require(component["gap"] and component["contract"], "Component must state contract and limitations")

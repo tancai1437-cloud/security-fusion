@@ -138,7 +138,12 @@ def execute_bound(args, case, dispatch):
                 args.experiences = None
                 if args.memory_query:
                     require(bool(args.skill), "--memory-query requires --skill")
-                    args.experiences = search(Memory(workspace), registration, args, args.memory_query, args.max_chars)
+                    from fusion_progress import continuation_query
+                    query_text = continuation_query(case, args.memory_query)
+                    args.limit = 2
+                    # Up to two complete 4K cards are read locally; resume admits
+                    # only whole cards that fit its shared context budget.
+                    args.experiences = search(Memory(workspace), registration, args, query_text, 10000)
             result = dispatch(args, case)
             if context and result.get("decision") == "execute":
                 with case.transaction():

@@ -20,6 +20,10 @@ fusion(action="execute", request={"route_id":"刚返回的 ROUTE-ID", "arguments
 
 route_ready **尚未调用工具**，必须紧接 execute；tool_call_id、attempt_id 和 observed 才是实测回执。未准备就直接 execute 会先返回方法，不执行目标；按返回 route_id 继续，已填字段自动恢复。同一路由重复执行不重复返回方法；专项、能力、工具/schema 或方法版本变化会重新路由。没有已知绑定的自定义工具，用 tool_reason 说明适用性和局限，回执标记为模型选择的替代工具。真实工具缺失就返回缺口，不编造名称。具体方法可传 procedure，由程序绑定对应专项和能力，不允许矛盾组合。
 
+沿当前路由，推荐 `execute request={arguments,work:{key,conditions}}`：显式提交本次参数与条件即可省略 route_id。它只读取当前会话的 current_route；没有当前路由就仍需准备。选回更早的路由用其明确 ID；换方法/能力/工具先 route。review-only、resume 和 node-review 均不会隐式执行。
+
+阶段交付可直接 `deliver request={summary,review?}`，程序生成 `report/stage.md` 并以 partial 结束本轮，保留未决观察与缺失产物。checkpoint 生成同一可读阶段页并保存 next；不把暂停当成完成。正式报告仍用 save + finish/assess。`report/stage.md` 是可再生视图，自定义正文保存到其他文件。
+
 新任务的目标检查必须提供 work；同一问题换 shell/MCP 仍沿用 key 与 conditions，不能用工具名当检查名。条件必须包含会影响结论的输入、身份引用或样本版本；变化才另建检查。文件整理、资料搜索用 evidence.persist，按实际调用参数查重，不按父问题的 work 合并不同文件或查询。next 是可选的未完成计划，执行前即落盘。
 
 criteria 是原任务的可验证问题，复杂任务拆成少量具体条件，单点任务可直接用目标；不要扩大用户范围。阶段观察不等于最终回答。所有交付写到宿主给出的 case_path；write/edit 和 deliverables 的相对路径按本案解析，读取项目源码仍用明确路径。shell/MCP 写文件时显式使用本案绝对路径。依赖前一步产物的执行传 depends_on:[实际 check_id]，让版本变化能被检出。

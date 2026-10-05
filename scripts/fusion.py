@@ -113,6 +113,7 @@ def parser():
         if name in {"resume", "query"}:
             command.add_argument("--max-chars", type=int, default=6000)
         if name == "resume":
+            command.add_argument("--focus", action="store_true", help="Compact working set; keep scope, conditions and prerequisite evidence")
             memory_query_options(command, recovery=True)
         if name == "query":
             command.add_argument("--kind", choices=["checks", "notes", "events", "attempts", "artifacts"], required=True)
@@ -233,7 +234,7 @@ def dispatch(args, case):
     if command in {"resume", "query"}:
         with case.transaction():
             if command == "resume":
-                return resume(case, args.check, args.max_chars, args.binding, args.experiences, args.skill)
+                return resume(case, args.check, args.max_chars, args.binding, args.experiences, args.skill, args.focus)
             return bounded(query(case, args.kind, args.offset, args.limit, args.check, args.target, args.status), args.max_chars)
     if command == "report":
         return report(case)

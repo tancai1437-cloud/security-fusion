@@ -20,7 +20,19 @@ function catalog(session, file, key) {
   return JSON.parse(readFileSync(path.join(session.config.skillRoot, 'manifests', file), 'utf8'))[key];
 }
 
+function currentRouteRequest(session, request) {
+  if (request.route_id || request.arguments === undefined || !request.work) return request;
+  const current = session.state()?.current_route;
+  const saved = (session.state()?.prepared_routes || []).find(r => r.id === current?.id);
+  const compatible = saved && ['skill', 'capability', 'tool', 'procedure'].every(
+    key => request[key] === undefined || request[key] === saved.defaults[key]);
+  // Only the current session's method is eligible. Fresh arguments AND test
+  // conditions are mandatory; never infer an execution from a review or resume.
+  return compatible ? { ...request, route_id: saved.id } : request;
+}
+
 export function expandRoute(session, request) {
+  request = currentRouteRequest(session, request);
   if (!request.route_id) return { ...request };
   const routes = session.state()?.prepared_routes || [];
   const saved = routes.find(r => r.id === request.route_id);
@@ -206,6 +218,14 @@ export async function prepareRoute(session, request, tools, signal) {
     required_input: selected.route.required_input, expected_output: selected.route.expected_output,
     ...(selected.route.http_methods ? { http_methods: selected.route.http_methods } : {}) },
     ...(selected.procedure ? { procedure: selected.procedure } : {}) };
+  if (!selected.procedure) {
+    const methods = catalog(session, 'procedures.json', 'procedures').filter(
+      p => p.skill_id === selected.skill && p.capability_id === selected.capability);
+    guidance.method_choices = methods.slice(0, 3).map(p => ({ procedure: p.id, question: p.question,
+      requires: p.requires, when: p.any_features, unless: p.unless }));
+    guidance.omitted_methods = Math.max(0, methods.length - 3);
+    guidance.method_choice_use = 'Optional concrete methods for observed facts; this list does not establish their prerequisites. Current specialist guidance remains sufficient for a baseline.';
+  }
   if (profile) guidance.mission = { id: mission, ...profile };
   if (!choice.tool) return { ...choice, skill: selected.skill, capability: selected.capability,
     target_action_executed: false, guidance };

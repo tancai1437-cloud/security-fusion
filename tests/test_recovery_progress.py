@@ -12,6 +12,21 @@ from test_runtime import CONFIG, spec
 
 
 class RecoveryProgressTests(unittest.TestCase):
+    def test_focus_preserves_scope_and_conditions_and_prefers_a_supported_chain(self):
+        self.case.plan([spec("baseline"), spec("unrelated", inputs={"sample": 2}),
+                        spec("deeper", inputs={"sample": 3}, depends_on=["baseline"])])
+        prior = self.complete("baseline")
+        ordinary = resume(self.case)
+        focused = resume(self.case, focus=True)
+        self.assertLess(len(encode(focused)), len(encode(ordinary)))
+        self.assertEqual(focused["current"]["id"], self.case.check("deeper")["id"])
+        self.assertEqual(focused["config"], ordinary["config"])
+        self.assertEqual(focused["current"]["spec"], ordinary["current"]["spec"])
+        self.assertEqual(focused["results"][0]["attempt_id"], prior)
+        self.assertTrue(focused["guidance"]["specialist"]["method_deferred"])
+        self.assertTrue(focused["guidance"]["specialist"]["source_sha256"])
+        self.assertEqual(self.case.db.execute("SELECT COUNT(*) FROM attempts").fetchone()[0], 1)
+
     def test_short_evidence_ids_resolve_only_when_unique_in_current_case(self):
         self.case.plan([spec('first'), spec('second', inputs={'sample': 2})])
         first = self.case.artifacts(self.complete('first'))[0]

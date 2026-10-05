@@ -43,17 +43,21 @@ route_ready 尚未执行，实际回执才算调用。可传 procedure 选择具
 
 原生宿主为新路由返回短 ID，旧路由继续有效。紧接上一条观测且中间没有其他执行时，review 可只填 summary/verdict，宿主取上一回执；复核更早结果才填完整 attempt。ID 抄错时按错误提示复制本案真实 ID，不猜补字符，也不重跑目标来“补回执”。
 
+沿当前路由继续时，`execute request={arguments,work:{key,conditions}}` 即可，省略 route_id；参数和条件必须是本次的。切换专项/能力/工具先 route；程序不猜更早的路由，不继承别的会话。route 中的 method_choices 只列当前能力的最多三个可选具体方法，命中前提时再选 procedure。
+
 同一问题换工具仍用同一 work.key/conditions；输入、身份、资源或样本变化时准确更新条件。后续工具继续 execute，省略不变的 objective/scope/target；依赖传实际 check_id 的 depends_on。读取真实结果后可随下一次调用提交 review:{attempt,summary,verdict}，单独 review 不重发。保存产物用 `fusion(action="save",file_path="REPORT.md",content="正文")`，宿主自动准备写入路由并核对字节，不需要模型再拼 writer 或权限参数。参数不明确或报错时才读 [宿主执行约定](references/host-execution.md)。
 
 ## 推进、复盘与恢复
 
 每步消除一个具体不确定性。区分业务结果、正常拒绝、工具失败和未知；不能以 200、规则命中或写文件成功代替研究结论。当前问题仍可验证时继续深入，新线索带来源排队；转向留下已测边界、反证、阻塞和恢复条件，参数错误按回执修正。
 
-在阶段结论、转向或主线阻塞时用 [node-review](references/node-review.md) 保存问题、已复核 CALL-ID、结论、未决点与下一试验。不是每次读文件都复盘；没有实测证据的暂停用 checkpoint。节点不自动执行下一步，也不代表任务完成。
+在阶段结论、转向或主线阻塞时用 [node-review](references/node-review.md) 保存问题、已复核 CALL-ID、结论、未决点与下一试验。已规划下一检查时可传 next_check；恢复先处理未决回执，再接有效节点和已有前提链。不是每次读文件都复盘；没有实测证据的暂停用 checkpoint。节点不自动执行下一步，也不代表任务完成。
 
 压缩/重启后先恢复本案状态，按 next_action 核对未决调用，再读 node_review、results 和 acceptance 缺口。节点证据变更或已过期先核对；节点/方法被预算延后时按指针读取。reuse 不重发，hold 先核对；真正复测给 retest_reason。完整材料用 query --kind artifacts 找 E-ID，`fusion(action="artifact",artifact_id="E-…",query="要查的文本")` 搜索，或用 offset/length 分段读取。导入的 MCP 大工件和原始回执均可检索；不跨案继承结果。
 
 有候选才进入 [validate](specialists/fusion-validate/SKILL.md)，需完整项目报告才进入 [report](specialists/fusion-report/SKILL.md)；单点任务沿当前专项交付。finish 关联目标条件与实际证据；阶段报告可以 status=partial，未复核项保留为未决，不为交付把所有观察强行判为 done。用户暂停用 checkpoint；转去无关分析用 suspend，本案证据整理和报告继续管理路径。
+
+需要直接交付当前阶段，用 `fusion(action="deliver",request={summary:"已取得的结果与缺口",review?:{summary,verdict}})`；自动导出 `report/stage.md` 并按 partial 交付，关联真实回执和缺失产物。checkpoint 也自动导出该页。正式结论与完整报告仍走 finish/assess，不把自动排版当研究完成。
 
 ## 没有原生宿主时
 

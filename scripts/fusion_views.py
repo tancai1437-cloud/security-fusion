@@ -7,10 +7,10 @@ import uuid
 
 from fusion_store import FusionError, encode, manifest, require
 from fusion_methods import check_guidance, specialist_card
-from fusion_delivery import delivery_audit
+from fusion_delivery import delivery_audit, stage_markdown
 from fusion_progress import blocked_by, next_action, relevant_results
 from fusion_acceptance import acceptance
-from fusion_node_review import restore_node
+from fusion_node_review import latest_node, restore_node
 
 
 def bounded(value, maximum):
@@ -90,9 +90,12 @@ def select_current(case, rows, identity):
     unresolved = next((r for r in rows if r["status"] in {"running", "unknown", "review"}), None)
     if unresolved:
         return unresolved
-    return next((
-        r for r in rows if r["status"] == "pending" and all(
-            case.effective_status(case.check(d)) == "done" for d in json.loads(r["deps"]))), None)
+    ready = [r for r in rows if r["status"] == "pending" and not blocked_by(case, r)]
+    node = latest_node(case)
+    preferred = node.get("next_check") if node and node["support_current"] else None
+    # Continue an evidence-backed chain before opening unrelated branches. FIFO
+    # still resolves ties, and unsettled external effects always take precedence.
+    return min(ready, key=lambda row: (row["id"] != preferred, not json.loads(row["deps"])), default=None)
 
 
 def resume_notes(case, current_id):
@@ -115,7 +118,7 @@ def append_with_budget(packet, name, candidates, omitted, maximum, container=Non
             break
 
 
-def prioritize_results(case, packet, results, maximum):
+def prioritize_results(case, packet, results, maximum, focus=False):
     # Facts outrank long method prose; completion and the exact source remain.
     if case.meta("config").get("criteria"):
         packet["acceptance"] = acceptance(case)
@@ -125,8 +128,11 @@ def prioritize_results(case, packet, results, maximum):
         specialist["method_deferred"] = True
     bounded(packet, maximum)
     restore_node(case, packet, maximum)
+    if focus:
+        from itertools import islice
+        results = islice(results, 3)
     append_with_budget(packet, "results", results, "omitted_results", maximum)
-    if specialist:
+    if specialist and not focus:
         specialist["method"] = method
         del specialist["method_deferred"]
         if len(encode(packet)) > maximum:
@@ -134,7 +140,7 @@ def prioritize_results(case, packet, results, maximum):
             specialist["method_deferred"] = True
 
 
-def resume(case, identity=None, maximum=6000, binding=None, experiences=None, fallback_skill=None):
+def resume(case, identity=None, maximum=6000, binding=None, experiences=None, fallback_skill=None, focus=False):
     rows = [dict(r) for r in case.db.execute("SELECT * FROM checks ORDER BY rowid")]
     current = select_current(case, rows, identity)
     current_id = current["id"] if current else None
@@ -197,14 +203,18 @@ def resume(case, identity=None, maximum=6000, binding=None, experiences=None, fa
         packet["experience_engine"] = experiences["engine"]
         packet["experience_use"] = experiences["use"]
         packet["omitted_experiences"] = experiences["omitted"] + len(experiences["items"])
-    prioritize_results(case, packet, results, maximum)
-    append_with_budget(packet, "queue", queue, "omitted_queue", maximum)
+    if focus:
+        packet["view"] = "focus; full detail via resume --check ID without --focus or paged query/artifact"
+        # Preserve the public current-check shape and all binding/condition fields.
+        # Only optional history and method prose are deferred to their pointers.
+    prioritize_results(case, packet, results, maximum, focus)
+    append_with_budget(packet, "queue", queue[:2] if focus else queue, "omitted_queue", maximum)
     append_with_budget(packet, "in_flight", inflight[1:6], "omitted_in_flight", maximum)
     if route_candidates:
         append_with_budget(packet, "decisions", route_candidates, "omitted_decisions", maximum, packet["routing"])
     if experiences is not None:
         append_with_budget(packet, "experience_hints", experiences["items"], "omitted_experiences", maximum)
-    append_with_budget(packet, "recent_global_notes", optional_notes, "omitted_notes", maximum)
+    append_with_budget(packet, "recent_global_notes", optional_notes[:1] if focus else optional_notes, "omitted_notes", maximum)
     return bounded(packet, maximum)
 
 
@@ -313,10 +323,11 @@ def report(case):
                        item.get("summary", "No evidence-based assessment yet."), "",
                        "Attempts: " + ", ".join(item.get("attempts", [])), ""]
     write_view(case, "report/acceptance.md", "\n".join(goal_lines))
+    write_view(case, "report/stage.md", stage_markdown(case, checks, attempts, artifacts, delivery, goal, revision))
     return {"status": status, "ledger_status": ledger_status,
             "completion_scope": "no_overall_completion_claim", "revision": revision,
             "counts": counts, "registered_attempts": delivery["registered_attempts"],
             "delivery_status": delivery["status"], "delivery_gaps": delivery["gaps"][:10], "acceptance": goal,
             "omitted_gaps": max(0, len(delivery["gaps"]) - 10),
             "untracked_actions": delivery["untracked_actions"],
-            "artifacts": ["report/ledger.md", "report/coverage.json", "report/delivery.json", "resume.md"]}
+            "artifacts": ["report/stage.md", "report/ledger.md", "report/coverage.json", "report/delivery.json", "resume.md"]}

@@ -21,6 +21,8 @@ fusion(action="node-review", request={"node":{
 
 decision 取 continue / pivot / blocked / ready_to_deliver。ready_to_deliver 要求没有自报未决点，但仍必须经过 finish 的证据和交付验收；它不是 completed。无实测证据的启动阻塞用 checkpoint，不伪造 CALL-ID。失败/未知调用先复核或 reconcile；仅有失败回执不能当作已验证结论。
 
+continue/pivot 可选 `next_check`，引用本案已规划且 pending 的检查 ID 或 key。恢复时仅在节点证据当前有效、下一检查依赖满足时优先选择它；已执行项、外案 ID、未知调用不会被此字段重放。没有明确绑定时，已具备前置结果的待执行链优先于无依赖的新支线，同级保持原计划顺序。
+
 question 最多 240 字符、conclusion 500、next_test 300；unresolved 最多 4 项、每项 180。详细资料写本案证据，短节点只保留决定后续方向的信息。安全引用代替 Cookie、密码和令牌。
 
 ## CLI 与恢复

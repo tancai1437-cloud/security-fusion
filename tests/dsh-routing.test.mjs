@@ -14,6 +14,41 @@ const root = mkdtempSync(path.join(os.tmpdir(), 'fusion-route-'));
 const config = { skillRoot: pack, stateDir: path.join(root, 'private'), python: process.env.FUSION_TEST_PYTHON || 'python' };
 const read = { name: 'read', description: 'Read a file', parameters: { type: 'object', properties: { file_path: { type: 'string' } }, required: ['file_path'] } };
 
+test('current route reuse needs fresh arguments and conditions and never borrows another session', async () => {
+  const a = new FusionSession(config, 'implicit-a', root), b = new FusionSession(config, 'implicit-b', root);
+  const selected = await prepareRoute(a, { skill: 'fusion-js', capability: 'js.source', target: 'fixture',
+    purpose: 'Inspect current source', objective: 'Understand fixture', scope: 'Local fixture only' }, [read]);
+  const fresh = { arguments: { file_path: 'fixture.js' }, work: { key: 'source', conditions: { revision: 'v2' } } };
+  const restored = new FusionSession(config, 'implicit-a', root);
+  const expanded = expandRoute(restored, fresh);
+  assert.equal(expanded.route_id, selected.route_id);
+  assert.equal(expanded.tool, 'read'); assert.deepEqual(expanded.arguments, fresh.arguments);
+  assert.deepEqual(expandRoute(b, fresh), fresh);
+  assert.equal(expandRoute(restored, { arguments: fresh.arguments }).tool, undefined);
+  assert.equal(expandRoute(restored, { review: { summary: 'Observed' } }).tool, undefined);
+  assert.equal(expandRoute(restored, { ...fresh, capability: 'binary.profile' }).route_id, undefined);
+  const changedSchema = { ...read, parameters: { type: 'object', properties: { path: { type: 'string' } } } };
+  assert.equal((await requireRoute(restored, expanded, [changedSchema])).response.status, 'route_ready');
+  assert.equal(existsSync(path.join(a.casePath, 'case.sqlite3')), false, 'route preparation/recovery never executes');
+});
+
+test('stage delivery writes real Markdown and lists missing planned outputs without settling observations', async () => {
+  const session = new FusionSession(config, 'stage-delivery', root);
+  const result = await executeStep(session, { target: 'fixture', objective: 'Inspect fixture', scope: 'Local fixture only',
+    mission: 'src', skill: 'fusion-api', capability: 'http.request', purpose: 'Read controlled observation', tool: 'fixture',
+    arguments: {}, work: { key: 'control', conditions: { sample: 'v1' } }, deliverables: ['REPORT.md'] },
+  async () => ({ isError: false, content: [{ type: 'text', text: 'Controlled observation, no interpretation yet' }] }));
+  const pause = await closeStep(session, 'checkpoint', { summary: 'Fixture read', next: 'Review the existing observation' });
+  assert.ok(pause.artifacts.includes('report/stage.md'));
+  const final = await closeStep(session, 'deliver', { summary: 'Partial stage for review' });
+  assert.equal(final.status, 'partial'); assert.equal(final.unresolved.review, 1);
+  assert.equal(final.deliverables[0].status, 'missing');
+  assert.match(readFileSync(final.report.path, 'utf8'), new RegExp(result.attempt_id));
+  assert.equal(digest(readFileSync(final.report.path)), final.report.sha256);
+  session.update({ task: { ...session.state().task, deliverables: ['../foreign.md'] } });
+  await assert.rejects(closeStep(session, 'deliver', { summary: 'Cannot export foreign path' }), /inside this session/);
+});
+
 test('equivalent root URLs bind once, while ports, paths, queries and foreign tools remain separated', async () => {
   assert.ok(sameTarget('HTTP://LOCALHOST:80/', 'http://localhost'));
   for (const other of ['http://localhost:81', 'https://localhost', 'http://localhost/app', 'http://localhost/?x=1', 'http://localhost/#/other']) {

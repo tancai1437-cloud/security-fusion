@@ -340,17 +340,27 @@ export async function closeStep(session, action, request, signal) {
   if (action === 'checkpoint') {
     const next = required(request.next, 'next uncompleted action', 1800);
     await session.cli('note', ['--kind', 'decision', '--text', summary + '\nNext: ' + next], signal);
+    const audit = await session.cli('report', [], signal);
     session.update({ mode: 'paused', adherence: 'paused', checkpoint: { summary, next } });
-    return { status: 'paused', completion: false, next };
+    return { status: 'paused', completion: false, next, artifacts: audit.artifacts, case_path: session.casePath };
+  }
+  if (action === 'deliver') {
+    await session.cli('report', [], signal);
+    // This convenience path only delivers an observed partial stage. Complete
+    // delivery still needs the caller's goal assessment and authored report.
+    return finishStep(session, { report: 'report/stage.md', status: 'partial' }, summary, signal);
   }
   return finishStep(session, request, summary, signal);
 }
 
 async function finishStep(session, request, summary, signal) {
-  const { report, deliverables, unresolved } = await validateDelivery(session, request, signal);
-  const { receipts, cited } = await validateProvenance(session, report);
+  let { report, deliverables, unresolved } = await validateDelivery(session, request, signal);
   if (request.assessment) await session.call('assess', [], JSON.stringify(request.assessment), signal);
   const audit = await session.cli('report', [], signal);
+  // Audit can regenerate a stage view after a new assessment. Bind the closure
+  // to the final bytes and citations, never the pre-export hash.
+  report = ownedFile(session, report.path);
+  const { receipts, cited } = await validateProvenance(session, report);
   if (audit.delivery_gaps.length && request.status !== 'partial') {
     throw new Error('Specialist deliverables missing: ' + JSON.stringify(audit.delivery_gaps) +
       '. Paths are relative to case_path. Complete the required files, or explicitly submit status=partial with these gaps explained.');
@@ -372,7 +382,7 @@ async function finishStep(session, request, summary, signal) {
 
 async function validateDelivery(session, request, signal) {
   if (!existsSync(path.join(session.root, 'receipts'))) throw new Error('No observed host execution; cannot close this execution contract');
-  const restored = await session.cli('resume', ['--max-chars', '6000'], signal);
+  const restored = await session.cli('resume', ['--focus', '--max-chars', '6000'], signal);
   const counts = restored.stored_status_counts;
   const unresolved = Object.fromEntries(['pending', 'running', 'unknown', 'review'].filter(k => counts[k]).map(k => [k, counts[k]]));
   if (Object.keys(unresolved).length && request.status !== 'partial') {
@@ -381,7 +391,13 @@ async function validateDelivery(session, request, signal) {
   }
   if ((counts.failed || counts.blocked) && request.status !== 'partial') throw new Error('Failed/blocked checks remain; finish must use status=partial');
   const report = ownedFile(session, request.report);
-  const deliverables = (session.state().task?.deliverables || []).map(x => ownedFile(session, x));
+  const deliverables = (session.state().task?.deliverables || []).map(x => {
+    const file = caseFile(session, x); // Validate even missing paths; partial never permits path escape.
+    if (request.status === 'partial' && (!existsSync(file) || !statSync(file).isFile() || !statSync(file).size)) {
+      return { path: file, status: !existsSync(file) ? 'missing' : 'empty_or_not_file' };
+    }
+    return ownedFile(session, x);
+  });
   return { report, deliverables, unresolved };
 }
 

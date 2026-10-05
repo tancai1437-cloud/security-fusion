@@ -11,21 +11,24 @@
       ],
       "implementation": [
         "specialists/",
-        "manifests/procedures.json"
+        "manifests/procedures.json",
+        "adapters/dsh-routing.mjs"
       ],
       "upstreams": [
         "trailofbits/skills",
         "zhaoxuya520/reverse-skill",
-        "Prohao42/aimy-skill",
         "elementalsouls/Claude-BugHunter"
       ],
       "contract": "只载当前专项及命中方法；前提、对照、反证和转向条件一起提供。",
       "status": "implemented_partial",
-      "gap": "13 专项；不同领域深度和模型实测覆盖不均。",
+      "gap": "专项深度仍需同模型实测；候选方法前提由证据判断，不能仅靠关键词选中。",
       "tests": [
         "tests/test_business_routing.py",
-        "tests/test_specialist_routing.py"
-      ]
+        "tests/test_specialist_routing.py",
+        "tests/dsh-routing.test.mjs"
+      ],
+      "selection_ref": "references/component-selection-2026-10-06.json",
+      "improvement_2026_10_06": "当前能力只展示最多三个具体方法及前提；使用当前专项作基线，不要求遍历目录。"
     },
     {
       "id": "tools",
@@ -41,17 +44,19 @@
       ],
       "upstreams": [
         "modelcontextprotocol/python-sdk",
-        "PortSwigger/mcp-server",
-        "mrexodia/ida-pro-mcp",
-        "microsoft/playwright-mcp"
+        "PrefectHQ/fastmcp",
+        "PortSwigger/mcp-server"
       ],
       "contract": "当前真实接口和目标上下文优先；工具名匹配不代表健康或任务适配。",
       "status": "implemented_partial",
-      "gap": "DSH 和显式目标 stdio 已有路径；Pi/OpenCode 无同等宿主验收。",
+      "gap": "保留原工具优先逻辑；未知工具仍需实际接口说明，未遍测所有 MCP。",
       "tests": [
         "tests/dsh-routing.test.mjs",
-        "tests/test_execution_flow.py"
-      ]
+        "tests/test_execution_flow.py",
+        "tests/dsh-schema.test.mjs"
+      ],
+      "selection_ref": "references/component-selection-2026-10-06.json",
+      "improvement_2026_10_06": "复用现有真实工具选择、同目标健康记录和 schema 校验；新增当前路由复用与 schema 变化回归。"
     },
     {
       "id": "context",
@@ -67,16 +72,18 @@
       "upstreams": [
         "langchain-ai/deepagents",
         "anomalyco/opencode",
-        "earendil-works/pi",
         "volcengine/OpenViking"
       ],
       "contract": "当前问题、关键结论和证据指针优先；完整输出落盘，按 ID 分段取回。",
       "status": "implemented_partial",
-      "gap": "字符预算不是 token 预算；宿主其他上下文不受本包总量控制。",
+      "gap": "8000 字符为整条宿主恢复消息硬上限，不等于 token；必需约束过大仍明确报错。",
       "tests": [
         "tests/test_guidance_delivery.py",
-        "tests/test_recovery_progress.py"
-      ]
+        "tests/test_recovery_progress.py",
+        "tests/dsh-runtime.test.mjs"
+      ],
+      "selection_ref": "references/component-selection-2026-10-06.json",
+      "improvement_2026_10_06": "宿主恢复默认 focus：最多三条相关结果、两项排队工作、一条全局笔记；长方法指向原文，范围/身份/条件不裁剪。"
     },
     {
       "id": "evidence",
@@ -91,20 +98,26 @@
       "implementation": [
         "scripts/fusion_store.py",
         "scripts/fusion_evidence.py",
-        "adapters/dsh-execution.mjs"
+        "adapters/dsh-execution.mjs",
+        "scripts/fusion_delivery.py",
+        "scripts/fusion_views.py"
       ],
       "upstreams": [
-        "OpenHands/software-agent-sdk",
         "google/adk-python",
+        "OpenHands/software-agent-sdk",
         "langfuse/langfuse"
       ],
       "contract": "保留真实调用、参数、输出哈希与产物版本；模型总结与原始证据分开。",
       "status": "implemented",
-      "gap": "日志与哈希证明来源和完整性，不独立证明业务结论。",
+      "gap": "捕获正确不等于研究解释正确；自动报告不生成漏洞结论。",
       "tests": [
         "tests/test_foundations.py",
-        "tests/test_execution_flow.py"
-      ]
+        "tests/test_execution_flow.py",
+        "tests/test_component_upgrade.py",
+        "tests/dsh-routing.test.mjs"
+      ],
+      "selection_ref": "references/component-selection-2026-10-06.json",
+      "improvement_2026_10_06": "自动阶段 Markdown 直接引用真实回执、证据路径/哈希、用时和未决状态；保留原不可变证据副本。"
     },
     {
       "id": "isolation",
@@ -118,21 +131,26 @@
       ],
       "implementation": [
         "scripts/fusion_workspace.py",
-        "scripts/fusion_scope_cli.py"
+        "scripts/fusion_scope_cli.py",
+        "adapters/dsh-routing.mjs",
+        "adapters/dsh-execution.mjs"
       ],
       "upstreams": [
         "langchain-ai/langgraph",
         "basicmachines-co/basic-memory",
-        "mem0ai/mem0",
-        "opensandbox-group/OpenSandbox"
+        "mem0ai/mem0"
       ],
       "contract": "先按案件/会话限制数据和工具资源，再检索；跨案仅复用审核后的方法。",
       "status": "implemented_partial",
-      "gap": "可信 Agent 的逻辑隔离；任意 shell/MCP 写入不是 OS 沙箱。",
+      "gap": "保留现有项目/案件/会话绑定；这是应用约束而非操作系统沙箱。",
       "tests": [
         "tests/test_scoped_memory.py",
-        "tests/test_foundations.py"
-      ]
+        "tests/test_foundations.py",
+        "tests/dsh-routing.test.mjs",
+        "tests/dsh-runtime.test.mjs"
+      ],
+      "selection_ref": "references/component-selection-2026-10-06.json",
+      "improvement_2026_10_06": "隐式路由仅取当前会话；另一会话不回退借用。partial 交付缺失文件也先验证案件内路径。"
     },
     {
       "id": "recovery",
@@ -144,20 +162,24 @@
       "implementation": [
         "scripts/fusion_progress.py",
         "scripts/fusion_store.py",
-        "adapters/dsh-execution.mjs"
+        "adapters/dsh-execution.mjs",
+        "scripts/fusion_views.py"
       ],
       "upstreams": [
         "dbos-inc/dbos-transact-py",
-        "temporalio/temporal",
-        "langchain-ai/langgraph"
+        "langchain-ai/langgraph",
+        "temporalio/sdk-python"
       ],
       "contract": "先核对未决调用，再复用有效结果；未知外部副作用不自动重发。",
       "status": "implemented_partial",
-      "gap": "不能保证任意外部系统 exactly-once；工作条件仍须准确声明。",
+      "gap": "未知外部结果仍须对账，不能宣称跨工具 exactly-once。",
       "tests": [
         "tests/test_recovery_progress.py",
-        "tests/test_runtime.py"
-      ]
+        "tests/test_runtime.py",
+        "tests/dsh-runtime.test.mjs"
+      ],
+      "selection_ref": "references/component-selection-2026-10-06.json",
+      "improvement_2026_10_06": "checkpoint 自动导出可读阶段报告；恢复保留未决优先、真实工作条件与前置证据；不自动重放外部副作用。"
     },
     {
       "id": "node-review",
@@ -169,19 +191,22 @@
       ],
       "implementation": [
         "scripts/fusion_node_review.py",
-        "references/node-review.md"
+        "references/node-review.md",
+        "adapters/dsh.mjs"
       ],
       "upstreams": [
         "trailofbits/skills",
-        "langchain-ai/deepagents",
+        "cloudflare/security-audit-skill",
         "OthmanAdi/planning-with-files"
       ],
       "contract": "在结论、转向或阻塞节点记录问题、已复核证据、未决点、决定和下一试验。",
       "status": "implemented",
-      "gap": "当前 Agent 顺序复核；不宣称独立语义裁判。",
+      "gap": "本轮建立可执行接续指针；语义结论仍由当前 Agent 判断。",
       "tests": [
         "tests/test_node_review.py"
-      ]
+      ],
+      "selection_ref": "references/component-selection-2026-10-06.json",
+      "improvement_2026_10_06": "next_check 绑定本案真实 pending 节点；拒绝外案/已完成检查，复盘不增加工具执行。"
     },
     {
       "id": "depth",
@@ -193,18 +218,24 @@
       "implementation": [
         "scripts/fusion_routing.py",
         "scripts/fusion_progress.py",
-        "references/main-router.md"
+        "references/main-router.md",
+        "scripts/fusion_views.py"
       ],
       "upstreams": [
         "apache/caldera",
-        "center-for-threat-informed-defense/attack-flow"
+        "center-for-threat-informed-defense/attack-flow",
+        "Jueze-2019/dsh-redteam-mode"
       ],
       "contract": "优先消除当前关键不确定性；转换节点须给新证据或实际阻塞，不按线索数量扩面。",
       "status": "implemented_partial",
-      "gap": "已有前提/依赖和节点状态；动态试验收益排序、完整攻击路径图仍未实现。",
+      "gap": "已解决接续优先级；信息增益排序、完整攻击路径图和专项能力盲测尚未完成。",
       "tests": [
-        "tests/test_observation_routing.py"
-      ]
+        "tests/test_observation_routing.py",
+        "tests/test_node_review.py",
+        "tests/test_recovery_progress.py"
+      ],
+      "selection_ref": "references/component-selection-2026-10-06.json",
+      "improvement_2026_10_06": "选择顺序为未决回执、有效绑定节点、已满足前置证据的链、其他待执行项；同级沿原顺序。"
     },
     {
       "id": "experience",
@@ -216,20 +247,25 @@
       ],
       "implementation": [
         "scripts/fusion_memory.py",
-        "references/scoped-memory.md"
+        "references/scoped-memory.md",
+        "scripts/fusion_progress.py",
+        "scripts/fusion_scope_cli.py"
       ],
       "upstreams": [
         "basicmachines-co/basic-memory",
         "mem0ai/mem0",
-        "getzep/graphiti",
-        "volcengine/OpenViking"
+        "getzep/graphiti"
       ],
       "contract": "候选审核后按范围、专项、有效期过滤，再做词法/可选向量召回；经验不继承案件结论。",
       "status": "implemented_partial",
-      "gap": "默认本地词法检索；向量需真实嵌入，未接入外部记忆服务。",
+      "gap": "词法优先，可选已有真实向量；本轮不新增远程 embedding 或自动把任务事实晋升为经验。",
       "tests": [
-        "tests/test_scoped_memory.py"
-      ]
+        "tests/test_scoped_memory.py",
+        "tests/test_node_review.py",
+        "tests/dsh-runtime.test.mjs"
+      ],
+      "selection_ref": "references/component-selection-2026-10-06.json",
+      "improvement_2026_10_06": "恢复时用当前有效节点的问题和下一试验检索，最多取两张完整经验卡后按共享预算纳入；保留检索前项目/专项/有效期过滤。"
     },
     {
       "id": "delivery",
@@ -241,20 +277,25 @@
       "implementation": [
         "scripts/fusion_acceptance.py",
         "scripts/fusion_delivery.py",
-        "specialists/fusion-validate/SKILL.md"
+        "specialists/fusion-validate/SKILL.md",
+        "adapters/dsh-execution.mjs"
       ],
       "upstreams": [
-        "cloudflare/security-audit-skill",
+        "Syslifters/sysreptor",
         "DefectDojo/django-DefectDojo",
-        "redcanaryco/atomic-red-team"
+        "Jueze-2019/dsh-redteam-mode"
       ],
       "contract": "目标条件关联有效证据；已测、阴性、未知和受阻分开，报告存在不等于任务完成。",
       "status": "implemented_partial",
-      "gap": "尚无统一防守遥测、测试改动清理及修复复测引擎。",
+      "gap": "自动交付只标 partial；完整漏洞结论和正式报告需要人工/Agent 解释证据。",
       "tests": [
         "tests/test_foundations.py",
-        "tests/test_guidance_delivery.py"
-      ]
+        "tests/test_guidance_delivery.py",
+        "tests/test_component_upgrade.py",
+        "tests/dsh-routing.test.mjs"
+      ],
+      "selection_ref": "references/component-selection-2026-10-06.json",
+      "improvement_2026_10_06": "deliver(summary) 自动生成 report/stage.md 并部分交付；列出真实回执和缺失产物，正式 finish/assess 保持验收。"
     },
     {
       "id": "evaluation",
@@ -263,20 +304,23 @@
       "phases": [],
       "implementation": [
         "tests/",
-        "references/routing-validation-2026-09-26.md"
+        "references/routing-validation-2026-09-26.md",
+        "scripts/evaluate_dsh_trace.py"
       ],
       "upstreams": [
         "UKGovernmentBEIS/inspect_ai",
         "promptfoo/promptfoo",
-        "benchflow-ai/skillsbench",
-        "Arize-ai/phoenix"
+        "benchflow-ai/skillsbench"
       ],
       "contract": "同模型/工具/预算做对照，分别统计正确结论、重复、成本、恢复和交付。",
       "status": "implemented_partial",
-      "gap": "有合同测试与有限模型联调；全专项、多模型盲测未完成。",
+      "gap": "宿主 trace 中的报告/回执仍需案件哈希核验；不从调用数推算漏洞能力或给虚假成功分。",
       "tests": [
-        "tests/test_dsh_adapter.py"
-      ]
+        "tests/test_dsh_adapter.py",
+        "tests/test_component_upgrade.py"
+      ],
+      "selection_ref": "references/component-selection-2026-10-06.json",
+      "improvement_2026_10_06": "增加离线 DSH trace 审计，分别识别已路由、实际子调用、未交付、报告声明和模型额度错误；不输出原始错误中的秘密。"
     },
     {
       "id": "composition",
@@ -285,18 +329,51 @@
       "phases": [],
       "implementation": [
         "scripts/fusion_composition.py",
-        "manifests/components.json"
+        "manifests/components.json",
+        "adapters/dsh-routing.mjs",
+        "adapters/dsh.mjs"
       ],
       "upstreams": [
+        "pydantic/pydantic-ai",
         "zhaoxuya520/reverse-skill",
-        "langchain-ai/deepagents"
+        "Jueze-2019/dsh-redteam-mode"
       ],
       "contract": "保持三层路由；每次组合一个方法、一个能力和当前事件需要的运行约定，不全量加载组件。",
       "status": "implemented",
-      "gap": "装配不执行目标，不证明工具健康，也不自动安装框架。",
+      "gap": "省参数降低摩擦，不能保证模型一定选择正确的研究方法。",
       "tests": [
-        "tests/test_composition.py"
-      ]
+        "tests/test_composition.py",
+        "tests/dsh-routing.test.mjs",
+        "tests/dsh-schema.test.mjs"
+      ],
+      "selection_ref": "references/component-selection-2026-10-06.json",
+      "improvement_2026_10_06": "当前路由可用本次 arguments+work 直接继续；切换方法、工具或 schema 重新准备。"
+    },
+    {
+      "id": "intelligence",
+      "title": "漏洞情报与知识库",
+      "kind": "method",
+      "phases": [
+        "execute"
+      ],
+      "implementation": [
+        "scripts/fusion_intel.py",
+        "scripts/fusion_knowledge.py"
+      ],
+      "upstreams": [
+        "CVEProject/cvelistV5",
+        "vulnerability-lookup/vulnerability-lookup",
+        "projectdiscovery/nuclei"
+      ],
+      "contract": "按需取公开情报并显示状态/时效/适用性；真实受影响判断由本案证据支持。",
+      "status": "implemented_partial",
+      "gap": "实时指按需取源并显示缓存时间；不是后台镜像全量库，候选不代表目标受影响。",
+      "tests": [
+        "tests/test_intelligence.py",
+        "tests/test_component_upgrade.py"
+      ],
+      "selection_ref": "references/component-selection-2026-10-06.json",
+      "improvement_2026_10_06": "CVE 卡片显示受影响产品及版本片段/省略数；REJECTED 和 OSV withdrawn 标为非可操作候选，完整资料仍按哈希保存。"
     }
   ]
 }

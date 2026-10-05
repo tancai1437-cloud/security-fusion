@@ -9,10 +9,30 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from fusion_node_review import review_node, latest_node
 from fusion_store import Case, FusionError, encode
 from fusion_views import resume
+from fusion_progress import continuation_query
 from test_runtime import CONFIG, spec
 
 
 class NodeReviewTests(unittest.TestCase):
+    def test_linked_pending_node_survives_restart_and_never_replays_or_crosses_cases(self):
+        self.case.review(self.attempt, "done", "Controlled evidence")
+        self.case.plan([spec("side", inputs={"sample": 2}), spec("deep", inputs={"sample": 3}, depends_on=["one"])])
+        follow = self.case.check("deep")["id"]
+        review_node(self.case, dict(self.data, next_check="deep"))
+        self.case.close()
+        self.case = Case(self.root / "case")
+        self.assertEqual(resume(self.case, focus=True)["current"]["id"], follow)
+        self.assertIn(self.data["next_test"], continuation_query(self.case, "generic goal"))
+        with self.assertRaises(FusionError):
+            review_node(self.case, dict(self.data, next_check="one"))
+        with self.assertRaises(FusionError):
+            review_node(self.case, dict(self.data, next_check="foreign-case-key"))
+        with self.assertRaises(FusionError):
+            review_node(self.case, dict(self.data, next_check="deep", decision="blocked"))
+        unsettled = self.case.begin("side", "host", "fixture")["check_id"]
+        self.assertEqual(resume(self.case, focus=True)["current"]["id"], unsettled)
+        self.assertEqual(self.case.db.execute("SELECT COUNT(*) FROM attempts").fetchone()[0], 2)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="fusion-node-")
         self.addCleanup(self.temp.cleanup)

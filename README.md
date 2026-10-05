@@ -46,6 +46,8 @@ npx --yes skills@1.7.0 add tancai1437-cloud/security-fusion --list
 
 ## Agent 接入
 
+2026-10-06 按 [13 个环节各选三个参考项目](references/component-selection-2026-10-06.md) 做了一轮改造：当前路由可直接续用、节点绑定下一检查、恢复按需加载、阶段报告自动导出。验证范围与仍未完成的部分见 [本轮验收记录](references/component-validation-2026-10-06.md)。升级后仍需更新对应 DSH 宿主模块，不能仅覆盖 SKILL.md。
+
 **已使用 dsh-purge 的 DSH 用户**使用 [专用共存接入](references/dsh-purge-integration.md)：同一宿主增加 `Security Fusion · 单会话研究` 预设，复用原生工具、MCP、压缩和 Drill 资产台。安装器用 `--purge` 区分模式，避免与红队指挥预设相互接管；当前按 DSH 0.2.0-rc.2 / dsh-purge 1.1.47 的固定接口核对，具体实测范围见该文档。
 
 需要持续执行约束的 DSH 使用 [宿主组件](references/host-adapter.md)：注册原生 `fusion` 工具，激活后将实际工具调用约束到 execute，自动捕获回执；压缩后从磁盘恢复，交付前检查未决工作与报告证据。安装 Skill 后还需让当前 Agent 识别其实际 profile，运行包内安装器并重启该 profile。只复制 Skill 文件没有这些 hook。`AGENTS.md` 只需保留入口约定，不要复制全部方法。组件不能替模型保证测试覆盖或结论正确。

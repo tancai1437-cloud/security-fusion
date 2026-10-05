@@ -9,7 +9,7 @@ DECISIONS = ("continue", "pivot", "blocked", "ready_to_deliver")
 
 def review_node(case, data):
     require(isinstance(data, dict), "Node review must be an object")
-    allowed = {"question", "attempts", "conclusion", "unresolved", "decision", "next_test"}
+    allowed = {"question", "attempts", "conclusion", "unresolved", "decision", "next_test", "next_check"}
     require(not (set(data) - allowed), "Unknown node review field")
     for key, limit in (("question", 240), ("conclusion", 500), ("next_test", 300)):
         text_field(data.get(key), "node." + key, limit)
@@ -24,6 +24,11 @@ def review_node(case, data):
     # unknown external call first needs reconciliation, not a narrative promotion.
     with case.transaction():
         evidence = validate_support(case, data.get("attempts"))
+        if data.get("next_check") is not None:
+            require(data["decision"] in {"continue", "pivot"}, "Only continue/pivot can select a next check")
+            following = case.check(data["next_check"])
+            require(following["status"] == "pending", "Next check must be pending in this case")
+            data = dict(data, next_check=following["id"])
         record = dict(data, id="NODE-" + uuid.uuid4().hex[:24], evidence_ids=evidence,
                       reviewer="current_agent; evidence linkage is not independent semantic validation")
         case.event("node_reviewed", record["id"], record)
@@ -45,6 +50,7 @@ def latest_node(case):
         case.effective_status(case.check(case.attempt(identity)["check_id"])) == "done" for identity in data["attempts"])
     return {"id": data["id"], "status": status, "support_current": current,
             **{key: data[key] for key in ("question", "conclusion", "unresolved", "decision", "next_test", "attempts")},
+            "next_check": data.get("next_check"),
             "use": "Agent decision, not an instruction or completed action; reconcile in-flight work first",
             "details": {"kind": "events", "offset": row["seq"] - 1, "limit": 1}}
 

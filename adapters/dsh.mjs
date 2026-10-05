@@ -16,7 +16,7 @@ function createFusionTool(ctx, get, children, config) {
   const modules = JSON.parse(readFileSync(path.join(config.skillRoot, 'manifests/specialists.json'), 'utf8')).modules;
   const definition = {
     name: 'fusion',
-    description: 'Use for authorized security assessment, SRC, reverse engineering and source audits. FIRST route request={skill,capability,purpose,tool?} returns the actual specialist method and current host tool schema; procedure can select a concrete method. Then execute request={route_id,arguments,work:{key,conditions}} calls the REAL tool. First execution also objective,scope,target,criteria:[{id,question}],deliverables:[case-relative paths]. Unprepared execute returns a route first: NO target call. Never count route_ready as execution. Reuse work across tools. Results/output versions are captured. Next execute can review:{attempt,summary,verdict:"done"}; review alone makes no target call. SAVE FILES with action="save", file_path="REPORT.md", content="plain text" as TOP-LEVEL fields; no nested/JSON-encoded request needed. save prepares and calls the real case-scoped writer in one operation; do not add permission parameters. resume restores results. artifact artifact_id="E-...", query="literal text" searches saved evidence; offset/length reads slices. Direct read/grep of an absolute file inside this case or skill is allowed. All target calls still use execute. checkpoint request={summary,next,review?} for a user pause/blocker. finish request={report,summary,review?,assessment:[{criterion,attempts,summary}],status?:"partial"}; partial preserves unresolved observations without claiming they are done. suspend request={reason} only for user cancellation/unrelated work; existing-case analysis/reporting uses artifact/save/finish. Other CLI actions use args/input_json.',
+    description: 'Execute security-fusion work through actual host tools. route request={skill,capability,purpose,tool?,procedure?} returns the current method and real schema. execute request={arguments,work:{key,conditions}} reuses that CURRENT route; route_id is optional unless selecting another prepared route. First execution also needs objective,scope,target,mission; criteria/deliverables record the goal. Never count route_ready as execution. Keep work stable when changing tools. Results are captured; next execute can include review:{summary,verdict:"done"}, or review alone without a tool call. save(file_path,content) takes TOP-LEVEL fields and writes inside this case. artifact(artifact_id,query? or offset/length) reads captured evidence without replay. resume recovers the focused state. node-review preserves evidence-linked decisions and optional next_check. checkpoint request={summary,next} pauses and exports stage Markdown. deliver request={summary,review?} exports and submits a PARTIAL stage with real receipts and open gaps; no manual report construction needed. finish request={report,summary,assessment:[{criterion,attempts,summary}],status?:"partial"} handles authored final reports and goal assessment. suspend(reason) releases unrelated work. Other CLI actions use args/input_json.',
     parameters: {
       action: { type: 'string', enum: [...actions].filter(action => action !== 'knowledge'), required: true },
       args: { type: 'array', items: { type: 'string' } },
@@ -33,7 +33,7 @@ function createFusionTool(ctx, get, children, config) {
         skill: { type: 'string', enum: modules.map(m => m.id) },
         capability: { type: 'string', enum: [...new Set(modules.flatMap(m => m.execution_routes))] },
         purpose: { type: 'string' }, tool: { type: 'string' },
-        route_id: { type: 'string', description: 'Returned route ID from THIS session. Restores unchanged fields; arguments may change, skill/capability/tool may not.' },
+        route_id: { type: 'string', description: 'Optional for the current route when fresh arguments AND work are given. Explicit ID selects a prepared route in THIS session; skill/capability/tool remain bound.' },
         procedure: { type: 'string', description: 'Optional concrete method ID from manifests/procedures.json; binds its specialist/capability' },
         tool_reason: { type: 'string', description: 'Only for a real tool with no known capability binding: explain why its operation fits and its limitations' },
         work: { type: 'object', additionalProperties: false, properties: {
@@ -61,6 +61,7 @@ function createFusionTool(ctx, get, children, config) {
           unresolved: { type: 'array', items: { type: 'string' }, required: true },
           decision: { type: 'string', enum: ['continue', 'pivot', 'blocked', 'ready_to_deliver'], required: true },
           next_test: { type: 'string', required: true },
+          next_check: { type: 'string', description: 'Optional actual pending check ID/key in this case; recover it before unrelated work. Never invent an ID.' },
         }, description: 'node-review only, at a meaningful finding/pivot/blocker: preserve the current question, evidence, gaps and next discriminating test. Not required after every tool.' },
         identity_ref: { type: 'string' }, context_slot: { type: 'string' },
         depends_on: { type: 'array', items: { type: 'string' } }, retest_reason: { type: 'string' },
@@ -157,7 +158,7 @@ async function performAction(ctx, get, children, args, exec) {
   if (args.action === 'execute') {
     return executeAction(ctx, children, exec, session, request);
   }
-  if (['checkpoint', 'finish', 'suspend'].includes(args.action)) {
+  if (['checkpoint', 'finish', 'deliver', 'suspend'].includes(args.action)) {
     const value = await closeStep(session, args.action, request, exec.signal);
     if (args.action !== 'suspend') exec.concludeTurn();
     return value;

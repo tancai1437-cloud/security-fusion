@@ -27,8 +27,15 @@ def source_preview(source):
     name = source["source"]
     if name == "CVE List V5":
         cna = data.get("containers", {}).get("cna", {})
+        affected = cna.get("affected", [])
         result.update(record=data["cveMetadata"], title=cna.get("title", "")[:180],
-                      affected_entries=len(cna.get("affected", [])),
+                      affected_entries=len(affected),
+                      candidate=data["cveMetadata"].get("state") == "PUBLISHED",
+                      affected=[{key: row[key] for key in ("vendor", "product", "defaultStatus") if key in row}
+                                | {"versions": row.get("versions", [])[:3],
+                                   "omitted_versions": max(0, len(row.get("versions", [])) - 3)} for row in affected[:2]],
+                      omitted_affected=max(0, len(affected) - 2),
+                      next="REJECTED is not an actionable candidate. Match vendor/product/version and configuration, then inspect full ranges and vendor references in the snapshot.",
                       applicability="unknown_until_product_version_configuration_and_patch_are_checked")
     elif name == "CISA KEV official mirror":
         result.update(dateReleased=data["dateReleased"], listed=bool(data["matches"]),
@@ -38,9 +45,10 @@ def source_preview(source):
     elif name == "OSV":
         records = data.get("vulns", [])
         result.update(count=len(records), candidates=[{"id": row["id"], "withdrawn": row.get("withdrawn"),
+                      "candidate": not bool(row.get("withdrawn")),
                       "modified": row.get("modified"), "aliases": row.get("aliases", [])[:4]} for row in records[:5]],
                       next_cursor=data.get("next_page_token"), omitted=max(0, len(records) - 5),
-                      meaning="Registry package/version candidates; runtime reachability and downstream patches need evidence")
+                      meaning="Withdrawn records are historical only. Package/version candidates still need runtime reachability and downstream patch evidence")
     elif name == "NVD modified records":
         records = data["vulnerabilities"]
         offset = source["window"]["offset"]

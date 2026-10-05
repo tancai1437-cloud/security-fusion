@@ -14,7 +14,7 @@ function execute(command, args, options) {
 }
 export const actions = new Set(['start', 'catalog', 'plan', 'advance', 'route', 'run', 'mcp-run',
   'begin', 'record', 'review', 'reconcile', 'note', 'resume', 'query', 'report', 'context-set', 'context-release',
-  'execute', 'save', 'checkpoint', 'finish', 'suspend']);
+  'execute', 'save', 'deliver', 'checkpoint', 'finish', 'suspend']);
 for (const action of ['artifact', 'assess', 'node-review', 'memory-search', 'memory-show', 'memory-add', 'memory-review', 'host-status', 'knowledge']) actions.add(action);
 const ownedOptions = ['--workspace', '--case', '--session'];
 
@@ -57,7 +57,7 @@ export function writeJson(file, value) {
   renameSync(tmp, file);
 }
 
-export const RECOVERY_MAX_CHARS = 8000;
+export const RECOVERY_MAX_CHARS = 8000; // Hard ceiling; --focus reduces optional content, never scope/identity.
 export function formatRecovery(packet) {
   return '<security-fusion-state>\n' +
     '当前会话的磁盘状态如下。最新用户指令仍优先；取消/转去无关工作用 suspend，本案证据分析和报告仍用 artifact/save/finish，执行通过 fusion.execute 调实际工具。' +
@@ -218,7 +218,7 @@ export class FusionSession {
     // Read from disk at every restoration, never from a model summary or a process cache.
     let remaining = maximum - formatRecovery({ ...header, state: null }).length + 4;
     for (let pass = 0; pass < 2 && remaining >= 512; pass++) {
-      const args = ['--max-chars', String(remaining), ...(state.last_skill ? ['--skill', state.last_skill] : [])];
+      const args = ['--focus', '--max-chars', String(remaining), ...(state.last_skill ? ['--skill', state.last_skill] : [])];
       if (state.last_skill && state.task) args.push('--memory-query',
         [state.task.objective, state.last_execution?.purpose].filter(Boolean).join(' ').slice(0, 1000));
       const packet = { ...header, state: await this.cli('resume', args, signal) };

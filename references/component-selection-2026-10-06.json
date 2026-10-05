@@ -1,0 +1,1097 @@
+{
+  "review_date": "2026-10-06",
+  "observed_at": "2026-10-05T16:54:30.468736+00:00",
+  "selection": "Three best-fit references per component from prior 84-repository survey plus new official implementations; not a global ranking. No upstream runtime installed or executed.",
+  "groups": {
+    "methods": [
+      "trailofbits/skills",
+      "zhaoxuya520/reverse-skill",
+      "elementalsouls/Claude-BugHunter"
+    ],
+    "composition": [
+      "pydantic/pydantic-ai",
+      "zhaoxuya520/reverse-skill",
+      "Jueze-2019/dsh-redteam-mode"
+    ],
+    "tools": [
+      "modelcontextprotocol/python-sdk",
+      "PrefectHQ/fastmcp",
+      "PortSwigger/mcp-server"
+    ],
+    "context": [
+      "langchain-ai/deepagents",
+      "anomalyco/opencode",
+      "volcengine/OpenViking"
+    ],
+    "evidence": [
+      "google/adk-python",
+      "OpenHands/software-agent-sdk",
+      "langfuse/langfuse"
+    ],
+    "isolation": [
+      "langchain-ai/langgraph",
+      "basicmachines-co/basic-memory",
+      "mem0ai/mem0"
+    ],
+    "recovery": [
+      "dbos-inc/dbos-transact-py",
+      "langchain-ai/langgraph",
+      "temporalio/sdk-python"
+    ],
+    "node-review": [
+      "trailofbits/skills",
+      "cloudflare/security-audit-skill",
+      "OthmanAdi/planning-with-files"
+    ],
+    "depth": [
+      "apache/caldera",
+      "center-for-threat-informed-defense/attack-flow",
+      "Jueze-2019/dsh-redteam-mode"
+    ],
+    "experience": [
+      "basicmachines-co/basic-memory",
+      "mem0ai/mem0",
+      "getzep/graphiti"
+    ],
+    "delivery": [
+      "Syslifters/sysreptor",
+      "DefectDojo/django-DefectDojo",
+      "Jueze-2019/dsh-redteam-mode"
+    ],
+    "evaluation": [
+      "UKGovernmentBEIS/inspect_ai",
+      "promptfoo/promptfoo",
+      "benchflow-ai/skillsbench"
+    ],
+    "intelligence": [
+      "CVEProject/cvelistV5",
+      "vulnerability-lookup/vulnerability-lookup",
+      "projectdiscovery/nuclei"
+    ]
+  },
+  "repositories": [
+    {
+      "requested_repo": "CVEProject/cvelistV5",
+      "sources": [
+        {
+          "path": "README.md",
+          "url": "https://github.com/CVEProject/cvelistV5/blob/a0e611645e0c4b37f8e39d60eb623222ca8005f6/README.md",
+          "sha256": "b286ee977a28db6a623a6389f7d61a7167f3b6fc8d14967418a7500714c6fbd7",
+          "bytes": 12205,
+          "status": "downloaded",
+          "review_scope": "documentation"
+        }
+      ],
+      "full_name": "CVEProject/cvelistV5",
+      "html_url": "https://github.com/CVEProject/cvelistV5",
+      "stargazers_count": 3031,
+      "forks_count": 651,
+      "pushed_at": "2026-10-05T16:47:47Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": null,
+      "commit": "a0e611645e0c4b37f8e39d60eb623222ca8005f6",
+      "commit_date": "2026-10-05T16:47:44Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "DefectDojo/django-DefectDojo",
+      "sources": [
+        {
+          "path": "dojo/engagement/models.py",
+          "url": "https://github.com/DefectDojo/django-DefectDojo/blob/8b12d80ae30904fed44f5a84ff71f28da14bebaf/dojo/engagement/models.py",
+          "sha256": "a00c7cfd149133f649a63773841c299281ed24b815f74b485ba8dfbb0beb188b",
+          "bytes": 12504,
+          "status": "downloaded",
+          "review_scope": "selected_source_fragments"
+        }
+      ],
+      "full_name": "DefectDojo/django-DefectDojo",
+      "html_url": "https://github.com/DefectDojo/django-DefectDojo",
+      "stargazers_count": 4983,
+      "forks_count": 1956,
+      "pushed_at": "2026-10-05T16:40:15Z",
+      "archived": false,
+      "default_branch": "master",
+      "license": "BSD-3-Clause",
+      "commit": "8b12d80ae30904fed44f5a84ff71f28da14bebaf",
+      "commit_date": "2026-09-28T11:28:56Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "Jueze-2019/dsh-redteam-mode",
+      "sources": [
+        {
+          "path": "packages/redteam-tools/lib/index.js",
+          "url": "https://github.com/Jueze-2019/dsh-redteam-mode/blob/c6d63d2e74c9269728df60a211c79cfcac47a66d/packages/redteam-tools/lib/index.js",
+          "sha256": "e81786076c2db3d029113d9864385e1fc8698ae7cb669abb66635297d22877aa",
+          "bytes": 116891,
+          "status": "downloaded",
+          "review_scope": "selected_source_fragments"
+        },
+        {
+          "path": "packages/redteam-store/lib/report-replay.js",
+          "url": "https://github.com/Jueze-2019/dsh-redteam-mode/blob/c6d63d2e74c9269728df60a211c79cfcac47a66d/packages/redteam-store/lib/report-replay.js",
+          "sha256": "bc585edab2adb5f12354da84719aff3444f82a8385b5e7a517cd47abe6d0ff73",
+          "bytes": 10490,
+          "status": "downloaded",
+          "review_scope": "selected_source_fragments"
+        }
+      ],
+      "full_name": "Jueze-2019/dsh-redteam-mode",
+      "html_url": "https://github.com/Jueze-2019/dsh-redteam-mode",
+      "stargazers_count": 68,
+      "forks_count": 43,
+      "pushed_at": "2026-09-30T06:05:28Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "MIT",
+      "commit": "c6d63d2e74c9269728df60a211c79cfcac47a66d",
+      "commit_date": "2026-09-30T05:54:07Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "OpenHands/software-agent-sdk",
+      "sources": [
+        {
+          "path": "openhands-sdk/openhands/sdk/context/condenser/README.md",
+          "url": "https://github.com/OpenHands/software-agent-sdk/blob/39d34ec006f3f92f39863ca890afa5d90720a8ec/openhands-sdk/openhands/sdk/context/condenser/README.md",
+          "sha256": "66d1f0f6002f82ac610d478880b2c3f49215a062955aff4a2777f2698a4c21ff",
+          "bytes": 4602,
+          "status": "downloaded",
+          "review_scope": "documentation"
+        },
+        {
+          "path": "openhands-sdk/openhands/sdk/event/base.py",
+          "url": "https://github.com/OpenHands/software-agent-sdk/blob/39d34ec006f3f92f39863ca890afa5d90720a8ec/openhands-sdk/openhands/sdk/event/base.py",
+          "sha256": "0d90758757329bbd0d1301586b87612e7746e14e6d2bb3e272e2d58f16fbb60d",
+          "bytes": 7652,
+          "status": "downloaded",
+          "review_scope": "selected_source_fragments"
+        }
+      ],
+      "full_name": "OpenHands/software-agent-sdk",
+      "html_url": "https://github.com/OpenHands/software-agent-sdk",
+      "stargazers_count": 1202,
+      "forks_count": 616,
+      "pushed_at": "2026-10-05T16:50:04Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "MIT",
+      "commit": "39d34ec006f3f92f39863ca890afa5d90720a8ec",
+      "commit_date": "2026-10-05T14:01:30Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "OthmanAdi/planning-with-files",
+      "sources": [
+        {
+          "path": ".agents/skills/planning-with-files/SKILL.md",
+          "url": "https://github.com/OthmanAdi/planning-with-files/blob/dab9d16fbd9314448b319d112e99f497d7638d89/.agents/skills/planning-with-files/SKILL.md",
+          "sha256": "eee1b89110b84ed9500f1bfdc379daa63d11554aae3bcd28ffa2038bd8511357",
+          "bytes": 34959,
+          "status": "downloaded",
+          "review_scope": "selected_skill"
+        }
+      ],
+      "full_name": "OthmanAdi/planning-with-files",
+      "html_url": "https://github.com/OthmanAdi/planning-with-files",
+      "stargazers_count": 27295,
+      "forks_count": 2267,
+      "pushed_at": "2026-10-01T19:57:49Z",
+      "archived": false,
+      "default_branch": "master",
+      "license": "MIT",
+      "commit": "dab9d16fbd9314448b319d112e99f497d7638d89",
+      "commit_date": "2026-10-01T19:39:28Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "PortSwigger/mcp-server",
+      "sources": [
+        {
+          "path": "src/main/kotlin/net/portswigger/mcp/tools/Tools.kt",
+          "url": "https://github.com/PortSwigger/mcp-server/blob/642e6fa31c63db3886a353fcd7ed62037e0ceed5/src/main/kotlin/net/portswigger/mcp/tools/Tools.kt",
+          "sha256": "b3735a04ef725af725c6d555f50d671439f46daafd2d33f8ca1c4e2a07a8e551",
+          "bytes": 20963,
+          "status": "downloaded",
+          "review_scope": "selected_source_fragments"
+        }
+      ],
+      "full_name": "PortSwigger/mcp-server",
+      "html_url": "https://github.com/PortSwigger/mcp-server",
+      "stargazers_count": 1215,
+      "forks_count": 199,
+      "pushed_at": "2026-10-02T18:25:01Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "GPL-3.0",
+      "commit": "642e6fa31c63db3886a353fcd7ed62037e0ceed5",
+      "commit_date": "2026-08-12T09:44:06Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "PrefectHQ/fastmcp",
+      "sources": [
+        {
+          "path": "fastmcp_slim/fastmcp/client/client.py",
+          "url": "https://github.com/PrefectHQ/fastmcp/blob/5baeacfe20eca735cb949564b4915f93a622b916/fastmcp_slim/fastmcp/client/client.py",
+          "sha256": "809e5b7b6b20fba6ed4e759090a06f0dc15bbf1c3faaf7c6d21e4be273518080",
+          "bytes": 66647,
+          "status": "downloaded",
+          "review_scope": "selected_source_fragments"
+        }
+      ],
+      "full_name": "PrefectHQ/fastmcp",
+      "html_url": "https://github.com/PrefectHQ/fastmcp",
+      "stargazers_count": 27980,
+      "forks_count": 2436,
+      "pushed_at": "2026-10-05T13:20:29Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "Apache-2.0",
+      "commit": "5baeacfe20eca735cb949564b4915f93a622b916",
+      "commit_date": "2026-10-05T01:44:36Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "Syslifters/sysreptor",
+      "sources": [
+        {
+          "path": "README.md",
+          "url": "https://github.com/Syslifters/sysreptor/blob/85e0202be1e84282880f3e62de4e3e5a4b77886a/README.md",
+          "sha256": "447eba09db563f7b7a89442830284c8ea9877e2a7a7a260d28ed76b8bd1bcb9d",
+          "bytes": 2880,
+          "status": "downloaded",
+          "review_scope": "documentation"
+        }
+      ],
+      "full_name": "Syslifters/sysreptor",
+      "html_url": "https://github.com/Syslifters/sysreptor",
+      "stargazers_count": 2594,
+      "forks_count": 292,
+      "pushed_at": "2026-10-01T05:59:15Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "NOASSERTION",
+      "commit": "85e0202be1e84282880f3e62de4e3e5a4b77886a",
+      "commit_date": "2026-10-01T05:58:56Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "UKGovernmentBEIS/inspect_ai",
+      "sources": [
+        {
+          "path": "README.md",
+          "url": "https://github.com/UKGovernmentBEIS/inspect_ai/blob/7390f041b89cb162a504715b1c0a8de71d68ed90/README.md",
+          "sha256": "a9a1e07b955d869137d8ad109f1c238268f361dcdfac30cfcc94983a51a99b17",
+          "bytes": 3099,
+          "status": "downloaded",
+          "review_scope": "documentation"
+        }
+      ],
+      "full_name": "UKGovernmentBEIS/inspect_ai",
+      "html_url": "https://github.com/UKGovernmentBEIS/inspect_ai",
+      "stargazers_count": 2939,
+      "forks_count": 775,
+      "pushed_at": "2026-10-05T16:53:34Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "MIT",
+      "commit": "7390f041b89cb162a504715b1c0a8de71d68ed90",
+      "commit_date": "2026-10-05T16:39:19Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "anomalyco/opencode",
+      "sources": [
+        {
+          "path": "packages/core/src/session/compaction.ts",
+          "url": "https://github.com/anomalyco/opencode/blob/907b3bc518fa48e90e8ec24dd327d13eee71c36c/packages/core/src/session/compaction.ts",
+          "sha256": "35bc2da1578b6bb80a3c39c1d6c51f234f34ce6586dd4f9d230e2a31b257138d",
+          "bytes": 10185,
+          "status": "downloaded",
+          "review_scope": "selected_source_fragments"
+        }
+      ],
+      "full_name": "anomalyco/opencode",
+      "html_url": "https://github.com/anomalyco/opencode",
+      "stargazers_count": 211842,
+      "forks_count": 28184,
+      "pushed_at": "2026-10-05T16:12:58Z",
+      "archived": false,
+      "default_branch": "dev",
+      "license": "MIT",
+      "commit": "907b3bc518fa48e90e8ec24dd327d13eee71c36c",
+      "commit_date": "2026-10-03T04:55:40Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "apache/caldera",
+      "sources": [
+        {
+          "path": "app/utility/base_planning_svc.py",
+          "url": "https://github.com/apache/caldera/blob/cb8d6a8160e0f4990af323a7c071d5e8482b42c7/app/utility/base_planning_svc.py",
+          "sha256": "9cfb18948d51f7ec2753402559ab0c81596267640dba77bd69d667d34dbde3a0",
+          "bytes": 12965,
+          "status": "downloaded",
+          "review_scope": "selected_source_fragments"
+        }
+      ],
+      "full_name": "apache/caldera",
+      "html_url": "https://github.com/apache/caldera",
+      "stargazers_count": 7307,
+      "forks_count": 1382,
+      "pushed_at": "2026-08-27T14:01:16Z",
+      "archived": false,
+      "default_branch": "master",
+      "license": "Apache-2.0",
+      "commit": "cb8d6a8160e0f4990af323a7c071d5e8482b42c7",
+      "commit_date": "2026-08-27T00:46:57Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "basicmachines-co/basic-memory",
+      "sources": [
+        {
+          "path": "src/basic_memory/mcp/tools/build_context.py",
+          "url": "https://github.com/basicmachines-co/basic-memory/blob/194afe165b3e7676496aaa53b70e39a78ea5aa4f/src/basic_memory/mcp/tools/build_context.py",
+          "sha256": "f7e6ae2ea563ead2fd9546fd398ed31d68dee3fd25d2822835e04da2f8ed6fa6",
+          "bytes": 16337,
+          "status": "downloaded",
+          "review_scope": "selected_source_fragments"
+        }
+      ],
+      "full_name": "basicmachines-co/basic-memory",
+      "html_url": "https://github.com/basicmachines-co/basic-memory",
+      "stargazers_count": 4100,
+      "forks_count": 300,
+      "pushed_at": "2026-10-02T15:49:43Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "AGPL-3.0",
+      "commit": "194afe165b3e7676496aaa53b70e39a78ea5aa4f",
+      "commit_date": "2026-10-02T02:15:45Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "benchflow-ai/skillsbench",
+      "sources": [
+        {
+          "path": "README.md",
+          "url": "https://github.com/benchflow-ai/skillsbench/blob/9a1f4dd5f7659f75707435da3ce854b6e48321d1/README.md",
+          "sha256": "da52e1ecd8c992e9125ec46b6237bd14d4c4b6a5ca7be896e2a06c97be1d79eb",
+          "bytes": 4331,
+          "status": "downloaded",
+          "review_scope": "documentation"
+        }
+      ],
+      "full_name": "benchflow-ai/skillsbench",
+      "html_url": "https://github.com/benchflow-ai/skillsbench",
+      "stargazers_count": 1830,
+      "forks_count": 370,
+      "pushed_at": "2026-07-23T19:09:35Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "Apache-2.0",
+      "commit": "9a1f4dd5f7659f75707435da3ce854b6e48321d1",
+      "commit_date": "2026-07-23T19:04:59Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "center-for-threat-informed-defense/attack-flow",
+      "sources": [
+        {
+          "path": "README.md",
+          "url": "https://github.com/center-for-threat-informed-defense/attack-flow/blob/8b6ca28bc13beb871f3a4c5fa029b96c6394f874/README.md",
+          "sha256": "0f2fae18ba84c08cb7727622d52b57c4796f7e130fd627444d8c4800b9fee1a6",
+          "bytes": 5271,
+          "status": "downloaded",
+          "review_scope": "documentation"
+        }
+      ],
+      "full_name": "center-for-threat-informed-defense/attack-flow",
+      "html_url": "https://github.com/center-for-threat-informed-defense/attack-flow",
+      "stargazers_count": 777,
+      "forks_count": 131,
+      "pushed_at": "2026-09-24T15:14:18Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "Apache-2.0",
+      "commit": "8b6ca28bc13beb871f3a4c5fa029b96c6394f874",
+      "commit_date": "2026-09-24T15:14:14Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "cloudflare/security-audit-skill",
+      "sources": [
+        {
+          "path": "skills/security-audit/SKILL.md",
+          "url": "https://github.com/cloudflare/security-audit-skill/blob/c1c8a8c1471069fb0e188eeaff69b8e8db6564a8/skills/security-audit/SKILL.md",
+          "sha256": "5e3e96a1e438d8f35fef0a1e38f02d4f00e2bdf910401b7dfe00e6779c6dac85",
+          "bytes": 22026,
+          "status": "downloaded",
+          "review_scope": "selected_skill"
+        }
+      ],
+      "full_name": "cloudflare/security-audit-skill",
+      "html_url": "https://github.com/cloudflare/security-audit-skill",
+      "stargazers_count": 24668,
+      "forks_count": 1453,
+      "pushed_at": "2026-09-14T19:29:02Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "MIT",
+      "commit": "c1c8a8c1471069fb0e188eeaff69b8e8db6564a8",
+      "commit_date": "2026-09-14T19:28:54Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "dbos-inc/dbos-transact-py",
+      "sources": [
+        {
+          "path": "dbos/_core.py",
+          "url": "https://github.com/dbos-inc/dbos-transact-py/blob/03fb5c92cde8e107ff333cd2b419f65e02719e99/dbos/_core.py",
+          "sha256": "aa51606ed4bf47b35e3b9646165d2ebf95214c25ca7089919ef579b0660f0991",
+          "bytes": 126425,
+          "status": "downloaded",
+          "review_scope": "selected_source_fragments"
+        }
+      ],
+      "full_name": "dbos-inc/dbos-transact-py",
+      "html_url": "https://github.com/dbos-inc/dbos-transact-py",
+      "stargazers_count": 1607,
+      "forks_count": 101,
+      "pushed_at": "2026-10-01T21:52:52Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "MIT",
+      "commit": "03fb5c92cde8e107ff333cd2b419f65e02719e99",
+      "commit_date": "2026-10-01T21:52:50Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "elementalsouls/Claude-BugHunter",
+      "sources": [
+        {
+          "path": "skills/hunt-dispatch/SKILL.md",
+          "url": "https://github.com/elementalsouls/Claude-BugHunter/blob/a590333b2f57fa9253b543e55daa0ecca9ad2b66/skills/hunt-dispatch/SKILL.md",
+          "sha256": "b582c50d9f36d78d97a5d7eda3d70134e8c03ebfa968afd7119eb4ea476ae5c1",
+          "bytes": 17682,
+          "status": "downloaded",
+          "review_scope": "selected_skill"
+        }
+      ],
+      "full_name": "elementalsouls/Claude-BugHunter",
+      "html_url": "https://github.com/elementalsouls/Claude-BugHunter",
+      "stargazers_count": 4776,
+      "forks_count": 718,
+      "pushed_at": "2026-10-05T11:34:28Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "MIT",
+      "commit": "a590333b2f57fa9253b543e55daa0ecca9ad2b66",
+      "commit_date": "2026-10-05T11:34:27Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "getzep/graphiti",
+      "sources": [
+        {
+          "path": "graphiti_core/search/search.py",
+          "url": "https://github.com/getzep/graphiti/blob/4083f51812d381d7ca28b887cfa3c3db188f576d/graphiti_core/search/search.py",
+          "sha256": "9fe64da1825864950285b1733a4920001d70c780e3f0386837e98eedbfed7529",
+          "bytes": 33042,
+          "status": "downloaded",
+          "review_scope": "selected_source_fragments"
+        }
+      ],
+      "full_name": "getzep/graphiti",
+      "html_url": "https://github.com/getzep/graphiti",
+      "stargazers_count": 31450,
+      "forks_count": 3229,
+      "pushed_at": "2026-10-05T14:55:56Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "Apache-2.0",
+      "commit": "4083f51812d381d7ca28b887cfa3c3db188f576d",
+      "commit_date": "2026-10-05T14:55:53Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "google/adk-python",
+      "sources": [
+        {
+          "path": "src/google/adk/artifacts/base_artifact_service.py",
+          "url": "https://github.com/google/adk-python/blob/0f6a3d562a19d1a45d0d6755fb4ceaca13c50d11/src/google/adk/artifacts/base_artifact_service.py",
+          "sha256": "fae4628fc076191e182d4424ae5bb8b0109dc509436ff7087c40701f6c1e5f11",
+          "bytes": 8565,
+          "status": "downloaded",
+          "review_scope": "selected_source_fragments"
+        }
+      ],
+      "full_name": "google/adk-python",
+      "html_url": "https://github.com/google/adk-python",
+      "stargazers_count": 21711,
+      "forks_count": 4101,
+      "pushed_at": "2026-10-05T16:46:12Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "Apache-2.0",
+      "commit": "0f6a3d562a19d1a45d0d6755fb4ceaca13c50d11",
+      "commit_date": "2026-10-05T16:46:07Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "langchain-ai/deepagents",
+      "sources": [
+        {
+          "path": "libs/deepagents/deepagents/middleware/filesystem.py",
+          "url": "https://github.com/langchain-ai/deepagents/blob/b643f6f34be0142fc3e33cd7402f171e62e69cc3/libs/deepagents/deepagents/middleware/filesystem.py",
+          "sha256": "9e3bf2962ac5c5a2f17aff0067749d918017bd4be01f4b31e29afa305d7079f8",
+          "bytes": 165418,
+          "status": "downloaded",
+          "review_scope": "selected_source_fragments"
+        }
+      ],
+      "full_name": "langchain-ai/deepagents",
+      "html_url": "https://github.com/langchain-ai/deepagents",
+      "stargazers_count": 29951,
+      "forks_count": 4208,
+      "pushed_at": "2026-10-05T16:46:23Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "MIT",
+      "commit": "b643f6f34be0142fc3e33cd7402f171e62e69cc3",
+      "commit_date": "2026-10-05T16:18:26Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "langchain-ai/langgraph",
+      "sources": [
+        {
+          "path": "libs/checkpoint-sqlite/langgraph/checkpoint/sqlite/__init__.py",
+          "url": "https://github.com/langchain-ai/langgraph/blob/8e15e0d0bcffa6d3d5a776206e6e8163a3595463/libs/checkpoint-sqlite/langgraph/checkpoint/sqlite/__init__.py",
+          "sha256": "d6973dea5f1abf05d3677cb99ab4babf389044fcb5928d39bc4d23b865422848",
+          "bytes": 25463,
+          "status": "downloaded",
+          "review_scope": "selected_source_fragments"
+        }
+      ],
+      "full_name": "langchain-ai/langgraph",
+      "html_url": "https://github.com/langchain-ai/langgraph",
+      "stargazers_count": 42739,
+      "forks_count": 7266,
+      "pushed_at": "2026-10-05T16:16:11Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "MIT",
+      "commit": "8e15e0d0bcffa6d3d5a776206e6e8163a3595463",
+      "commit_date": "2026-10-05T16:13:11Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "langfuse/langfuse",
+      "sources": [
+        {
+          "path": "README.md",
+          "url": "https://github.com/langfuse/langfuse/blob/b1fc56a8fe1118ba64eb1127c9d8a9489ebceb85/README.md",
+          "sha256": "d5a07630afeeaa4c11eda7c0d133941950805cb29ce84b13fa272eeb9a3794f5",
+          "bytes": 53476,
+          "status": "downloaded",
+          "review_scope": "documentation"
+        }
+      ],
+      "full_name": "langfuse/langfuse",
+      "html_url": "https://github.com/langfuse/langfuse",
+      "stargazers_count": 35403,
+      "forks_count": 3922,
+      "pushed_at": "2026-10-05T16:53:28Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "NOASSERTION",
+      "commit": "b1fc56a8fe1118ba64eb1127c9d8a9489ebceb85",
+      "commit_date": "2026-10-05T16:00:24Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "mem0ai/mem0",
+      "sources": [
+        {
+          "path": "mem0/memory/main.py",
+          "url": "https://github.com/mem0ai/mem0/blob/c93420c49a6b14c3d446bdb156d96811908fd90a/mem0/memory/main.py",
+          "sha256": "f329ca4a17af1fbefb32ac10d4cc7ae7ddbdb7435a87eb74c30915cff98b8b7c",
+          "bytes": 169881,
+          "status": "downloaded",
+          "review_scope": "selected_source_fragments"
+        }
+      ],
+      "full_name": "mem0ai/mem0",
+      "html_url": "https://github.com/mem0ai/mem0",
+      "stargazers_count": 66598,
+      "forks_count": 7851,
+      "pushed_at": "2026-10-05T15:55:56Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "Apache-2.0",
+      "commit": "c93420c49a6b14c3d446bdb156d96811908fd90a",
+      "commit_date": "2026-10-05T15:22:59Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "modelcontextprotocol/python-sdk",
+      "sources": [
+        {
+          "path": "src/mcp/client/session.py",
+          "url": "https://github.com/modelcontextprotocol/python-sdk/blob/91941ed4d3985d59def99e090baa3f880c626cc8/src/mcp/client/session.py",
+          "sha256": "17895bd7fc0b98fd78f1ec48be89a3f27dca483f587cb32a4298ad9a6ba347eb",
+          "bytes": 69444,
+          "status": "downloaded",
+          "review_scope": "selected_source_fragments"
+        }
+      ],
+      "full_name": "modelcontextprotocol/python-sdk",
+      "html_url": "https://github.com/modelcontextprotocol/python-sdk",
+      "stargazers_count": 24493,
+      "forks_count": 4012,
+      "pushed_at": "2026-10-05T13:26:06Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "MIT",
+      "commit": "91941ed4d3985d59def99e090baa3f880c626cc8",
+      "commit_date": "2026-10-05T13:22:35Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "projectdiscovery/nuclei",
+      "sources": [
+        {
+          "path": "README.md",
+          "url": "https://github.com/projectdiscovery/nuclei/blob/1884ed920f542aa54b2310dfb1c8e588a48a1506/README.md",
+          "sha256": "43d41aee8f711d43705dbe14b9e8f37f83158e1c65799aaed86a9be47c2de0a1",
+          "bytes": 61343,
+          "status": "downloaded",
+          "review_scope": "documentation"
+        }
+      ],
+      "full_name": "projectdiscovery/nuclei",
+      "html_url": "https://github.com/projectdiscovery/nuclei",
+      "stargazers_count": 31745,
+      "forks_count": 3913,
+      "pushed_at": "2026-10-05T14:18:12Z",
+      "archived": false,
+      "default_branch": "dev",
+      "license": "MIT",
+      "commit": "1884ed920f542aa54b2310dfb1c8e588a48a1506",
+      "commit_date": "2026-10-05T13:22:40Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "promptfoo/promptfoo",
+      "sources": [
+        {
+          "path": "README.md",
+          "url": "https://github.com/promptfoo/promptfoo/blob/fa605a9119fdf5ee94b1e7da847e287e197e66d4/README.md",
+          "sha256": "9419faaa9d56675b923462d5052a176b3da58f60bf66c84af23159bf3d63c270",
+          "bytes": 4596,
+          "status": "downloaded",
+          "review_scope": "documentation"
+        }
+      ],
+      "full_name": "promptfoo/promptfoo",
+      "html_url": "https://github.com/promptfoo/promptfoo",
+      "stargazers_count": 25722,
+      "forks_count": 2439,
+      "pushed_at": "2026-10-05T16:40:18Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "MIT",
+      "commit": "fa605a9119fdf5ee94b1e7da847e287e197e66d4",
+      "commit_date": "2026-10-05T16:37:24Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "pydantic/pydantic-ai",
+      "sources": [
+        {
+          "path": "docs/tools-advanced.md",
+          "url": "https://github.com/pydantic/pydantic-ai/blob/c29102a8efe85e0598481fe19d5a8440ab00788e/docs/tools-advanced.md",
+          "sha256": "a8ba718eadb187f6b87abc3aef34abff86be0ba0c60570c81501f6484ec521f3",
+          "bytes": 75021,
+          "status": "downloaded",
+          "review_scope": "documentation"
+        },
+        {
+          "path": "docs/durable_execution/overview.md",
+          "url": "https://github.com/pydantic/pydantic-ai/blob/c29102a8efe85e0598481fe19d5a8440ab00788e/docs/durable_execution/overview.md",
+          "sha256": "c40cc6361aaa9d697f120e86a57de13cd8271ba9992ba63e1467fdcfa0874632",
+          "bytes": 2045,
+          "status": "downloaded",
+          "review_scope": "documentation"
+        }
+      ],
+      "full_name": "pydantic/pydantic-ai",
+      "html_url": "https://github.com/pydantic/pydantic-ai",
+      "stargazers_count": 20417,
+      "forks_count": 2865,
+      "pushed_at": "2026-10-05T16:54:05Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "MIT",
+      "commit": "c29102a8efe85e0598481fe19d5a8440ab00788e",
+      "commit_date": "2026-10-05T16:20:54Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "temporalio/sdk-python",
+      "sources": [
+        {
+          "path": "README.md",
+          "url": "https://github.com/temporalio/sdk-python/blob/769e7252c664e8f7484a235d0c5b620532ec4726/README.md",
+          "sha256": "902880e487fa379d06f3e173c18d14d7928c7e9fe609e7a0d00f9523dc6584b1",
+          "bytes": 106218,
+          "status": "downloaded",
+          "review_scope": "documentation"
+        }
+      ],
+      "full_name": "temporalio/sdk-python",
+      "html_url": "https://github.com/temporalio/sdk-python",
+      "stargazers_count": 1209,
+      "forks_count": 253,
+      "pushed_at": "2026-10-05T16:40:04Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "MIT",
+      "commit": "769e7252c664e8f7484a235d0c5b620532ec4726",
+      "commit_date": "2026-10-05T16:40:00Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "trailofbits/skills",
+      "sources": [
+        {
+          "path": "plugins/audit-context-building/skills/audit-context-building/SKILL.md",
+          "url": "https://github.com/trailofbits/skills/blob/82fe8226252622fa807643bdca1710901198553a/plugins/audit-context-building/skills/audit-context-building/SKILL.md",
+          "sha256": "33fa693dc6e166cfa4919e4373cb6578c009d296234c2ae7cb3cd4e79b443765",
+          "bytes": 3991,
+          "status": "downloaded",
+          "review_scope": "selected_skill"
+        }
+      ],
+      "full_name": "trailofbits/skills",
+      "html_url": "https://github.com/trailofbits/skills",
+      "stargazers_count": 7372,
+      "forks_count": 631,
+      "pushed_at": "2026-10-02T10:05:35Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "CC-BY-SA-4.0",
+      "commit": "82fe8226252622fa807643bdca1710901198553a",
+      "commit_date": "2026-09-28T18:06:37Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "volcengine/OpenViking",
+      "sources": [
+        {
+          "path": "README.md",
+          "url": "https://github.com/volcengine/OpenViking/blob/d9352f2a8bac78cbf4ed08b26543d22adcdd4c93/README.md",
+          "sha256": "e35487b366fc28aaac93f3a0e6ed89e18b944b3499cd65fad04b44ca001b200f",
+          "bytes": 25935,
+          "status": "downloaded",
+          "review_scope": "documentation"
+        }
+      ],
+      "full_name": "volcengine/OpenViking",
+      "html_url": "https://github.com/volcengine/OpenViking",
+      "stargazers_count": 39234,
+      "forks_count": 3089,
+      "pushed_at": "2026-10-05T16:39:15Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "AGPL-3.0",
+      "commit": "d9352f2a8bac78cbf4ed08b26543d22adcdd4c93",
+      "commit_date": "2026-10-05T15:03:00Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "vulnerability-lookup/vulnerability-lookup",
+      "sources": [
+        {
+          "path": "README.md",
+          "url": "https://github.com/vulnerability-lookup/vulnerability-lookup/blob/f688ebe6f68ea575cd4b45085ac8fdee9062d76c/README.md",
+          "sha256": "ee8239bcb0f5a7017480c5fc672f25b5c02d30645c06e79d9e46b9894c07c24c",
+          "bytes": 17250,
+          "status": "downloaded",
+          "review_scope": "documentation"
+        }
+      ],
+      "full_name": "vulnerability-lookup/vulnerability-lookup",
+      "html_url": "https://github.com/vulnerability-lookup/vulnerability-lookup",
+      "stargazers_count": 580,
+      "forks_count": 94,
+      "pushed_at": "2026-10-05T11:39:41Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "AGPL-3.0",
+      "commit": "f688ebe6f68ea575cd4b45085ac8fdee9062d76c",
+      "commit_date": "2026-10-05T11:39:34Z",
+      "status": "observed"
+    },
+    {
+      "requested_repo": "zhaoxuya520/reverse-skill",
+      "sources": [
+        {
+          "path": "CTF-Sandbox-Orchestrator/competition-runtime-routing/SKILL.md",
+          "url": "https://github.com/zhaoxuya520/reverse-skill/blob/cab634bd855fc287f6e420c1f36fd1a6b9245960/CTF-Sandbox-Orchestrator/competition-runtime-routing/SKILL.md",
+          "sha256": "2d49d8e943f328fea03d4b72215b64422480f8b22d9d0376bfb424f307e196bc",
+          "bytes": 3369,
+          "status": "downloaded",
+          "review_scope": "selected_skill"
+        }
+      ],
+      "full_name": "zhaoxuya520/reverse-skill",
+      "html_url": "https://github.com/zhaoxuya520/reverse-skill",
+      "stargazers_count": 39794,
+      "forks_count": 5541,
+      "pushed_at": "2026-09-22T06:43:21Z",
+      "archived": false,
+      "default_branch": "main",
+      "license": "MIT",
+      "commit": "cab634bd855fc287f6e420c1f36fd1a6b9245960",
+      "commit_date": "2026-09-22T05:18:45Z",
+      "status": "observed"
+    }
+  ],
+  "review_scope": "Metadata and selected source/documentation review, not full audits or measured global rankings. Original mechanisms reimplemented without importing upstream runtime code.",
+  "adoption": {
+    "methods": {
+      "title": "专业研究方法",
+      "change": "当前能力只展示最多三个具体方法及前提；使用当前专项作基线，不要求遍历目录。",
+      "files": [
+        "adapters/dsh-routing.mjs"
+      ],
+      "tests": [
+        "tests/dsh-routing.test.mjs"
+      ],
+      "remaining": "专项深度仍需同模型实测；候选方法前提由证据判断，不能仅靠关键词选中。",
+      "borrow": [
+        "沿调用链核对前提与反证",
+        "明确专项到工具的入口",
+        "SRC 研究问题与分派机制"
+      ]
+    },
+    "composition": {
+      "title": "技能与执行路由",
+      "change": "当前路由可用本次 arguments+work 直接继续；切换方法、工具或 schema 重新准备。",
+      "files": [
+        "adapters/dsh-routing.mjs",
+        "adapters/dsh.mjs"
+      ],
+      "tests": [
+        "tests/dsh-routing.test.mjs",
+        "tests/dsh-schema.test.mjs"
+      ],
+      "remaining": "省参数降低摩擦，不能保证模型一定选择正确的研究方法。",
+      "borrow": [
+        "参数契约、错误反馈和有界重试的职责划分",
+        "问题到具体专项的路由",
+        "DSH 原生工具式管理入口"
+      ]
+    },
+    "tools": {
+      "title": "MCP 与工具适配",
+      "change": "复用现有真实工具选择、同目标健康记录和 schema 校验；新增当前路由复用与 schema 变化回归。",
+      "files": [
+        "adapters/dsh-routing.mjs"
+      ],
+      "tests": [
+        "tests/dsh-routing.test.mjs",
+        "tests/dsh-schema.test.mjs"
+      ],
+      "remaining": "保留原工具优先逻辑；未知工具仍需实际接口说明，未遍测所有 MCP。",
+      "borrow": [
+        "协商、schema 与调用结果分离",
+        "客户端生命周期和失败传播",
+        "真实 Burp 工具输入输出"
+      ]
+    },
+    "context": {
+      "title": "上下文管理",
+      "change": "宿主恢复默认 focus：最多三条相关结果、两项排队工作、一条全局笔记；长方法指向原文，范围/身份/条件不裁剪。",
+      "files": [
+        "scripts/fusion_views.py",
+        "adapters/dsh-runtime.mjs"
+      ],
+      "tests": [
+        "tests/test_recovery_progress.py",
+        "tests/dsh-runtime.test.mjs"
+      ],
+      "remaining": "8000 字符为整条宿主恢复消息硬上限，不等于 token；必需约束过大仍明确报错。",
+      "borrow": [
+        "大内容落盘、按需读取",
+        "压缩保留已完成事实和接续方向",
+        "分层文件组织和检索"
+      ]
+    },
+    "evidence": {
+      "title": "执行与证据留存",
+      "change": "自动阶段 Markdown 直接引用真实回执、证据路径/哈希、用时和未决状态；保留原不可变证据副本。",
+      "files": [
+        "scripts/fusion_delivery.py",
+        "scripts/fusion_views.py"
+      ],
+      "tests": [
+        "tests/test_component_upgrade.py",
+        "tests/dsh-routing.test.mjs"
+      ],
+      "remaining": "捕获正确不等于研究解释正确；自动报告不生成漏洞结论。",
+      "borrow": [
+        "产物身份与版本",
+        "不可变事件与只读消息投影",
+        "工具 trace 和评测分离"
+      ]
+    },
+    "isolation": {
+      "title": "项目、会话和工具隔离",
+      "change": "隐式路由仅取当前会话；另一会话不回退借用。partial 交付缺失文件也先验证案件内路径。",
+      "files": [
+        "adapters/dsh-routing.mjs",
+        "adapters/dsh-execution.mjs"
+      ],
+      "tests": [
+        "tests/dsh-routing.test.mjs",
+        "tests/dsh-runtime.test.mjs"
+      ],
+      "remaining": "保留现有项目/案件/会话绑定；这是应用约束而非操作系统沙箱。",
+      "borrow": [
+        "thread/checkpoint 命名空间",
+        "显式 project context",
+        "记忆检索命名空间过滤"
+      ]
+    },
+    "recovery": {
+      "title": "中断恢复与去重",
+      "change": "checkpoint 自动导出可读阶段报告；恢复保留未决优先、真实工作条件与前置证据；不自动重放外部副作用。",
+      "files": [
+        "adapters/dsh-execution.mjs",
+        "scripts/fusion_views.py"
+      ],
+      "tests": [
+        "tests/dsh-runtime.test.mjs",
+        "tests/test_recovery_progress.py"
+      ],
+      "remaining": "未知外部结果仍须对账，不能宣称跨工具 exactly-once。",
+      "borrow": [
+        "持久状态与重复执行控制",
+        "checkpoint 与 pending writes",
+        "历史回放和副作用边界"
+      ]
+    },
+    "node-review": {
+      "title": "节点复盘",
+      "change": "next_check 绑定本案真实 pending 节点；拒绝外案/已完成检查，复盘不增加工具执行。",
+      "files": [
+        "scripts/fusion_node_review.py",
+        "adapters/dsh.mjs"
+      ],
+      "tests": [
+        "tests/test_node_review.py"
+      ],
+      "remaining": "本轮建立可执行接续指针；语义结论仍由当前 Agent 判断。",
+      "borrow": [
+        "前提、调用链和紧凑结论",
+        "证据、信任边界和有效复现",
+        "阶段计划/发现/进度分开落盘"
+      ]
+    },
+    "depth": {
+      "title": "任务纵深推进",
+      "change": "选择顺序为未决回执、有效绑定节点、已满足前置证据的链、其他待执行项；同级沿原顺序。",
+      "files": [
+        "scripts/fusion_views.py",
+        "scripts/fusion_progress.py"
+      ],
+      "tests": [
+        "tests/test_node_review.py",
+        "tests/test_recovery_progress.py"
+      ],
+      "remaining": "已解决接续优先级；信息增益排序、完整攻击路径图和专项能力盲测尚未完成。",
+      "borrow": [
+        "事实前提约束规划",
+        "动作之间的顺序与关系",
+        "当前目标问题和研究阶段"
+      ]
+    },
+    "experience": {
+      "title": "经验沉淀与检索",
+      "change": "恢复时用当前有效节点的问题和下一试验检索，最多取两张完整经验卡后按共享预算纳入；保留检索前项目/专项/有效期过滤。",
+      "files": [
+        "scripts/fusion_progress.py",
+        "scripts/fusion_scope_cli.py"
+      ],
+      "tests": [
+        "tests/test_node_review.py",
+        "tests/dsh-runtime.test.mjs"
+      ],
+      "remaining": "词法优先，可选已有真实向量；本轮不新增远程 embedding 或自动把任务事实晋升为经验。",
+      "borrow": [
+        "Markdown 知识与有限上下文查询",
+        "命名空间和记忆生命周期",
+        "混合召回与关系上下文"
+      ]
+    },
+    "delivery": {
+      "title": "报告交付",
+      "change": "deliver(summary) 自动生成 report/stage.md 并部分交付；列出真实回执和缺失产物，正式 finish/assess 保持验收。",
+      "files": [
+        "scripts/fusion_delivery.py",
+        "adapters/dsh-execution.mjs"
+      ],
+      "tests": [
+        "tests/test_component_upgrade.py",
+        "tests/dsh-routing.test.mjs"
+      ],
+      "remaining": "自动交付只标 partial；完整漏洞结论和正式报告需要人工/Agent 解释证据。",
+      "borrow": [
+        "内容与报告渲染分离",
+        "engagement 范围和发现管理",
+        "报告中区分真实记录与推断"
+      ]
+    },
+    "evaluation": {
+      "title": "效果评测",
+      "change": "增加离线 DSH trace 审计，分别识别已路由、实际子调用、未交付、报告声明和模型额度错误；不输出原始错误中的秘密。",
+      "files": [
+        "scripts/evaluate_dsh_trace.py"
+      ],
+      "tests": [
+        "tests/test_component_upgrade.py"
+      ],
+      "remaining": "宿主 trace 中的报告/回执仍需案件哈希核验；不从调用数推算漏洞能力或给虚假成功分。",
+      "borrow": [
+        "多轮工具行为评测",
+        "可复现评测矩阵",
+        "Skill 使用与最终任务结果分别评估"
+      ]
+    },
+    "intelligence": {
+      "title": "实时漏洞情报与知识库",
+      "change": "CVE 卡片显示受影响产品及版本片段/省略数；REJECTED 和 OSV withdrawn 标为非可操作候选，完整资料仍按哈希保存。",
+      "files": [
+        "scripts/fusion_intel.py",
+        "scripts/fusion_knowledge.py"
+      ],
+      "tests": [
+        "tests/test_intelligence.py",
+        "tests/test_component_upgrade.py"
+      ],
+      "remaining": "实时指按需取源并显示缓存时间；不是后台镜像全量库，候选不代表目标受影响。",
+      "borrow": [
+        "公开 CVE 状态与 affected 数据",
+        "多来源情报关联",
+        "模板命中之后仍需验证"
+      ]
+    }
+  }
+}

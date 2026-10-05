@@ -105,7 +105,8 @@ test('adapter intercepts entry reads, prepares before dispatch and records the s
     assert.equal(ready.status, 'route_ready'); assert.equal(calls, 0);
     await assert.rejects(tool.execute({ action: 'run', args: ['--check', 'fake', '--', 'echo', 'bypass'] }, exec), /cannot bypass/);
     await assert.rejects(tool.execute({ action: 'advance', args: ['--execute-l'] }, exec), /cannot bypass/);
-    const actual = JSON.parse(await tool.execute({ action: 'execute', request: { route_id: ready.route_id } }, exec));
+    const actual = JSON.parse(await tool.execute({ action: 'execute', request: {
+      arguments: request.arguments, work: request.work } }, exec));
     assert.equal(actual.routing.id, ready.route_id); assert.equal(calls, 1);
     assert.match(actual.observed.text, /actual = 27/);
     const recoveredExcerpt = JSON.parse(await tool.execute({ action: 'artifact',
@@ -164,6 +165,13 @@ test('adapter intercepts entry reads, prepares before dispatch and records the s
     }), 'full knowledge snapshot is imported as actual case evidence, not only a path in prose');
     await assert.rejects(tool.execute({ action: 'knowledge', input_json: JSON.stringify(knowledge.arguments) }, exec), /action.*must be one of/);
     await assert.rejects(tool.execute({ action: 'execute', request: { route_id: kbReady.route_id, mission: 'redteam' } }, exec), /Mission cannot change/);
+    let conclusions = 0;
+    exec.concludeTurn = () => { conclusions++; };
+    const beforeDelivery = calls;
+    const stage = JSON.parse(await tool.execute({ action: 'deliver', request: { summary: 'Controlled SDK stage' } }, exec));
+    assert.equal(stage.status, 'partial'); assert.equal(conclusions, 1);
+    assert.equal(calls, beforeDelivery, 'stage export must not replay any observed tool');
+    assert.match(readFileSync(stage.report.path, 'utf8'), new RegExp(actual.attempt_id));
   });
 
 function explicitReviewSaved(session) {

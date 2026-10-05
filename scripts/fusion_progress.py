@@ -31,6 +31,15 @@ def dependency_ids(case, current):
     return ordered
 
 
+def continuation_query(case, fallback):
+    """Retrieve experience for the current question, without replaying task history."""
+    from fusion_node_review import latest_node
+    node = latest_node(case)
+    if node and node["support_current"] and node["decision"] in {"continue", "pivot"}:
+        return (node["question"] + " " + node["next_test"])[:1000]
+    return fallback
+
+
 def outcome_card(case, row):
     spec = json.loads(row["spec"])
     evidence = case.artifacts(row["latest_attempt"])
