@@ -239,6 +239,40 @@ test('partial delivery preserves unresolved observations instead of declaring th
   assert.equal(restored.stored_status_counts.review, 1); assert.equal(restored.stored_status_counts.done || 0, 0);
 });
 
+test('delivery backlog returns bounded case references despite recovery truncation and refreshes after reviews', async () => {
+  const session = new FusionSession(config, 'delivery-backlog', root);
+  const foreign = new FusionSession(config, 'delivery-backlog-foreign', root);
+  let calls = 0;
+  const dispatch = async () => { calls++; return { isError: false, content: [{ type: 'text', text: 'Controlled fixture observation' }] }; };
+  const request = n => ({ target: 'fixture', objective: 'Review independent fixture observations', scope: 'Local fixture only',
+    skill: 'fusion-api', capability: 'http.request', purpose: 'Observe controlled fixture', tool: 'fixture',
+    arguments: { sample: n }, work: { key: 'sample-' + n, conditions: { sample: n } } });
+  const other = await executeStep(foreign, request('foreign'), dispatch);
+  const observed = [];
+  for (let n = 0; n < 7; n++) observed.push(await executeStep(session, request(n), dispatch));
+  const recovery = await session.cli('resume', ['--focus', '--max-chars', '6000']);
+  assert.ok(recovery.in_flight.length < observed.length, 'the ordinary recovery view intentionally omits backlog');
+  const closing = { report: 'REPORT.md', summary: 'Trying to finish does not settle evidence' };
+  let problem;
+  await assert.rejects(closeStep(session, 'finish', closing), error => { problem = error; return /Unresolved work/.test(error.message); });
+  for (const result of observed) assert.ok(problem.message.includes(result.attempt_id), 'delivery must expose every pending reference that fits');
+  assert.ok(!problem.message.includes(other.attempt_id), 'another session must not supply backlog evidence');
+  for (let n = 7; n < 14; n++) observed.push(await executeStep(session, request(n), dispatch));
+  await assert.rejects(closeStep(session, 'finish', closing), error => { problem = error; return /Unresolved work/.test(error.message); });
+  const shown = [...new Set(problem.message.match(/CALL-[a-f0-9]{32}/g))];
+  assert.equal(shown.length, 12, 'a long task does not inject unbounded receipts');
+  assert.ok(problem.message.length < 5000);
+  assert.match(problem.message, /refresh_queries/);
+  assert.match(problem.message, /offset 0/);
+  for (const attempt of shown) await executeStep(session, { review: { attempt, summary: 'Observed controlled fixture; no impact claim' } }, null);
+  const page = await session.cli('query', ['--kind', 'attempts', '--status', 'review', '--brief', '--offset', '0', '--limit', '12']);
+  assert.equal(page.total, 2, 'refresh the changed status filter at zero; old offsets would skip work');
+  assert.deepEqual(new Set(page.items.map(item => item.id)), new Set(observed.slice(12).map(item => item.attempt_id)));
+  assert.deepEqual(Object.keys(page.items[0]).sort(), ['check_id', 'id', 'status']);
+  assert.equal(calls, 15, 'listing/reviewing backlog must not redispatch target calls');
+  assert.equal(session.state().closure, null);
+});
+
 test('unprepared dispatch returns the source method first; restart restores the exact route and actual receipt', async () => {
   const session = new FusionSession(config, 'read-route', root);
   const sample = path.join(root, 'sample.js'); writeFileSync(sample, 'const control = "controlled-fixture";');

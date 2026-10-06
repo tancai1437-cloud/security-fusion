@@ -1,0 +1,410 @@
+{
+  "date": "2026-10-06",
+  "evaluation": "bounded LongCat retest of DSH delivery backlog",
+  "scope": "DSH performs target HTTP through MCP; evaluator reads saved evidence only",
+  "limitations": [
+    "Three runs / six target sessions, not a blinded comparative benchmark.",
+    "Model differs from earlier Space Bunny runs; do not attribute cross-model differences to the skill.",
+    "Run 2 A compaction failed with a connection error. Run 2 B accessed an explicitly excluded scoring endpoint and is invalid for capability scoring.",
+    "Native partial delivery is an artifact/ledger outcome, not independent proof of vulnerability conclusions.",
+    "Reported token usage excludes unreported compaction usage; no price estimate or cache double-counting."
+  ],
+  "runs": [
+    {
+      "label": "release-longcat-1",
+      "run": "run-164918-7f4f24",
+      "source_revision": "6e5fbbe2d9a202865275d908cbd70f04f4b58613",
+      "snapshot_sha256": "38ed4f38bc295e5495293c1edad642665f945fd77194275f39ec7a57f0a885da",
+      "working_tree_modified": false,
+      "model": "opencode-free/longcat-2.5-preview-free",
+      "runtime_version": "0.1.2-rc.1",
+      "image": "bkimminich/juice-shop@sha256:8739101ade29358abb5469ee66ae78e582c97ed0a5543a4ad102e5fa5193526b",
+      "budget": {
+        "phase_seconds": 180,
+        "include_isolation": true,
+        "isolation_seconds": 120
+      },
+      "jobs": {
+        "a": {
+          "phases": [
+            {
+              "phase": "phase-1",
+              "budget_seconds": 180,
+              "seconds": 180.025,
+              "finished": true,
+              "timed_out": true
+            },
+            {
+              "phase": "phase-2",
+              "budget_seconds": 180,
+              "seconds": 180.016,
+              "finished": true,
+              "timed_out": true
+            }
+          ],
+          "http_count": 12,
+          "http_by_phase": {
+            "phase-1": 5,
+            "phase-2": 7
+          },
+          "first_http_seconds": 38.265,
+          "fusion_actions": {
+            "route": 2,
+            "execute": 12,
+            "artifact": 11,
+            "save": 1,
+            "finish": 5,
+            "review": 6
+          },
+          "leaf_results": {
+            "mcp__lab_a__http_request": 12,
+            "write": 1
+          },
+          "compactions": [
+            {
+              "seconds": 33.926,
+              "method": "compactRegion-open-turn",
+              "result_present": true,
+              "shadowed_tokens": 22803,
+              "summary_chars": 4110
+            }
+          ],
+          "reported_usage": {
+            "inputTokens": 750084,
+            "outputTokens": 22808,
+            "totalTokens": 1600924,
+            "cacheReadTokens": 828032
+          },
+          "turn_end_kinds": [],
+          "tool_errors": 7,
+          "routed_receipts": 13,
+          "maximum_recovery_chars": 7982,
+          "attempt_status_counts": {
+            "done": 13
+          },
+          "report_present": true,
+          "stage_report_present": false,
+          "native_closure": null,
+          "delivery_gaps": 0,
+          "scoreboard_request_numbers": [],
+          "capability_score_status": "not_independently_scored"
+        },
+        "b": {
+          "phases": [
+            {
+              "phase": "phase-1",
+              "budget_seconds": 120,
+              "seconds": 120.014,
+              "finished": true,
+              "timed_out": true
+            }
+          ],
+          "http_count": 10,
+          "http_by_phase": {
+            "phase-1": 10
+          },
+          "first_http_seconds": 11.477,
+          "fusion_actions": {
+            "route": 2,
+            "execute": 13,
+            "save": 1,
+            "finish": 1
+          },
+          "leaf_results": {
+            "mcp__lab_b__http_request": 10,
+            "write": 1
+          },
+          "compactions": [],
+          "reported_usage": {
+            "inputTokens": 355934,
+            "outputTokens": 8566,
+            "totalTokens": 567508,
+            "cacheReadTokens": 203008
+          },
+          "turn_end_kinds": [],
+          "tool_errors": 3,
+          "routed_receipts": 11,
+          "maximum_recovery_chars": 7921,
+          "attempt_status_counts": {
+            "done": 10,
+            "review": 1
+          },
+          "report_present": true,
+          "stage_report_present": false,
+          "native_closure": null,
+          "delivery_gaps": 0,
+          "scoreboard_request_numbers": [],
+          "capability_score_status": "not_independently_scored"
+        }
+      },
+      "artifacts": 72,
+      "verified_artifacts": 72
+    },
+    {
+      "label": "release-longcat-2",
+      "run": "run-165912-b03b06",
+      "source_revision": "6e5fbbe2d9a202865275d908cbd70f04f4b58613",
+      "snapshot_sha256": "38ed4f38bc295e5495293c1edad642665f945fd77194275f39ec7a57f0a885da",
+      "working_tree_modified": false,
+      "model": "opencode-free/longcat-2.5-preview-free",
+      "runtime_version": "0.1.2-rc.1",
+      "image": "bkimminich/juice-shop@sha256:8739101ade29358abb5469ee66ae78e582c97ed0a5543a4ad102e5fa5193526b",
+      "budget": {
+        "phase_seconds": 240,
+        "include_isolation": true,
+        "isolation_seconds": 180
+      },
+      "jobs": {
+        "a": {
+          "phases": [
+            {
+              "phase": "phase-1",
+              "budget_seconds": 240,
+              "seconds": 240.079,
+              "finished": true,
+              "timed_out": true
+            },
+            {
+              "phase": "phase-2",
+              "budget_seconds": 240,
+              "seconds": 240.022,
+              "finished": true,
+              "timed_out": true
+            }
+          ],
+          "http_count": 10,
+          "http_by_phase": {
+            "phase-1": 4,
+            "phase-2": 6
+          },
+          "first_http_seconds": 33.85,
+          "fusion_actions": {
+            "route": 4,
+            "execute": 13,
+            "review": 8,
+            "artifact": 8
+          },
+          "leaf_results": {
+            "mcp__lab_a__http_request": 10
+          },
+          "compactions": [
+            {
+              "error": "Connection error."
+            }
+          ],
+          "reported_usage": {
+            "inputTokens": 587742,
+            "outputTokens": 13897,
+            "totalTokens": 1063207,
+            "cacheReadTokens": 461568
+          },
+          "turn_end_kinds": [],
+          "tool_errors": 2,
+          "routed_receipts": 9,
+          "maximum_recovery_chars": 7898,
+          "attempt_status_counts": {
+            "done": 7,
+            "review": 2,
+            "blocked": 1
+          },
+          "report_present": false,
+          "stage_report_present": false,
+          "native_closure": null,
+          "delivery_gaps": 0,
+          "scoreboard_request_numbers": [],
+          "capability_score_status": "not_independently_scored"
+        },
+        "b": {
+          "phases": [
+            {
+              "phase": "phase-1",
+              "budget_seconds": 180,
+              "seconds": 180.022,
+              "finished": true,
+              "timed_out": true
+            }
+          ],
+          "http_count": 6,
+          "http_by_phase": {
+            "phase-1": 6
+          },
+          "first_http_seconds": 22.568,
+          "fusion_actions": {
+            "route": 5,
+            "execute": 6,
+            "artifact": 6,
+            "review": 5
+          },
+          "leaf_results": {
+            "mcp__lab_b__http_request": 6
+          },
+          "compactions": [],
+          "reported_usage": {
+            "inputTokens": 373197,
+            "outputTokens": 3645,
+            "totalTokens": 789770,
+            "cacheReadTokens": 412928
+          },
+          "turn_end_kinds": [],
+          "tool_errors": 1,
+          "routed_receipts": 6,
+          "maximum_recovery_chars": 7893,
+          "attempt_status_counts": {
+            "done": 5,
+            "review": 1
+          },
+          "report_present": false,
+          "stage_report_present": false,
+          "native_closure": null,
+          "delivery_gaps": 0,
+          "scoreboard_request_numbers": [
+            5
+          ],
+          "capability_score_status": "invalid_protocol_violation"
+        }
+      },
+      "artifacts": 48,
+      "verified_artifacts": 48
+    },
+    {
+      "label": "backlog-fix-longcat-3",
+      "run": "run-171313-972e55",
+      "source_revision": "6e5fbbe2d9a202865275d908cbd70f04f4b58613",
+      "snapshot_sha256": "8321092bb3ab3f3c65118ff935d4bf00f421e37a209c4ede0084d327603f86b0",
+      "working_tree_modified": true,
+      "model": "opencode-free/longcat-2.5-preview-free",
+      "runtime_version": "0.1.2-rc.1",
+      "image": "bkimminich/juice-shop@sha256:8739101ade29358abb5469ee66ae78e582c97ed0a5543a4ad102e5fa5193526b",
+      "budget": {
+        "phase_seconds": 240,
+        "include_isolation": true,
+        "isolation_seconds": 180
+      },
+      "jobs": {
+        "a": {
+          "phases": [
+            {
+              "phase": "phase-1",
+              "budget_seconds": 240,
+              "seconds": 240.014,
+              "finished": true,
+              "timed_out": true
+            },
+            {
+              "phase": "phase-2",
+              "budget_seconds": 240,
+              "seconds": 148.811,
+              "finished": true,
+              "timed_out": false
+            }
+          ],
+          "http_count": 12,
+          "http_by_phase": {
+            "phase-1": 6,
+            "phase-2": 6
+          },
+          "first_http_seconds": 30.495,
+          "fusion_actions": {
+            "route": 4,
+            "execute": 12,
+            "review": 7,
+            "artifact": 11,
+            "save": 3,
+            "finish": 3
+          },
+          "leaf_results": {
+            "mcp__lab_a__http_request": 12,
+            "write": 2
+          },
+          "compactions": [
+            {
+              "seconds": 38.872,
+              "method": "compactRegion-open-turn",
+              "result_present": true,
+              "shadowed_tokens": 30861,
+              "summary_chars": 4188
+            }
+          ],
+          "reported_usage": {
+            "inputTokens": 556932,
+            "outputTokens": 30222,
+            "totalTokens": 1324946,
+            "cacheReadTokens": 737792
+          },
+          "turn_end_kinds": [
+            "max-tokens"
+          ],
+          "tool_errors": 4,
+          "routed_receipts": 14,
+          "maximum_recovery_chars": 7995,
+          "attempt_status_counts": {
+            "done": 14
+          },
+          "report_present": true,
+          "stage_report_present": true,
+          "native_closure": "partial",
+          "delivery_gaps": 10,
+          "scoreboard_request_numbers": [],
+          "capability_score_status": "not_independently_scored"
+        },
+        "b": {
+          "phases": [
+            {
+              "phase": "phase-1",
+              "budget_seconds": 180,
+              "seconds": 180.158,
+              "finished": true,
+              "timed_out": true
+            }
+          ],
+          "http_count": 6,
+          "http_by_phase": {
+            "phase-1": 6
+          },
+          "first_http_seconds": 41.336,
+          "fusion_actions": {
+            "route": 2,
+            "execute": 7,
+            "artifact": 5,
+            "review": 2
+          },
+          "leaf_results": {
+            "mcp__lab_b__http_request": 6
+          },
+          "compactions": [],
+          "reported_usage": {
+            "inputTokens": 225344,
+            "outputTokens": 5720,
+            "totalTokens": 530712,
+            "cacheReadTokens": 299648
+          },
+          "turn_end_kinds": [],
+          "tool_errors": 3,
+          "routed_receipts": 5,
+          "maximum_recovery_chars": 7903,
+          "attempt_status_counts": {
+            "done": 2,
+            "review": 4
+          },
+          "report_present": false,
+          "stage_report_present": false,
+          "native_closure": null,
+          "delivery_gaps": 0,
+          "scoreboard_request_numbers": [],
+          "capability_score_status": "not_independently_scored"
+        }
+      },
+      "artifacts": 60,
+      "verified_artifacts": 60
+    }
+  ],
+  "summary": {
+    "runs": 3,
+    "target_sessions": 6,
+    "actual_http_requests": 56,
+    "native_partial_deliveries": 1,
+    "native_complete_deliveries": 0,
+    "protocol_invalid_sessions": 1,
+    "verified_artifacts": 180
+  }
+}

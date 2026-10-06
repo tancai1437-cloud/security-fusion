@@ -6,12 +6,34 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from fusion_store import Case, encode
-from fusion_views import resume
+from fusion_views import resume, query, bounded
 from fusion_evidence import read_evidence
 from test_runtime import CONFIG, spec
 
 
 class RecoveryProgressTests(unittest.TestCase):
+    def test_brief_attempt_query_preserves_status_pagination_without_loading_history(self):
+        self.case.plan([spec('brief-' + str(n), inputs={'sample': n}) for n in range(8)])
+        pending = []
+        for n in range(8):
+            attempt = self.case.begin('brief-' + str(n), 'host', 'local-reader')['attempt_id']
+            self.case.record(attempt, 'review', 'Recorded detail ' * 50, [self.raw])
+            pending.append(attempt)
+        page = query(self.case, 'attempts', limit=5, status='review', brief=True)
+        self.assertEqual(page['total'], 8)
+        self.assertEqual(page['next_offset'], 5)
+        self.assertEqual([row['id'] for row in page['items']], pending[:5])
+        self.assertEqual(set(page['items'][0]), {'id', 'check_id', 'status'})
+        bounded(page, 1200)
+        with self.assertRaisesRegex(ValueError, 'attempts only'):
+            query(self.case, 'checks', brief=True)
+        self.assertIn('summary', query(self.case, 'attempts', limit=1)['items'][0])
+        for attempt in pending[:5]:
+            self.case.review(attempt, 'done', 'Observed local fixture')
+        remaining = query(self.case, 'attempts', limit=5, status='review', brief=True)
+        self.assertEqual([row['id'] for row in remaining['items']], pending[5:])
+        self.assertEqual(self.case.db.execute('SELECT COUNT(*) FROM attempts').fetchone()[0], 8)
+
     def test_focus_preserves_scope_and_conditions_and_prefers_a_supported_chain(self):
         self.case.plan([spec("baseline"), spec("unrelated", inputs={"sample": 2}),
                         spec("deeper", inputs={"sample": 3}, depends_on=["baseline"])])

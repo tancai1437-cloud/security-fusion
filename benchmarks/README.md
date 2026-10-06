@@ -4,6 +4,8 @@
 
 已执行的同模型改进循环另见 [2026-10-06 实测记录](../references/reliability-cycle-2026-10-06.md) 与 [脱敏指标](reliability-20261006.json)。它们包含失败样本，但不是下面四组方案的比较成绩。
 
+后续 LongCat 三轮实测见 [待复核清单修复记录](../references/retest-2026-10-06.md) 与 [续测指标](retest-20261006.json)：修复交付待办被恢复摘要截断的问题；保留超时、压缩失败及测试规则违反的样本。修复后有一个会话完成部分交付，不能视为全部任务通过。
+
 ## 首轮配置
 
 [pilot.json](pilot.json) 定义四类任务：Web/API、JS/源码、多节点压缩/中断恢复、同项目双会话隔离。四组分别是原生 DSH、只有 security-fusion 文件、security-fusion 加宿主适配器、reverse-skill。每题两次，计划 32 轮；先通过小规模真实工具预检再决定是否全部运行。

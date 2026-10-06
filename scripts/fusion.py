@@ -117,6 +117,7 @@ def parser():
             memory_query_options(command, recovery=True)
         if name == "query":
             command.add_argument("--kind", choices=["checks", "notes", "events", "attempts", "artifacts"], required=True)
+            command.add_argument("--brief", action="store_true", help="Attempts only: return id, check_id and status without history text")
             command.add_argument("--offset", type=int, default=0)
             command.add_argument("--limit", type=int, default=10)
             command.add_argument("--target", help="Exact canonical target; filters checks or their notes")
@@ -235,7 +236,7 @@ def dispatch(args, case):
         with case.transaction():
             if command == "resume":
                 return resume(case, args.check, args.max_chars, args.binding, args.experiences, args.skill, args.focus)
-            return bounded(query(case, args.kind, args.offset, args.limit, args.check, args.target, args.status), args.max_chars)
+            return bounded(query(case, args.kind, args.offset, args.limit, args.check, args.target, args.status, args.brief), args.max_chars)
     if command == "report":
         return report(case)
     if command == "run":

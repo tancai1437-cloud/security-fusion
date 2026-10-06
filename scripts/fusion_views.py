@@ -218,8 +218,9 @@ def resume(case, identity=None, maximum=6000, binding=None, experiences=None, fa
     return bounded(packet, maximum)
 
 
-def query(case, kind, offset=0, limit=10, identity=None, target=None, status=None):
+def query(case, kind, offset=0, limit=10, identity=None, target=None, status=None, brief=False):
     require(kind in {"checks", "notes", "events", "attempts", "artifacts"}, "Unknown query kind")
+    require(not brief or kind == "attempts", "Brief queries support attempts only")
     require(offset >= 0 and 1 <= limit <= 100, "Use offset >= 0 and limit between 1 and 100")
     clauses, args = [], []
     if status:
@@ -237,7 +238,8 @@ def query(case, kind, offset=0, limit=10, identity=None, target=None, status=Non
         args.append(target)
     where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
     total = case.db.execute(f"SELECT COUNT(*) FROM {kind}{where}", args).fetchone()[0]
-    rows = case.db.execute(f"SELECT * FROM {kind}{where} ORDER BY rowid LIMIT ? OFFSET ?",
+    columns = "id,check_id,status" if brief else "*"
+    rows = case.db.execute(f"SELECT {columns} FROM {kind}{where} ORDER BY rowid LIMIT ? OFFSET ?",
                            args + [limit, offset]).fetchall()
     if kind == "checks":
         items = [check_card(case, dict(r)) for r in rows]

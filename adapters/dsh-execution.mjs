@@ -449,14 +449,32 @@ async function finishStep(session, request, summary, signal) {
   return closure;
 }
 
+async function deliveryBacklog(session, counts, signal) {
+  const inFlight = [], refresh = [];
+  let omitted = 0;
+  for (const status of ['running', 'unknown', 'review'].filter(value => counts[value])) {
+    const room = 12 - inFlight.length;
+    const args = ['--kind', 'attempts', '--status', status, '--brief', '--offset', '0', '--limit', String(room || 12)];
+    const page = room ? await session.cli('query', args, signal) : { items: [], total: counts[status] };
+    inFlight.push(...page.items);
+    const remaining = page.total - page.items.length;
+    omitted += remaining;
+    if (remaining) refresh.push({ action: 'query', args });
+  }
+  // Recovery deliberately prioritizes a small working set. Closing needs a
+  // separate bounded queue; shrinking status filters must restart at offset 0.
+  return { counts, in_flight: inFlight, omitted_in_flight: omitted, refresh_queries: refresh };
+}
+
 async function validateDelivery(session, request, signal) {
   if (!existsSync(path.join(session.root, 'receipts'))) throw new Error('No observed host execution; cannot close this execution contract');
   const restored = await session.cli('resume', ['--focus', '--max-chars', '6000'], signal);
   const counts = restored.stored_status_counts;
   const unresolved = Object.fromEntries(['pending', 'running', 'unknown', 'review'].filter(k => counts[k]).map(k => [k, counts[k]]));
   if (Object.keys(unresolved).length && request.status !== 'partial') {
-    throw new Error('Unresolved work remains: ' + JSON.stringify({ counts, in_flight: restored.in_flight.slice(0, 4) }) +
-        '. For genuinely partial delivery, finish with status="partial" and keep these gaps in the report; observations will not be marked done. Otherwise for status=review, inspect its saved result then use execute request={review:{attempt:"the returned id",summary:"your actual conclusion",verdict:"done"}}. This reviews without another tool call. For running/unknown reconcile first; pending work: resume. Do not repeatedly call finish or repeat target actions to settle old receipts.');
+    const backlog = await deliveryBacklog(session, counts, signal);
+    throw new Error('Unresolved work remains: ' + JSON.stringify(backlog) +
+        '. Review the listed saved observations before trying finish again; this queue is independent of the compressed resume view. After processing this page, use refresh_queries at offset 0 because reviewed rows leave the status filter. For status=review use execute request={review:{attempt:"the returned id",summary:"your actual conclusion",verdict:"done"}}; running/unknown need reconcile, pending work needs resume. For a genuinely partial result use finish status="partial" or deliver, preserving gaps. Listing does not review or repeat any target action.');
   }
   if ((counts.failed || counts.blocked) && request.status !== 'partial') throw new Error('Failed/blocked checks remain; finish must use status=partial');
   const report = ownedFile(session, request.report);
