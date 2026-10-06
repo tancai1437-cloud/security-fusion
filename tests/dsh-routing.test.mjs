@@ -7,12 +7,78 @@ import { fileURLToPath } from 'node:url';
 import { FusionSession, formatRecovery, RECOVERY_MAX_CHARS, sameTarget, digest } from '../adapters/dsh-runtime.mjs';
 import { importToolArtifacts } from '../adapters/dsh-artifacts.mjs';
 import { expandRoute, prepareRoute, requireRoute } from '../adapters/dsh-routing.mjs';
-import { executeStep, guardReason, stopCorrection, recordTurnOutcome, closeStep, resolveReceiptCitations } from '../adapters/dsh-execution.mjs';
+import { executeStep, guardReason, stopCorrection, recordTurnOutcome, closeStep, resolveReceiptCitations, resolveReviewAttempt } from '../adapters/dsh-execution.mjs';
 
 const pack = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const root = mkdtempSync(path.join(os.tmpdir(), 'fusion-route-'));
 const config = { skillRoot: pack, stateDir: path.join(root, 'private'), python: process.env.FUSION_TEST_PYTHON || 'python' };
 const read = { name: 'read', description: 'Read a file', parameters: { type: 'object', properties: { file_path: { type: 'string' } }, required: ['file_path'] } };
+
+test('bound HTTP reads infer exact invocation identity without inheriting semantic conditions', async () => {
+  const target = 'http://localhost:8092', tool = { ...read, name: 'mcp__fixture__http' };
+  const boundConfig = { ...config, capabilityTools: { 'http.request': [tool.name] }, boundTools: { [tool.name]: target } };
+  const session = new FusionSession(boundConfig, 'automatic-read', root);
+  const ready = await prepareRoute(session, { target, objective: 'Compare controlled responses', scope: 'Local fixture only',
+    mission: 'src', skill: 'fusion-api', capability: 'http.request', purpose: 'Observe response' }, [tool]);
+  let calls = 0;
+  const dispatch = async () => { calls++; return { isError: false, content: [{ type: 'text', text: 'fixture response' }] }; };
+  const firstRequest = expandRoute(session, { route_id: ready.route_id, arguments: { url: target + '/one', method: 'GET' },
+    work: { key: 'control', conditions: { role: 'anonymous', resource: '/one' } } });
+  const routing = (await requireRoute(session, firstRequest, [tool])).receipt;
+  const first = await executeStep(session, firstRequest, dispatch, undefined, routing);
+  const secondRequest = expandRoute(session, { arguments: { url: target + '/two', method: 'GET' }, review: { summary: 'First fixture observed' } });
+  assert.equal(secondRequest.work, undefined, 'old resource /one must not be inherited by /two');
+  assert.equal(secondRequest.route_id, ready.route_id);
+  const second = await executeStep(session, secondRequest, dispatch, undefined, routing);
+  const checkpointPath = path.join(session.casePath, second.checkpoint);
+  const capturedCheckpoint = readFileSync(checkpointPath, 'utf8');
+  assert.match(capturedCheckpoint, new RegExp(second.attempt_id));
+  assert.match(capturedCheckpoint, /"status": "review"/);
+  assert.ok(capturedCheckpoint.length < 8000, 'checkpoint contains the latest bounded state, not raw tool output');
+  assert.equal(second.deduplication, 'invocation_only');
+  assert.notEqual(first.check_id, second.check_id);
+  assert.equal(calls, 2);
+  await executeStep(session, { review: { summary: 'Second fixture observed', attempt: 'latest' } }, dispatch);
+  assert.match(readFileSync(checkpointPath, 'utf8'), /"status": "done"/);
+  const reopened = new FusionSession(boundConfig, 'automatic-read', root);
+  assert.equal((await executeStep(reopened, expandRoute(reopened, { arguments: { method: 'GET', url: target + '/two' } }), dispatch, undefined, routing)).decision, 'reuse');
+  assert.equal(calls, 2, 'restoration and JSON key ordering must not repeat the target call');
+  const third = await executeStep(reopened, expandRoute(reopened, { arguments: { method: 'GET', url: target + '/two', auth_ref: 'other-test-role' } }), dispatch, undefined, routing);
+  assert.notEqual(third.check_id, second.check_id, 'a changed identity reference changes the invocation');
+  assert.throws(() => expandRoute(reopened, { route_id: ready.route_id, arguments: { method: 'POST', url: target + '/two' } }), /this call's work/);
+  assert.throws(() => expandRoute(reopened, { route_id: ready.route_id, arguments: { method: 'GET', url: 'http://localhost:8093/two' } }), /this call's work/);
+  assert.equal(expandRoute(new FusionSession(boundConfig, 'automatic-other', root), { arguments: { method: 'GET', url: target + '/two' } }).tool, undefined);
+});
+
+test('mismatched specialist gives concrete alternatives without preparing or dispatching a wrong route', async () => {
+  const session = new FusionSession(config, 'mismatched-capability', root);
+  await assert.rejects(prepareRoute(session, { skill: 'fusion-recon', capability: 'http.request', purpose: 'Read entry' }, [read]),
+    error => /fusion-recon\/web.crawl/.test(error.message) && /fusion-api\/http.request/.test(error.message));
+  assert.equal(session.state().current_route, undefined);
+  assert.equal(existsSync(path.join(session.casePath, 'case.sqlite3')), false);
+});
+
+test('review accepts scoped short references and rejects a mistyped ID before dispatch', async () => {
+  const session = new FusionSession(config, 'review-reference', root);
+  let calls = 0;
+  const dispatch = async () => { calls++; return { isError: false, content: [{ type: 'text', text: 'fixed sample' }] }; };
+  const request = { target: 'fixture', objective: 'Observe fixture', scope: 'Local fixture', skill: 'fusion-js',
+    capability: 'js.source', purpose: 'Read sample', tool: 'read', arguments: { file_path: 'sample.js' },
+    work: { key: 'sample', conditions: { version: 'one' } } };
+  const actual = await executeStep(session, request, dispatch);
+  assert.equal(resolveReviewAttempt(session, actual.review_ref), actual.attempt_id);
+  assert.equal(resolveReviewAttempt(session, 'latest'), actual.attempt_id);
+  const wrong = actual.attempt_id.slice(0, -1) + (actual.attempt_id.endsWith('0') ? '1' : '0');
+  await assert.rejects(executeStep(session, { ...request, review: { attempt: wrong, summary: 'Would review wrong ID' } }, dispatch),
+    error => error.message.includes('Unknown review.attempt') && error.message.includes(actual.attempt_id) && !error.message.includes('ENOENT'));
+  assert.equal(calls, 1, 'a bad review cannot dispatch the next action');
+  await executeStep(session, { review: { attempt: actual.review_ref, summary: 'Observed the fixed sample' } }, dispatch);
+  assert.equal(session.state().last_execution.status, 'done');
+  assert.throws(() => resolveReviewAttempt(new FusionSession(config, 'foreign-review', root), actual.review_ref), /Unknown/);
+  const prefix = 'CALL-' + 'a'.repeat(8);
+  for (const tail of ['0', '1']) writeFileSync(path.join(session.root, 'receipts', prefix + tail.repeat(24) + '.json'), '{}');
+  assert.throws(() => resolveReviewAttempt(session, prefix), /Ambiguous/);
+});
 
 test('current route reuse needs fresh arguments and conditions and never borrows another session', async () => {
   const a = new FusionSession(config, 'implicit-a', root), b = new FusionSession(config, 'implicit-b', root);
@@ -24,7 +90,9 @@ test('current route reuse needs fresh arguments and conditions and never borrows
   assert.equal(expanded.route_id, selected.route_id);
   assert.equal(expanded.tool, 'read'); assert.deepEqual(expanded.arguments, fresh.arguments);
   assert.deepEqual(expandRoute(b, fresh), fresh);
-  assert.equal(expandRoute(restored, { arguments: fresh.arguments }).tool, undefined);
+  const missingWork = expandRoute(restored, { arguments: fresh.arguments });
+  assert.equal(missingWork.tool, 'read', 'the current method remains identifiable even when conditions are missing');
+  await assert.rejects(executeStep(restored, missingWork, () => { throw new Error('must not dispatch'); }), /require work/);
   assert.equal(expandRoute(restored, { review: { summary: 'Observed' } }).tool, undefined);
   assert.equal(expandRoute(restored, { ...fresh, capability: 'binary.profile' }).route_id, undefined);
   const changedSchema = { ...read, parameters: { type: 'object', properties: { path: { type: 'string' } } } };
@@ -40,8 +108,13 @@ test('stage delivery writes real Markdown and lists missing planned outputs with
   async () => ({ isError: false, content: [{ type: 'text', text: 'Controlled observation, no interpretation yet' }] }));
   const pause = await closeStep(session, 'checkpoint', { summary: 'Fixture read', next: 'Review the existing observation' });
   assert.ok(pause.artifacts.includes('report/stage.md'));
-  const final = await closeStep(session, 'deliver', { summary: 'Partial stage for review' });
+  const longSummary = 'Captured fixture observations. '.repeat(60) + 'Actual impact remains unverified.';
+  const final = await closeStep(session, 'deliver', { summary: longSummary });
   assert.equal(final.status, 'partial'); assert.equal(final.unresolved.review, 1);
+  assert.equal(session.state().closure.summary, longSummary, 'full delivery text must remain on disk');
+  const recovered = await session.recovery();
+  assert.match(recovered.closure.summary, /Full delivery summary/);
+  assert.ok(formatRecovery(recovered).length <= RECOVERY_MAX_CHARS);
   assert.equal(final.deliverables[0].status, 'missing');
   assert.match(readFileSync(final.report.path, 'utf8'), new RegExp(result.attempt_id));
   assert.equal(digest(readFileSync(final.report.path)), final.report.sha256);

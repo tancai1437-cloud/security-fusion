@@ -109,6 +109,18 @@ test('adapter intercepts entry reads, prepares before dispatch and records the s
       arguments: request.arguments, work: request.work } }, exec));
     assert.equal(actual.routing.id, ready.route_id); assert.equal(calls, 1);
     assert.match(actual.observed.text, /actual = 27/);
+    const flatOnlyReview = JSON.parse(await tool.execute({ action: 'review', summary: 'Real source observation after outer-field normalization', verdict: 'done' }, exec));
+    assert.equal(flatOnlyReview.status, 'reviewed');
+    const flatReuse = JSON.parse(await tool.execute({ action: 'execute', route_id: ready.route_id,
+      arguments: request.arguments, work: request.work }, exec));
+    assert.equal(flatReuse.decision, 'reuse'); assert.equal(calls, 1, 'flattened fields are validated and deduplicated, not silently discarded');
+    const mixedReuse = JSON.parse(await tool.execute({ action: 'execute', route_id: ready.route_id,
+      request: { arguments: request.arguments, work: request.work } }, exec));
+    assert.equal(mixedReuse.decision, 'reuse'); assert.equal(calls, 1, 'non-overlapping fields share the same validation');
+    await assert.rejects(tool.execute({ action: 'execute', request, arguments: request.arguments }, exec), /Do not mix/);
+    await assert.rejects(tool.execute({ action: 'execute', invented_operation: 'ignored before' }, exec), /Unknown fusion fields/);
+    await assert.rejects(tool.execute({ action: 'execute', ...request, target: path.join(temporary, 'other.js') }, exec), /Target differs/);
+    assert.equal(calls, 1, 'flat input cannot bypass case ownership');
     const recoveredExcerpt = JSON.parse(await tool.execute({ action: 'artifact',
       artifact_id: actual.evidence_ids[0].slice(0, 12), query: 'actual = 27' }, exec));
     assert.equal(recoveredExcerpt.artifact_id, actual.evidence_ids[0]);
@@ -120,16 +132,22 @@ test('adapter intercepts entry reads, prepares before dispatch and records the s
     const alias = JSON.parse(await tool.execute({ action: 'review', request: {
       review: { attempt: actual.attempt_id, summary: 'The same captured source observation' } } }, exec));
     assert.equal(alias.status, 'reviewed'); assert.equal(calls, 1, 'structured review and CLI review must not be confused');
+    const flatReview = JSON.parse(await tool.execute({ action: 'review', request: {
+      summary: 'The same actual observation with the natural standalone shape', verdict: 'done' } }, exec));
+    assert.equal(flatReview.status, 'reviewed'); assert.equal(calls, 1);
+    await assert.rejects(tool.execute({ action: 'review', request: { summary: 'Mixed action', verdict: 'done',
+      arguments: request.arguments } }, exec), /Standalone review accepts only/);
+    await assert.rejects(tool.execute({ action: 'execute', request: { summary: 'Not a standalone review', verdict: 'done' } }, exec), /inside request.review/);
     const node = { question: 'What does the controlled source establish?', attempts: [actual.attempt_id],
       conclusion: 'The captured source declares constant 27; runtime behaviour has not been tested.',
       unresolved: ['Runtime behaviour'], decision: 'continue', next_test: 'Inspect the existing controlled runtime observation.' };
-    const decision = JSON.parse(await tool.execute({ action: 'node-review', request: { node } }, exec));
+    const decision = JSON.parse(await tool.execute({ action: 'node-review', request: { node: { ...node, attempts: [actual.review_ref] } } }, exec));
     assert.equal(decision.status, 'node_recorded'); assert.equal(decision.task_completed, false);
     assert.equal(calls, 1, 'node review must not dispatch a target action');
     const restored = await session.recovery();
     assert.equal(restored.task.mission, 'src');
     assert.equal(restored.state.node_review.next_test, node.next_test);
-    await assert.rejects(tool.execute({ action: 'node-review', request: { node: { ...node, attempts: ['CALL-invented'] } } }, exec), /Unknown attempt/);
+    await assert.rejects(tool.execute({ action: 'node-review', request: { node: { ...node, attempts: ['CALL-invented'] } } }, exec), /exact CALL-ID/);
     const next = JSON.parse(await tool.execute({ action: 'execute', request: { ...request,
       capability: 'evidence.persist', review: { summary: 'The source declares the constant 27' } } }, exec));
     assert.equal(next.status, 'route_ready'); assert.equal(next.previous_review, 'reviewed');

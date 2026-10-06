@@ -137,7 +137,7 @@ test('observed host execution binds once, deduplicates after restart and require
     for (const file of ['web-checks.json', 'candidates.json']) writeFileSync(path.join(stage, file), '[]');
     await assert.rejects(closeStep(restored, 'finish', { summary: 'Files alone are insufficient', report: 'answer.md' }), /Goal acceptance remains incomplete/);
     const end = await closeStep(restored, 'finish', { summary: 'Fixture inspected', report: 'answer.md',
-      assessment: [{ criterion: 'objective', attempts: [first.attempt_id], summary: 'Controlled response directly shows protected_access=false' }] });
+      assessment: [{ criterion: 'objective', attempts: [first.review_ref], summary: 'Controlled response directly shows protected_access=false' }] });
     assert.equal(end.status, 'submitted');
     assert.deepEqual(end.delivery_gaps, []);
     assert.equal(end.deliverables.length, 1);
@@ -270,7 +270,11 @@ test('failed and interrupted receipts never become semantic success and changed 
     review: { attempt: failed.attempt_id, summary: 'claim success' } }), /cannot be marked done/);
   const b = new FusionSession(config, 'uncertain-execute', root);
   const uncertain = await executeStep(b, request, async () => { throw new Error('Connection lost after dispatch'); });
-  assert.equal(uncertain.status, 'unknown');
+    assert.equal(uncertain.status, 'unknown');
+    const checkpoint = readFileSync(path.join(b.casePath, uncertain.checkpoint), 'utf8');
+    assert.match(checkpoint, /"status": "unknown"/);
+    assert.match(checkpoint, new RegExp(uncertain.attempt_id));
+    assert.doesNotMatch(checkpoint, new RegExp(failed.attempt_id), 'different sessions cannot share checkpoint observations');
   let repeats = 0;
   assert.equal((await executeStep(new FusionSession(config, 'uncertain-execute', root), request, async () => repeats++)).decision, 'hold');
   assert.equal(repeats, 0);
@@ -279,7 +283,7 @@ test('failed and interrupted receipts never become semantic success and changed 
   writeFileSync(ok.observed.capture, 'changed');
   await assert.rejects(closeStep(c, 'checkpoint', { summary: 'check', next: 'later', review: { attempt: ok.attempt_id, summary: 'accept' } }), /capture changed/);
   const other = new FusionSession(config, 'other-owner', root);
-  await assert.rejects(closeStep(other, 'checkpoint', { summary: 'wrong owner', next: 'later', review: { attempt: ok.attempt_id, summary: 'accept' } }), /ENOENT/);
+  await assert.rejects(closeStep(other, 'checkpoint', { summary: 'wrong owner', next: 'later', review: { attempt: ok.attempt_id, summary: 'accept' } }), /Unknown review.attempt in this session/);
 });
 
 test('guard persists across recreation, allows scoped skill preparation, and respects suspension', async () => {

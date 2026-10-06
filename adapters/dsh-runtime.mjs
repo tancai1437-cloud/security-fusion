@@ -82,7 +82,8 @@ function recoveryHeader(session, state) {
     checkpoint: state.checkpoint, continuation: state.continuation,
     last_execution: state.last_execution ? { check: state.last_execution.check, attempt: state.last_execution.attempt,
       status: state.last_execution.status } : undefined,
-    closure: state.closure ? { status: state.closure.status, summary: state.closure.summary,
+    closure: state.closure ? { status: state.closure.status, summary: (state.closure.summary?.length || 0) <= 1200 ? state.closure.summary
+      : 'Full delivery summary is retained in details_path under closure.summary; read it or the report before citing conclusions.',
       report: state.closure.report } : undefined,
     last_turn: state.last_turn, adherence: state.adherence,
     tool_errors: Object.fromEntries(errors.slice(-3)), omitted_tool_errors: Math.max(0, errors.length - 3) };

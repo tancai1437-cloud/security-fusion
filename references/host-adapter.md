@@ -32,7 +32,9 @@ evidence.persist 经真实 read 成功读取当前技能包或本案已有材料
 
 不在已知绑定中的真实自定义工具可用 tool_reason 解释适用性，回执明确标记 agent_explained_fallback。不会把任意 shell 命令自动认证为某项能力。维护者核对过的工具可在 adapter config 配置 `capabilityTools:{"http.request":["mcp__lab__http_observe"]}`；这只指定能力候选，独立的 boundTools/context_slot 仍负责目标上下文。
 
-路由 ID 按会话隔离，绑定专项、能力、实际工具、schema 和方法文件版本。更改这些项先重新 route；执行参数可更新，已用路由再次提交目标参数时必须显式携带本次 work，避免悄悄继承旧测试条件。最近六条准备记录保存在本会话私有状态，压缩后恢复当前 ID 与状态，不整份注入工具清单；被淘汰、另一会话或版本变化的路由不能冒充当前可用路由。准备记录从不复用 review 或 retest_reason，以免套用旧结论或重复复测许可。超过 3,000 字符的工具 schema 不重复注入，指向宿主已经暴露的完整定义；执行前仍按实时 schema 校验。
+路由 ID 按会话隔离，绑定专项、能力、实际工具、schema 和方法文件版本。更改这些项先重新 route；当前兼容路由的 ID 可以省略，执行参数仍需明确提供。已用路由的新参数不会继承旧 work；维护者明确绑定到本目标、能力已配置且同源的 HTTP GET/HEAD 可省略 work，按完整调用参数去重，其他目标操作须携带本次 work。最近六条准备记录保存在本会话私有状态，压缩后恢复当前 ID 与状态，不整份注入工具清单；被淘汰、另一会话或版本变化的路由不能冒充当前可用路由。准备记录从不复用 review 或 retest_reason，以免套用旧结论或重复复测许可。超过 3,000 字符的工具 schema 不重复注入，指向宿主已经暴露的完整定义；执行前仍按实时 schema 校验。
+
+推荐把执行字段放在 request 内。对于模型放在外层的已知 request 字段，适配器先归一化再验证；外层与内层存在同名字段会拒绝，不猜优先级。未知字段、混用 input_json、错误工具参数仍明确拒绝，不静默丢弃，也不替模型改请求内容。
 
 直接 execute 的兼容写法如下。第一次返回 route_ready 后，将其 route_id 交给下一次 execute；工具名和 arguments 使用当前宿主真实接口：
 
@@ -56,9 +58,9 @@ evidence.persist 经真实 read 成功读取当前技能包或本案已有材料
 }
 ```
 
-不需要提前生成 task.json、查 CLI 帮助、手工建案或填写 MCP 清单。程序验证专项/能力、绑定当前会话、登记检查，经 DSH 原生权限流程调用工具，捕获回执，再返回必要预览。完整 arguments/result 留在该会话私有目录；输入只传宿主凭据引用，不嵌入密钥。新任务的目标检查必须声明 work:{key,conditions}。相同目标、版本、身份、能力以及 work 条件共用一个检查，换工具也复用已复核结果；完整调用参数继续保存在各自回执。evidence.persist 整理/搜索可以不声明 work，按调用参数查重。旧会话继续兼容调用指纹，不把旧结果自动猜配到新问题。
+不需要提前生成 task.json、查 CLI 帮助、手工建案或填写 MCP 清单。程序验证专项/能力、绑定当前会话、登记检查，经 DSH 原生权限流程调用工具，捕获回执，再返回必要预览。完整 arguments/result 留在该会话私有目录；输入只传宿主凭据引用，不嵌入密钥。新任务的目标检查声明 work:{key,conditions}，上述明确绑定的 GET/HEAD 可使用精确调用身份。相同目标、版本、身份、能力以及 work 条件共用一个检查，换工具也复用已复核结果；完整调用参数继续保存在各自回执。evidence.persist 整理/搜索可以不声明 work，按调用参数查重。旧会话继续兼容调用指纹，不把旧结果自动猜配到新问题。
 
-下一次 execute 可加 `review:{"summary":"根据刚才实际输出得出的结论","verdict":"done"}`，复核本会话上一次执行；需要复核较早项才显式加 attempt。这不是自动根据退出码判成功。失败/中断结果不能直接判 done；未知是否执行时先 reconcile，不重发。
+下一次 execute 可加 `review:{"summary":"根据刚才实际输出得出的结论","verdict":"done"}`，复核本会话上一次执行；需要复核较早项才显式加 attempt。也可单独 `review(request={summary,verdict,attempt?})`。旧结果支持本会话唯一的 CALL- 前缀（至少 8 位十六进制），node-review 和 finish 的证据引用同样支持；报告文件的可核对引用仍使用完整 ID。未知或歧义引用先拒绝并给出当前实际回执，不猜测匹配。done 只表示观察已复核，不自动证明漏洞成立。失败/中断结果不能直接判 done；未知是否执行时先 reconcile，不重发。
 
 既有 CLI 操作仍支持 args/input_json，案件/会话由宿主提供。使用结构化 route/execute 后，shell、搜索、读写、MCP 都沿此入口执行，调用时自动记录，无需再手工 record；同会话不能改用 CLI run/mcp-run 或 --execute-local 绕过准备路由。query/artifact/resume、显式 review 等继续可用；旧 CLI 案件不自动迁移。
 
@@ -85,6 +87,8 @@ results 优先带回当前检查的直接/间接前置结论，然后补充同�
 - 成功加载 Skill、直接读取本包 SKILL.md 或原生 route 都可激活。激活后实际工具必须通过 execute；有限次直接读取当前技能文件可用于方法选择。控制类工具、用户提问仍可用。拦截是宿主执行前检查，不靠模型自觉重复读 Skill。自然语言是否选择本 Skill 仍由 Agent 决定，组件不会按任意关键词擅自执行目标。
 - 每次结果包含当前路由和回执。激活、新轮次、压缩或执行状态改变时从磁盘恢复；通过 DSH 的已记录 surface replace 替换上一恢复块，原始日志不删。工作集先放相关结果，再在预算内补入完整方法；method_deferred 表示按 source 读取，完成条件和方法来源始终保留。整条当前恢复消息上限 8,000 UTF-16 单元；CLI 默认 6,000 字符，不等于模型 token 数或整个对话预算。
 - `checkpoint` 保存 summary 与 next，用于用户要求暂停或实际阻塞；明确不是完成。`resume` 从同一案件恢复，沿未完成动作继续。
+- 每次真实回执落盘或复核后自动原子更新 `report/runtime-checkpoint.md`，即使强制结束没经过 turn/end 也保留最近节点与恢复指针。它不包含完整历史，不冒充最终报告；该路径保留给宿主维护。
+- `deliver` 自动导出并提交 partial 阶段，不要求模型手工拼报告。finish/deliver 的 summary 最多 6,000 字符，可省略使用中性阶段说明；超过 1,200 字符时完整留在磁盘，恢复块只放读取指针。普通复核与 checkpoint 的摘要仍最多 1,200 字符。
 - `finish` 要求已登记工作无 pending/running/unknown/review，报告和首次声明的交付文件存在且非空，所有宿主捕获件哈希匹配。未复核时直接返回相关调用 ID，沿 execute 的 review 处理，不靠重复请求补账。报告至少引用一个完整的实际 CALL-… 回执 ID，引用不存在的调用会拒绝；并生成机器可核对的 host-adherence.json。失败/受阻项尚存、或当前专项规定产物缺失时只能按 partial 交付，返回具体缺口，不声称全完成。生成的报告、代码仍须做任务对应的语义验证。
 - 已加载却零执行、或执行后未调用 finish/checkpoint 就结束，宿主最多补充两次纠正；仍不通过记录 loaded_without_execution / incomplete，避免无限消耗。纠正只提示继续或说明退出原因，不自行发目标请求。尚未建案的纯分析、用户取消或切到其他任务时用 `suspend(reason)`。无关工作放行；旧目标和本案私有材料仍通过原入口访问。阅读旧证据、写本案报告不构成退出理由。路径/目标字符串的识别不是任意脚本沙箱。
 - 若宿主结果已完整落盘而账本 record 因进程退出中断，下次恢复核对 owner/check/捕获哈希，只补记原回执，不重发工具，也不自动判 done。没有完整回执的 running/unknown 仍需核对实际状态。

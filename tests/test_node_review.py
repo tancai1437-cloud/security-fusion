@@ -50,7 +50,7 @@ class NodeReviewTests(unittest.TestCase):
                      "next_test": "Check the existing normal control for the same test identity."}
 
     def test_unreviewed_fake_and_foreign_attempts_cannot_be_promoted(self):
-        with self.assertRaises(FusionError):
+        with self.assertRaisesRegex(FusionError, self.attempt + r" .*attempt=review"):
             review_node(self.case, self.data)
         self.case.review(self.attempt, "done", "The fixture refusal was observed")
         with self.assertRaises(FusionError):

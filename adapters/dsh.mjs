@@ -5,7 +5,7 @@ import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { FusionSession, actions, digest, visibleRecovery, formatRecovery, replaceRecovery } from './dsh-runtime.mjs';
-import { executeStep, closeStep, guardReason, stopCorrection, recordTurnOutcome, recoverCaptured } from './dsh-execution.mjs';
+import { executeStep, closeStep, guardReason, stopCorrection, recordTurnOutcome, recoverCaptured, canonicalAttemptReferences } from './dsh-execution.mjs';
 import { expandRoute, prepareRoute, requireRoute } from './dsh-routing.mjs';
 
 export const name = 'security-fusion-host';
@@ -16,7 +16,7 @@ function createFusionTool(ctx, get, children, config) {
   const modules = JSON.parse(readFileSync(path.join(config.skillRoot, 'manifests/specialists.json'), 'utf8')).modules;
   const definition = {
     name: 'fusion',
-    description: 'Execute security-fusion work through actual host tools. route request={skill,capability,purpose,tool?,procedure?} returns the current method and real schema. execute request={arguments,work:{key,conditions}} reuses that CURRENT route; route_id is optional unless selecting another prepared route. First execution also needs objective,scope,target,mission; criteria/deliverables record the goal. Never count route_ready as execution. Keep work stable when changing tools. Results are captured; next execute can include review:{summary,verdict:"done"}, or review alone without a tool call. save(file_path,content) takes TOP-LEVEL fields and writes inside this case. artifact(artifact_id,query? or offset/length) reads captured evidence without replay. resume recovers the focused state. node-review preserves evidence-linked decisions and optional next_check. checkpoint request={summary,next} pauses and exports stage Markdown. deliver request={summary,review?} exports and submits a PARTIAL stage with real receipts and open gaps; no manual report construction needed. finish request={report,summary,assessment:[{criterion,attempts,summary}],status?:"partial"} handles authored final reports and goal assessment. suspend(reason) releases unrelated work. Other CLI actions use args/input_json.',
+    description: 'Execute security-fusion work through actual host tools. route request={skill,capability,purpose,tool?,procedure?} returns the current method and real schema. execute request={arguments} reuses the CURRENT route for explicitly bound HTTP GET/HEAD with exact invocation deduplication. Other operations and cross-tool semantic reuse require work:{key,conditions}. route_id is optional for the current route. First execution also needs objective,scope,target,mission; criteria/deliverables record the goal. Never count route_ready as execution. Keep work stable when changing tools. Results are captured; next execute can include review:{summary,verdict:"done"}, or review alone without a tool call. save(file_path,content) takes TOP-LEVEL fields and writes inside this case. artifact(artifact_id,query? or offset/length) reads captured evidence without replay. resume recovers the focused state. node-review preserves evidence-linked decisions and optional next_check. checkpoint request={summary,next} pauses and exports stage Markdown. deliver request={summary,review?} exports and submits a PARTIAL stage with real receipts and open gaps; no manual report construction needed. finish request={report,summary,assessment:[{criterion,attempts,summary}],status?:"partial"} handles authored final reports and goal assessment. suspend(reason) releases unrelated work. Other CLI actions use args/input_json.',
     parameters: {
       action: { type: 'string', enum: [...actions].filter(action => action !== 'knowledge'), required: true },
       args: { type: 'array', items: { type: 'string' } },
@@ -29,21 +29,21 @@ function createFusionTool(ctx, get, children, config) {
       length: { type: 'integer', description: 'artifact only: bounded slice length, defaults to 2048 bytes' },
       request: { type: 'object', additionalProperties: false, properties: {
         mission: { type: 'string', enum: ['pentest', 'src', 'redteam', 'reverse', 'audit', 'ai-assessment'], description: 'First route/execute: preserve the user task type; SRC and redteam must be explicit. Immutable after case start.' },
-        objective: { type: 'string' }, scope: { type: 'string' }, target: { type: 'string' },
+        objective: { type: 'string' }, scope: { type: 'string' }, target: { type: 'string', description: 'First call only: immutable case target. For another endpoint keep/omit this field and put the new URL in arguments.url; do not replace the case target with an endpoint.' },
         skill: { type: 'string', enum: modules.map(m => m.id) },
-        capability: { type: 'string', enum: [...new Set(modules.flatMap(m => m.execution_routes))] },
+        capability: { type: 'string', enum: [...new Set(modules.flatMap(m => m.execution_routes))], description: 'Pair with the method: fusion-recon/web.crawl for entry GET/HEAD; fusion-api or fusion-web/http.request for boundary tests; fusion-js/js.source for captured source. Capability IDs describe operations, not tool names.' },
         purpose: { type: 'string' }, tool: { type: 'string' },
-        route_id: { type: 'string', description: 'Optional for the current route when fresh arguments AND work are given. Explicit ID selects a prepared route in THIS session; skill/capability/tool remain bound.' },
+        route_id: { type: 'string', description: 'Optional for the current route with fresh arguments and work, or bound HTTP GET/HEAD using exact invocation identity. Explicit ID selects a route in THIS session.' },
         procedure: { type: 'string', description: 'Optional concrete method ID from manifests/procedures.json; binds its specialist/capability' },
         tool_reason: { type: 'string', description: 'Only for a real tool with no known capability binding: explain why its operation fits and its limitations' },
-        work: { type: 'object', additionalProperties: false, properties: {
+        work: { type: 'object', additionalProperties: false, description: 'Required for writes, opaque/unbound tools and semantic reuse across tools. Optional for configured target-bound HTTP GET/HEAD: exact arguments identify the check; old conditions are never silently inherited.', properties: {
           key: { type: 'string', required: true, description: 'Stable question/control key, reuse it when switching tools for the SAME check' },
           conditions: { type: 'object', required: true, additionalProperties: true,
             description: 'Nonempty meaningful test conditions (resource, input/sample revision, control). Same capability/target/identity and conditions deduplicate across tools; changed conditions create a new check.' },
         } },
         arguments: { type: 'object', additionalProperties: true },
         review: { type: 'object', additionalProperties: false, properties: {
-          attempt: { type: 'string', description: 'Omit to review the last observed execution in THIS session' },
+          attempt: { type: 'string', description: 'Prefer omitting for the immediately previous result in THIS session. Also accepts latest, an exact CALL-ID, or its unique prefix of at least 8 hex characters. No fuzzy match.' },
           summary: { type: 'string', required: true }, verdict: { type: 'string', enum: ['done', 'failed', 'blocked'] },
           valid_for: { type: 'number', description: 'Reuse lifetime in SECONDS; normally omit (default 86400). Replayed reviews never renew it.' },
         } },
@@ -56,16 +56,16 @@ function createFusionTool(ctx, get, children, config) {
           summary: { type: 'string', required: true },
         } }, description: 'finish: explain how actual reviewed attempts answer each criterion; files alone do not establish success' },
         node: { type: 'object', additionalProperties: false, properties: {
-          question: { type: 'string', required: true }, conclusion: { type: 'string', required: true },
-          attempts: { type: 'array', items: { type: 'string' }, required: true },
-          unresolved: { type: 'array', items: { type: 'string' }, required: true },
+          question: { type: 'string', required: true, description: 'At most 240 characters' }, conclusion: { type: 'string', required: true, description: 'At most 500 characters; put full details in the case report' },
+          attempts: { type: 'array', items: { type: 'string' }, required: true, description: '1..12 actual CALL-IDs; EVERY supporting attempt must already be reviewed, not only the latest one' },
+          unresolved: { type: 'array', items: { type: 'string' }, required: true, description: 'At most 4 questions, each at most 180 characters' },
           decision: { type: 'string', enum: ['continue', 'pivot', 'blocked', 'ready_to_deliver'], required: true },
-          next_test: { type: 'string', required: true },
+          next_test: { type: 'string', required: true, description: 'At most 300 characters' },
           next_check: { type: 'string', description: 'Optional actual pending check ID/key in this case; recover it before unrelated work. Never invent an ID.' },
         }, description: 'node-review only, at a meaningful finding/pivot/blocker: preserve the current question, evidence, gaps and next discriminating test. Not required after every tool.' },
         identity_ref: { type: 'string' }, context_slot: { type: 'string' },
         depends_on: { type: 'array', items: { type: 'string' } }, retest_reason: { type: 'string' },
-        summary: { type: 'string' }, next: { type: 'string', description: 'Optional next uncompleted action; execute persists it BEFORE dispatch; checkpoint requires it' }, reason: { type: 'string' },
+        summary: { type: 'string', description: 'finish/deliver: optional, up to 6000 characters, full text stays on disk. checkpoint: required, up to 1200. review: up to 1200. Long evidence belongs in report/artifacts.' }, next: { type: 'string', description: 'Optional next uncompleted action; execute persists it BEFORE dispatch; checkpoint requires it' }, reason: { type: 'string' },
         report: { type: 'string', description: 'Path of the report inside case_path; relative paths resolve there, never shared project cwd' },
         status: { type: 'string', enum: ['partial'] },
       }, description: 'route selects the method/tool; execute uses route_id plus actual arguments/work. Encoded JSON objects are decoded and strictly validated too. First execution needs target,objective,scope. review.summary explicitly judges the prior observation.' },
@@ -88,13 +88,19 @@ function createFusionTool(ctx, get, children, config) {
     },
   };
   const requestShape = definition.parameters.request;
+  // A standalone review naturally takes its fields directly; execute still
+  // nests review beside the next operation. Both normalize to one contract.
+  for (const key of ['attempt', 'verdict', 'valid_for']) {
+    requestShape.properties[key] = { ...requestShape.properties.review.properties[key],
+      description: 'Standalone action=review only. ' + (requestShape.properties.review.properties[key].description || '') };
+  }
   definition.parameters.request = { oneOf: [requestShape, { type: 'string',
     description: 'JSON-encoded request object; decoded and validated against the same request schema' }] };
   return defineTool(definition);
 }
 
 export function normalizeRequest(args, shape) {
-  let request = args.request;
+  let request = requestEnvelope(args, shape);
   if (typeof request === 'string') request = JSON.parse(request);
   if (request === undefined && args.input_json && ['execute', 'checkpoint', 'finish', 'suspend'].includes(args.action)) {
     request = JSON.parse(args.input_json);
@@ -102,8 +108,44 @@ export function normalizeRequest(args, shape) {
   if (request !== undefined) {
     const errors = validateToolArgs({ request: shape }, { request });
     if (errors.length) throw new Error('Invalid request: ' + errors.join('; '));
+    request = normalizeReview(args.action, request);
   }
   return { ...args, request };
+}
+
+function requestEnvelope(args, shape) {
+  const envelope = new Set(['action', 'args', 'input_json', 'file_path', 'content', 'artifact_id', 'query', 'offset', 'length', 'request']);
+  const extra = Object.keys(args).filter(key => !envelope.has(key));
+  if (!extra.length) return args.request;
+  const unknown = extra.filter(key => !Object.hasOwn(shape.properties, key));
+  if (unknown.length) throw new Error('Unknown fusion fields: ' + unknown.join(', '));
+  if (args.input_json !== undefined) {
+    throw new Error('Do not mix request/input_json with outer request fields: ' + extra.join(', ') + '. Put one complete operation inside request.');
+  }
+  if (!['route', 'execute', 'review', 'checkpoint', 'deliver', 'finish', 'suspend', 'node-review', 'save'].includes(args.action)) {
+    throw new Error('This action uses args/input_json, not outer request fields.');
+  }
+  // DSH may accept unknown outer fields. Normalize their location, never their
+  // values or payload bytes; the same strict request/leaf validators still run.
+  const nested = typeof args.request === 'string' ? JSON.parse(args.request) : args.request;
+  if (nested !== undefined && (!nested || typeof nested !== 'object' || Array.isArray(nested))) throw new Error('request must be an object');
+  const conflicts = extra.filter(key => Object.hasOwn(nested || {}, key));
+  if (conflicts.length) throw new Error('Do not mix duplicate request fields across levels: ' + conflicts.join(', '));
+  return { ...nested, ...Object.fromEntries(extra.map(key => [key, args[key]])) };
+}
+
+function normalizeReview(action, request) {
+  const flat = ['attempt', 'verdict', 'valid_for'];
+  if (action === 'review' && !request.review && request.summary !== undefined) {
+    if (Object.keys(request).some(key => ![...flat, 'summary'].includes(key))) {
+      throw new Error('Standalone review accepts only summary, attempt, verdict and valid_for; it never executes another operation.');
+    }
+    return { review: request };
+  }
+  if (flat.some(key => Object.hasOwn(request, key))) {
+    throw new Error('Put attempt/verdict/valid_for inside request.review when combining review with another action.');
+  }
+  return request;
 }
 
 function hostStatus(ctx, exec, session) {
@@ -153,7 +195,8 @@ async function performAction(ctx, get, children, args, exec) {
     return executeStep(session, { review: request.review }, null, exec.signal);
   }
   if (args.action === 'node-review') {
-    return session.call('node-review', args.args || [], args.request ? JSON.stringify(request.node || {}) : args.input_json, exec.signal);
+    const node = request.node && { ...request.node, attempts: canonicalAttemptReferences(session, request.node.attempts) };
+    return session.call('node-review', args.args || [], args.request ? JSON.stringify(node || {}) : args.input_json, exec.signal);
   }
   if (args.action === 'execute') {
     return executeAction(ctx, children, exec, session, request);
@@ -210,7 +253,18 @@ export function validateLeaf(ctx, exec, request) {
   const tool = ctx.tools.get(request.tool, exec.agent);
   if (!tool) throw new Error('execute requires an existing tool and its arguments; for review only supply request.review');
   const errors = validateJsonSchemaValue(tool.parameters, request.arguments, 'arguments');
-  if (errors.length) throw new Error('Fix ' + request.tool + ' arguments before execution: ' + errors.join('; ') + '. No target call or failed check was recorded.');
+  if (errors.length) {
+    const props = tool.parameters.properties || {};
+    const hints = [];
+    if (props.body?.type === 'string' && request.arguments?.body && typeof request.arguments.body === 'object') {
+      hints.push('body is wire text: encode the intended JSON object as a string; the host will not silently rewrite payload bytes');
+    }
+    if (props.headers?.type === 'object' && Object.hasOwn(request.arguments || {}, 'Content-Type')) {
+      hints.push('put Content-Type inside arguments.headers');
+    }
+    throw new Error('Fix ' + request.tool + ' arguments before execution: ' + errors.join('; ') +
+      (hints.length ? '. ' + hints.join('; ') : '') + '. No target call or failed check was recorded.');
+  }
 }
 
 async function dispatchChild(ctx, children, exec, name, arguments_, callId) {

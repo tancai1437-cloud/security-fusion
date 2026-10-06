@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "suite_id": "skill-pilot-v1",
+  "repetitions": 2,
+  "arms": [
+    {"id": "baseline", "skill": null, "native_adapter": false},
+    {"id": "fusion-skill", "skill": "security-fusion", "native_adapter": false},
+    {"id": "fusion-host", "skill": "security-fusion", "native_adapter": true},
+    {"id": "reverse-skill", "skill": "reverse-skill", "native_adapter": false}
+  ],
+  "tasks": [
+    {
+      "id": "web-api",
+      "objective": "评估指定容器的 Web/API 边界，保留正常对照、阴性结果与发现证据，交付可复核报告。",
+      "checkpoints": ["实际入口证据", "可复核的边界检查", "正常对照与阴性", "报告引用对应原始证据"],
+      "faults": [],
+      "oracle": "容器状态离线快照与被动请求记录；靶场完成标记仅作辅助"
+    },
+    {
+      "id": "js-source",
+      "objective": "分析指定本地 JS/源码样本，定位数据流并用真实运行结果验证结论，保留修复样本的阴性对照。",
+      "checkpoints": ["定位入口到关键逻辑", "运行验证", "修复样本对照", "结果与源码位置对应"],
+      "faults": [],
+      "oracle": "评测器私有输入与确定性输出；不向 Agent 暴露预期答案"
+    },
+    {
+      "id": "resume-depth",
+      "objective": "完成具有依赖关系的多节点研究，阶段结果落盘；在实际压缩及进程重启后继续未完成节点。",
+      "checkpoints": ["有证据的前置节点", "原生压缩事件", "进程重启事件", "依赖已有产物推进下游节点"],
+      "faults": ["native-compaction-after-checkpoint", "process-restart-after-checkpoint", "one-tool-timeout"],
+      "oracle": "节点依赖图、产物哈希和真实调用时间线；重复调用需区分有效对照和无理由重跑"
+    },
+    {
+      "id": "session-isolation",
+      "objective": "在相同工作目录分别研究两个独立目标，然后返回第一个会话续做；允许复用审核后的方法，保留目标事实隔离。",
+      "checkpoints": ["A 保存阶段结果", "B 建立独立证据", "A 恢复原节点", "方法复用不携带其他目标事实"],
+      "faults": ["switch-session-a-b-a"],
+      "oracle": "两个目标的独立随机标识与证据归属；观察串案和错误引用"
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { canonicalTarget, sameTarget, digest } from './dsh-runtime.mjs';
-import { rejectInlineCredentials } from './dsh-execution.mjs';
+import { rejectInlineCredentials, invocationIdentityAllowed } from './dsh-execution.mjs';
 
 const HOST_TOOLS = {
   'knowledge.lookup': ['fusion_knowledge'],
@@ -21,13 +21,13 @@ function catalog(session, file, key) {
 }
 
 function currentRouteRequest(session, request) {
-  if (request.route_id || request.arguments === undefined || !request.work) return request;
+  if (request.route_id || request.arguments === undefined) return request;
   const current = session.state()?.current_route;
   const saved = (session.state()?.prepared_routes || []).find(r => r.id === current?.id);
   const compatible = saved && ['skill', 'capability', 'tool', 'procedure'].every(
     key => request[key] === undefined || request[key] === saved.defaults[key]);
-  // Only the current session's method is eligible. Fresh arguments AND test
-  // conditions are mandatory; never infer an execution from a review or resume.
+  // Resolve the method independently of invocation validation, so incomplete
+  // arguments cannot masquerade as a missing tool. Execution still validates work.
   return compatible ? { ...request, route_id: saved.id } : request;
 }
 
@@ -45,15 +45,22 @@ export function expandRoute(session, request) {
   if (request.review && Object.keys(request).every(k => ['route_id', 'review'].includes(k))) {
     return { review: request.review }; // A review plus a locator is not a request to replay saved arguments.
   }
-  if (saved.used && request.arguments !== undefined && saved.defaults.capability !== 'evidence.persist' && !request.work) {
-    throw new Error('Reusing a route with arguments requires this call\'s work:{key,conditions}; do not silently inherit an old test condition.');
-  }
+  const expanded = { ...saved.defaults, ...request };
+  applyFreshConditions(session, saved, request, expanded);
   for (const field of ['skill', 'capability', 'tool', 'procedure']) {
     if (request[field] !== undefined && request[field] !== saved.defaults[field]) {
       throw new Error('route_id binds ' + field + '; use route to change the method/tool.');
     }
   }
-  return { ...saved.defaults, ...request };
+  return expanded;
+}
+
+function applyFreshConditions(session, saved, request, expanded) {
+  if (!saved.used || request.arguments === undefined) return;
+  if (request.work === undefined) delete expanded.work;
+  if (saved.defaults.capability !== 'evidence.persist' && !request.work && !invocationIdentityAllowed(session, expanded)) {
+    throw new Error('Reusing a route with arguments requires this call\'s work:{key,conditions}; do not silently inherit an old test condition. For bound HTTP reads, explicitly set arguments.method to GET or HEAD to use exact invocation identity.');
+  }
 }
 
 function selection(session, request) {
@@ -70,11 +77,19 @@ function selection(session, request) {
   const capability = procedure?.capability_id || request.capability;
   if (!capability) return { response: { status: 'capability_required', target_action_executed: false,
     skill, capabilities: module.execution_routes, next: 'Select the capability for the next concrete evidence question, then route.' } };
-  if (!module.execution_routes.includes(capability)) throw new Error(`Allowed capabilities for ${skill}: ${module.execution_routes.join(', ')}`);
+  if (!module.execution_routes.includes(capability)) throw capabilityMismatch(module, capability, modules);
   const route = catalog(session, 'execution-routes.json', 'routes').find(r => r.id === capability);
   const sourceHash = digest(readFileSync(path.join(session.config.skillRoot, module.path), 'utf8'));
   const compositionHash = digest(readFileSync(path.join(session.config.skillRoot, 'manifests/components.json'), 'utf8'));
   return { module, route, procedure, skill, capability, sourceHash, compositionHash };
+}
+
+function capabilityMismatch(module, capability, modules) {
+  const alternatives = modules.filter(m => m.execution_routes.includes(capability)).slice(0, 3).map(m => m.id);
+  return new Error(`${module.id} cannot use ${capability}. Allowed capabilities: ${module.execution_routes.join(', ')}. ` +
+    `${capability} belongs to: ${alternatives.join(', ') || 'no current specialist'}. ` +
+    'For recon entry GET/HEAD use fusion-recon/web.crawl; for API boundary checks select fusion-api/http.request. ' +
+    'Correct only the selection; preserve the task and target. No tool was called.');
 }
 
 function bindingSource(session, route, tool) {
@@ -193,7 +208,7 @@ function prepareIdentity(session, request) {
   rejectInlineCredentials(request.work);
   const task = session.state()?.task;
   if (request.target && task && !sameTarget(request.target, task.target)) {
-    throw new Error('Target differs from this session. Use a separate session; do not switch the existing case.');
+    throw new Error('Target differs from this session. Keep the existing case target; put a same-case endpoint in arguments.url and omit target on subsequent calls. A different target requires a separate session. No tool was called.');
   }
   if (task && request.mission && request.mission !== task.mission) {
     throw new Error('Mission cannot change in an existing case; use its original mission or a separate session.');
@@ -243,7 +258,7 @@ export async function prepareRoute(session, request, tools, signal) {
       context_required: choice.tool.name.startsWith('mcp__') && (!session.config.boundTools?.[choice.tool.name] ||
         !sameTarget(session.config.boundTools[choice.tool.name], request.target || session.state()?.task?.target)) },
     next_call: { action: 'execute', request: { route_id: record.id } },
-    next: 'Use the returned method NOW. execute with this route_id; supply arguments, purpose and work if not already supplied. First execution also needs objective,scope,target. Unchanged fields are restored from this route; review is never replayed. Route preparation is not a target call or completion.' };
+    next: 'Use the returned method NOW. execute uses this route (route_id optional for the current route). Supply fresh arguments. For explicitly bound HTTP GET/HEAD, omitted work uses exact invocation identity and NEVER inherits old conditions; identical observed inputs can reuse evidence, changed inputs get a new check. Writes, unbound/opaque tools and cross-tool semantic reuse need work:{key,conditions}. First execution also needs objective,scope,target. Review is never replayed. Route preparation is not a target call or completion.' };
 }
 
 /** Return a ready receipt or a route response for the model to read first. */

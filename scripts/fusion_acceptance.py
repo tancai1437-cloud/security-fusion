@@ -10,7 +10,10 @@ def validate_support(case, attempts):
         attempt = case.attempt(identity)
         check = case.check(attempt["check_id"])
         require(check["latest_attempt"] == identity and case.historical_valid(check),
-                "Assessment support is not reviewed or its evidence/dependency version changed")
+                "Assessment support is not reviewed or its evidence/dependency version changed: "
+                f"{identity} (attempt={attempt['status']}, check={check['status']}, latest={check['latest_attempt']}). "
+                "Read and review this exact observation first; changing the latest observation alone cannot settle older support. "
+                "If evidence changed, reconcile it before reusing; do not automatically rerun the target.")
         evidence.extend(a["id"] for a in case.artifacts(identity))
     return evidence
 
